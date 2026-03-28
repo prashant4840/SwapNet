@@ -31,6 +31,7 @@ create table if not exists public.users (
   learned_count integer not null default 0 check (learned_count >= 0),
   reports integer not null default 0 check (reports >= 0),
   created_at timestamptz not null default now(),
+  last_active_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
@@ -99,18 +100,45 @@ create index if not exists swap_requests_sender_idx on public.swap_requests (sen
 create index if not exists swap_requests_receiver_idx on public.swap_requests (receiver_id);
 create index if not exists swap_requests_status_idx on public.swap_requests (status);
 
+create table if not exists public.connection_requests (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references public.users(id) on delete cascade,
+  receiver_id uuid not null references public.users(id) on delete cascade,
+  message text not null,
+  status text not null default 'Pending' check (
+    status in ('Pending', 'Accepted', 'Declined')
+  ),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint no_self_connection check (sender_id <> receiver_id)
+);
+
+create index if not exists connection_requests_sender_idx on public.connection_requests (sender_id);
+create index if not exists connection_requests_receiver_idx on public.connection_requests (receiver_id);
+create index if not exists connection_requests_status_idx on public.connection_requests (status);
+
 create table if not exists public.chats (
   id uuid primary key default gen_random_uuid(),
-  swap_id uuid not null references public.swap_requests(id) on delete cascade,
+  thread_key text not null,
+  swap_id uuid references public.swap_requests(id) on delete cascade,
+  connection_request_id uuid references public.connection_requests(id) on delete cascade,
   sender_id uuid not null references public.users(id) on delete cascade,
+  receiver_id uuid references public.users(id) on delete cascade,
   message text not null,
   message_type text not null default 'text' check (
     message_type in ('text', 'template', 'system')
   ),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint chats_thread_source check (
+    (swap_id is not null and connection_request_id is null)
+    or (swap_id is null and connection_request_id is not null)
+  )
 );
 
+create index if not exists chats_thread_key_idx on public.chats (thread_key, created_at);
 create index if not exists chats_swap_id_idx on public.chats (swap_id, created_at);
+create index if not exists chats_connection_request_id_idx
+  on public.chats (connection_request_id, created_at);
 
 create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
@@ -129,7 +157,7 @@ create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
   type text not null check (
-    type in ('match', 'request', 'chat', 'review', 'system', 'post')
+    type in ('match', 'request', 'connection', 'chat', 'review', 'system', 'post')
   ),
   title text not null,
   description text not null,
@@ -183,6 +211,11 @@ before update on public.swap_requests
 for each row
 execute function public.set_updated_at();
 
+create trigger set_connection_requests_updated_at
+before update on public.connection_requests
+for each row
+execute function public.set_updated_at();
+
 create trigger set_looking_for_posts_updated_at
 before update on public.looking_for_posts
 for each row
@@ -192,6 +225,7 @@ alter table public.users enable row level security;
 alter table public.skills_offered enable row level security;
 alter table public.skills_wanted enable row level security;
 alter table public.swap_requests enable row level security;
+alter table public.connection_requests enable row level security;
 alter table public.chats enable row level security;
 alter table public.reviews enable row level security;
 alter table public.notifications enable row level security;
@@ -315,6 +349,53 @@ with check (
   )
 );
 
+create policy "Connection participants can read requests"
+on public.connection_requests
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.users
+    where public.users.id in (connection_requests.sender_id, connection_requests.receiver_id)
+      and public.users.auth_user_id = auth.uid()
+  )
+);
+
+create policy "Senders can create connection requests"
+on public.connection_requests
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.users
+    where public.users.id = connection_requests.sender_id
+      and public.users.auth_user_id = auth.uid()
+  )
+);
+
+create policy "Participants can update connection requests"
+on public.connection_requests
+for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.users
+    where public.users.id in (connection_requests.sender_id, connection_requests.receiver_id)
+      and public.users.auth_user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.users
+    where public.users.id in (connection_requests.sender_id, connection_requests.receiver_id)
+      and public.users.auth_user_id = auth.uid()
+  )
+);
+
 create policy "Chat participants can read messages"
 on public.chats
 for select
@@ -322,11 +403,34 @@ to authenticated
 using (
   exists (
     select 1
-    from public.swap_requests
-    join public.users
-      on public.users.id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
-    where public.swap_requests.id = chats.swap_id
+    from public.users
+    where public.users.id in (chats.sender_id, chats.receiver_id)
       and public.users.auth_user_id = auth.uid()
+  )
+  and (
+    exists (
+      select 1
+      from public.swap_requests
+      where public.swap_requests.id = chats.swap_id
+        and auth.uid() in (
+          select auth_user_id
+          from public.users
+          where public.users.id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
+        )
+    )
+    or exists (
+      select 1
+      from public.connection_requests
+      where public.connection_requests.id = chats.connection_request_id
+        and auth.uid() in (
+          select auth_user_id
+          from public.users
+          where public.users.id in (
+            public.connection_requests.sender_id,
+            public.connection_requests.receiver_id
+          )
+        )
+    )
   )
 );
 
@@ -341,11 +445,29 @@ with check (
     where public.users.id = chats.sender_id
       and public.users.auth_user_id = auth.uid()
   )
-  and exists (
-    select 1
-    from public.swap_requests
-    where public.swap_requests.id = chats.swap_id
-      and chats.sender_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
+  and chats.receiver_id is not null
+  and (
+    exists (
+      select 1
+      from public.swap_requests
+      where public.swap_requests.id = chats.swap_id
+        and chats.sender_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
+        and chats.receiver_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
+    )
+    or exists (
+      select 1
+      from public.connection_requests
+      where public.connection_requests.id = chats.connection_request_id
+        and public.connection_requests.status = 'Accepted'
+        and chats.sender_id in (
+          public.connection_requests.sender_id,
+          public.connection_requests.receiver_id
+        )
+        and chats.receiver_id in (
+          public.connection_requests.sender_id,
+          public.connection_requests.receiver_id
+        )
+    )
   )
 );
 
@@ -470,4 +592,5 @@ to authenticated
 using (bucket_id = 'profile-photos')
 with check (bucket_id = 'profile-photos');
 
+alter publication supabase_realtime add table public.connection_requests;
 alter publication supabase_realtime add table public.chats;

@@ -328,28 +328,104 @@ values
     '2026-03-27T12:00:00Z'
   );
 
-insert into public.chats (swap_id, sender_id, message, message_type, created_at)
+insert into public.connection_requests (
+  id,
+  sender_id,
+  receiver_id,
+  message,
+  status,
+  created_at,
+  updated_at
+)
+values
+  (
+    'cccccccc-cccc-cccc-cccc-ccccccccccc1',
+    '11111111-1111-1111-1111-111111111111',
+    '88888888-8888-8888-8888-888888888888',
+    'Your mentoring style looks like a great fit. Want to connect directly on SkillBridge?',
+    'Accepted',
+    '2026-03-27T08:30:00Z',
+    '2026-03-27T09:10:00Z'
+  ),
+  (
+    'cccccccc-cccc-cccc-cccc-ccccccccccc2',
+    '99999999-9999-9999-9999-999999999999',
+    '11111111-1111-1111-1111-111111111111',
+    'Would love to connect about workshop marketing when you have time.',
+    'Pending',
+    '2026-03-28T06:45:00Z',
+    '2026-03-28T06:45:00Z'
+  ),
+  (
+    'cccccccc-cccc-cccc-cccc-ccccccccccc3',
+    '66666666-6666-6666-6666-666666666666',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    'I think we could help each other beyond a single swap. Want to stay connected?',
+    'Accepted',
+    '2026-03-27T13:00:00Z',
+    '2026-03-27T13:35:00Z'
+  );
+
+insert into public.chats (
+  thread_key,
+  swap_id,
+  connection_request_id,
+  sender_id,
+  receiver_id,
+  message,
+  message_type,
+  created_at
+)
 values
   (
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    null,
     '22222222-2222-2222-2222-222222222222',
+    '11111111-1111-1111-1111-111111111111',
     'Accepted. Want to do our first 30-minute swap on Saturday evening?',
     'text',
     '2026-03-28T10:05:00Z'
   ),
   (
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    null,
     '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222222',
     'Session scheduled: Saturday 7 PM IST. I will share a Google Meet link.',
     'template',
     '2026-03-28T10:06:00Z'
   ),
   (
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    null,
     '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222222',
     'Here is the meeting link: https://meet.google.com/xyz-demo-room',
     'text',
     '2026-03-28T10:07:00Z'
+  ),
+  (
+    'cccccccc-cccc-cccc-cccc-ccccccccccc1',
+    null,
+    'cccccccc-cccc-cccc-cccc-ccccccccccc1',
+    '88888888-8888-8888-8888-888888888888',
+    '11111111-1111-1111-1111-111111111111',
+    'Happy to connect. Let us compare learning goals and see where a swap might emerge.',
+    'text',
+    '2026-03-27T09:15:00Z'
+  ),
+  (
+    'cccccccc-cccc-cccc-cccc-ccccccccccc3',
+    null,
+    'cccccccc-cccc-cccc-cccc-ccccccccccc3',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    '66666666-6666-6666-6666-666666666666',
+    'Direct connection unlocked. I can help on product structure whenever you want to jam on ideas.',
+    'text',
+    '2026-03-27T13:40:00Z'
   );
 
 insert into public.reviews (reviewer_id, reviewee_id, swap_id, rating, comment, created_at)
@@ -398,6 +474,15 @@ values
     '/explore',
     false,
     '2026-03-28T07:15:00Z'
+  ),
+  (
+    '11111111-1111-1111-1111-111111111111',
+    'connection',
+    'Emma accepted your connection',
+    'Direct messaging is now unlocked.',
+    '/messages/cccccccc-cccc-cccc-cccc-ccccccccccc1',
+    false,
+    '2026-03-27T09:12:00Z'
   );
 
 insert into public.looking_for_posts (user_id, skill_name, category, note, city, mode, responses, created_at)

@@ -1,7 +1,9 @@
 import { format, formatDistanceToNowStrict, isToday } from 'date-fns'
 import type {
   AppState,
+  AvailabilitySlot,
   MatchResult,
+  MessageThread,
   Review,
   SkillCategory,
   SkillEntry,
@@ -53,60 +55,124 @@ export function skillNameList(skills: SkillEntry[]) {
   return skills.map((skill) => normalizeSkillName(skill.name))
 }
 
+export function isRecentlyActive(lastActiveAt: string, withinHours = 36) {
+  return Date.now() - new Date(lastActiveAt).getTime() <= withinHours * 60 * 60 * 1000
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values))
+}
+
+function sharedSkillNames(primary: SkillEntry[], secondary: SkillEntry[]) {
+  const secondaryNames = new Set(skillNameList(secondary))
+  return uniqueStrings(
+    primary
+      .filter((skill) => secondaryNames.has(normalizeSkillName(skill.name)))
+      .map((skill) => skill.name),
+  )
+}
+
+function sharedCategories(primary: SkillEntry[], secondary: SkillEntry[]) {
+  const secondaryCategories = new Set(secondary.map((skill) => skill.category))
+  return uniqueStrings(
+    primary
+      .filter((skill) => secondaryCategories.has(skill.category))
+      .map((skill) => skill.category),
+  ) as SkillCategory[]
+}
+
+function availabilityOverlap(primary: AvailabilitySlot[], secondary: AvailabilitySlot[]) {
+  const secondarySlots = new Set(secondary)
+  return primary.filter((slot) => secondarySlots.has(slot))
+}
+
 export function computeMatchResult(
   currentUser: UserProfile | null | undefined,
   otherUser: UserProfile,
 ) {
   if (!currentUser || currentUser.id === otherUser.id) {
     const baseline = Math.min(
-      96,
-      Math.round(profileCompletion(otherUser) * 0.5 + otherUser.rating * 10 + 10),
+      94,
+      Math.round(
+        profileCompletion(otherUser) * 0.44 +
+          otherUser.rating * 11 +
+          (isRecentlyActive(otherUser.lastActiveAt) ? 6 : 0),
+      ),
     )
 
     return {
-      score: baseline,
+      score: Math.max(baseline, 28),
+      matchType: baseline >= 78 ? 'good' : 'partial',
       isPerfect: false,
       matchesOffering: [],
       matchesLearning: [],
+      reasons: otherUser.rating >= 4.5 ? ['Highly rated mentor'] : ['Well-completed public profile'],
+      sharedAvailability: [],
+      locationBonus: false,
+      ratingBoost: otherUser.rating >= 4.5,
     } satisfies MatchResult
   }
 
-  const currentOffers = skillNameList(currentUser.skillsOffered)
-  const currentWants = skillNameList(currentUser.skillsWanted)
-  const matchesOffering = otherUser.skillsOffered
-    .filter((skill) => currentWants.includes(normalizeSkillName(skill.name)))
-    .map((skill) => skill.name)
-  const matchesLearning = otherUser.skillsWanted
-    .filter((skill) => currentOffers.includes(normalizeSkillName(skill.name)))
-    .map((skill) => skill.name)
-
-  const sameCity = currentUser.city === otherUser.city ? 10 : 0
+  const directTeachMatches = sharedSkillNames(currentUser.skillsWanted, otherUser.skillsOffered)
+  const directLearnMatches = sharedSkillNames(currentUser.skillsOffered, otherUser.skillsWanted)
+  const partialTeachMatches = sharedCategories(currentUser.skillsWanted, otherUser.skillsOffered)
+  const partialLearnMatches = sharedCategories(currentUser.skillsOffered, otherUser.skillsWanted)
+  const sharedAvailability = availabilityOverlap(currentUser.availability, otherUser.availability)
+  const sameCity = currentUser.city === otherUser.city
+  const ratingBoost = otherUser.rating >= 4.5
+  const activeBoost = isRecentlyActive(otherUser.lastActiveAt)
   const modeBonus =
     currentUser.mode === otherUser.mode ||
     currentUser.mode === 'Both' ||
     otherUser.mode === 'Both'
-      ? 10
-      : 4
-  const availabilityBonus = currentUser.availability.some((slot) =>
-    otherUser.availability.includes(slot),
-  )
-    ? 10
-    : 0
+      ? 8
+      : 3
 
   const score = Math.min(
     100,
-    matchesOffering.length * 32 +
-      matchesLearning.length * 32 +
-      sameCity +
+    directTeachMatches.length * 28 +
+      directLearnMatches.length * 28 +
+      Math.max(partialTeachMatches.length - directTeachMatches.length, 0) * 10 +
+      Math.max(partialLearnMatches.length - directLearnMatches.length, 0) * 10 +
+      (sharedAvailability.length ? 8 : 0) +
+      (sameCity ? 8 : 0) +
       modeBonus +
-      availabilityBonus,
+      Math.round(otherUser.rating * 2) +
+      (activeBoost ? 4 : 0),
   )
+
+  const reasons = uniqueStrings(
+    [
+      ...directTeachMatches.map((skill) => `You want ${skill}, they teach ${skill}`),
+      ...directLearnMatches.map((skill) => `You teach ${skill}, they want ${skill}`),
+      ...partialTeachMatches
+        .filter((category) => !directTeachMatches.some((skill) => skill === category))
+        .map((category) => `They offer ${category.toLowerCase()} skills related to what you want`),
+      ...partialLearnMatches
+        .filter((category) => !directLearnMatches.some((skill) => skill === category))
+        .map((category) => `They want ${category.toLowerCase()} skills you already teach`),
+      ...(sharedAvailability.length
+        ? [`Both available ${sharedAvailability.join(', ').toLowerCase()}`]
+        : []),
+      ...(sameCity ? [`Both based in ${otherUser.city}`] : []),
+      ...(ratingBoost ? ['Highly rated user'] : []),
+      ...(activeBoost ? ['Active recently'] : []),
+    ],
+  ).slice(0, 4)
+
+  const isPerfect = directTeachMatches.length > 0 && directLearnMatches.length > 0
+  const matchType = isPerfect ? 'perfect' : score >= 74 ? 'good' : 'partial'
 
   return {
     score: Math.max(score, 18),
-    isPerfect: matchesOffering.length > 0 && matchesLearning.length > 0,
-    matchesOffering,
-    matchesLearning,
+    matchType,
+    isPerfect,
+    matchesOffering: directTeachMatches,
+    matchesLearning: directLearnMatches,
+    reasons,
+    sharedAvailability,
+    locationBonus: sameCity,
+    ratingBoost,
   } satisfies MatchResult
 }
 
@@ -131,19 +197,28 @@ export function deriveProfileMetrics(
         )
       : 0
 
+    const taughtCount = completed.length + Math.max(0, Math.round(userReviews.length / 2))
+    const learnedCount = completed.length
+    const defaultBadges = [
+      ...(rating >= 4.8 ? ['Top Rated'] : []),
+      ...(isRecentlyActive(user.lastActiveAt) ? ['Active User'] : []),
+    ]
+
     return {
       ...user,
       rating,
       reviewCount: userReviews.length,
       completedSwaps: completed.length,
-      taughtCount: completed.length,
-      learnedCount: completed.length,
+      taughtCount,
+      learnedCount,
+      badges: uniqueStrings([...defaultBadges, ...user.badges]),
       swapScore: Math.min(
         100,
         Math.round(
           rating * 18 +
             completed.length * 9 +
-            profileCompletion(user) * 0.22 -
+            profileCompletion(user) * 0.22 +
+            (isRecentlyActive(user.lastActiveAt) ? 4 : 0) -
             user.reports * 6,
         ),
       ),
@@ -151,10 +226,113 @@ export function deriveProfileMetrics(
   })
 }
 
+export function buildMessageThreads(state: AppState, currentUserId: string | null) {
+  if (!currentUserId) {
+    return [] as MessageThread[]
+  }
+
+  const messagesByThread = new Map<string, AppState['messages']>()
+  for (const message of state.messages) {
+    const threadId = message.threadId || message.swapRequestId
+    const existing = messagesByThread.get(threadId) ?? []
+    existing.push({
+      ...message,
+      threadId,
+    })
+    messagesByThread.set(threadId, existing)
+  }
+
+  const chatNotificationCount = new Map<string, number>()
+  for (const notification of state.notifications) {
+    if (
+      notification.userId === currentUserId &&
+      notification.type === 'chat' &&
+      notification.link
+    ) {
+      const threadId = notification.link.split('/').pop() ?? ''
+      chatNotificationCount.set(threadId, (chatNotificationCount.get(threadId) ?? 0) + 1)
+    }
+  }
+
+  const swapThreads: MessageThread[] = state.swapRequests
+    .filter(
+      (swap) =>
+        (swap.senderId === currentUserId || swap.receiverId === currentUserId) &&
+        ['Accepted', 'Completed'].includes(swap.status),
+    )
+    .map((swap) => {
+      const partnerId = swap.senderId === currentUserId ? swap.receiverId : swap.senderId
+      const threadMessages = (messagesByThread.get(swap.id) ?? []).sort(
+        (left, right) =>
+          new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime(),
+      )
+      const lastMessage = threadMessages.at(-1)
+
+      return {
+        id: swap.id,
+        kind: 'swap' as const,
+        partnerId,
+        createdAt: swap.createdAt,
+        updatedAt: lastMessage?.timestamp ?? swap.updatedAt,
+        preview: lastMessage?.message ?? swap.message,
+        contextLabel: swap.status === 'Completed' ? 'Swap completed' : 'Swap active',
+        status: swap.status === 'Completed' ? ('completed' as const) : ('active' as const),
+        unreadCount: chatNotificationCount.get(swap.id) ?? 0,
+      }
+    })
+
+  const connectionThreads: MessageThread[] = state.connectionRequests
+    .filter(
+      (request) =>
+        (request.senderId === currentUserId || request.receiverId === currentUserId) &&
+        request.status === 'Accepted',
+    )
+    .map((request) => {
+      const partnerId = request.senderId === currentUserId ? request.receiverId : request.senderId
+      const threadMessages = (messagesByThread.get(request.id) ?? []).sort(
+        (left, right) =>
+          new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime(),
+      )
+      const lastMessage = threadMessages.at(-1)
+
+      return {
+        id: request.id,
+        kind: 'connection' as const,
+        partnerId,
+        createdAt: request.createdAt,
+        updatedAt: lastMessage?.timestamp ?? request.updatedAt,
+        preview: lastMessage?.message ?? request.message,
+        contextLabel: 'Peer connection',
+        status: 'active' as const,
+        unreadCount: chatNotificationCount.get(request.id) ?? 0,
+      }
+    })
+
+  return [...swapThreads, ...connectionThreads].sort(
+    (left, right) =>
+      new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+  )
+}
+
 export function hydrateState(state: AppState) {
+  const connectionRequests = state.connectionRequests ?? []
+
   return {
     ...state,
-    users: deriveProfileMetrics(state.users, state.swapRequests, state.reviews),
+    connectionRequests,
+    users: deriveProfileMetrics(
+      (state.users ?? []).map((user) => ({
+        ...user,
+        lastActiveAt: user.lastActiveAt ?? user.joinedAt,
+        badges: user.badges ?? [],
+      })),
+      state.swapRequests ?? [],
+      state.reviews ?? [],
+    ),
+    messages: (state.messages ?? []).map((message) => ({
+      ...message,
+      threadId: message.threadId ?? message.swapRequestId,
+    })),
   }
 }
 

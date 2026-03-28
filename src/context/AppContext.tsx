@@ -14,8 +14,10 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type {
   AppState,
   ChatMessage,
+  ConnectionRequestPayload,
   LookingForPost,
   MatchResult,
+  MessageThread,
   NotificationItem,
   ProfilePayload,
   Review,
@@ -26,6 +28,7 @@ import type {
 } from '@/types'
 import {
   buildShareUrl,
+  buildMessageThreads,
   computeMatchResult,
   createId,
   formatShortDate,
@@ -44,6 +47,7 @@ interface AppContextValue {
   currentUser: UserProfile | null
   isAuthenticated: boolean
   unreadNotificationCount: number
+  messageThreads: MessageThread[]
   suggestedMatches: Array<UserProfile & { match: MatchResult }>
   newTodayUsers: UserProfile[]
   topRatedUsers: UserProfile[]
@@ -56,13 +60,18 @@ interface AppContextValue {
   logout: () => void
   updateProfile: (payload: ProfilePayload) => void
   sendSwapRequest: (payload: SwapRequestPayload) => boolean
+  sendConnectionRequest: (payload: ConnectionRequestPayload) => boolean
   respondToSwapRequest: (
     requestId: string,
     status: Extract<SwapRequest['status'], 'Accepted' | 'Declined'>,
   ) => void
+  respondToConnectionRequest: (
+    requestId: string,
+    status: 'Accepted' | 'Declined',
+  ) => void
   completeSwap: (requestId: string) => void
   sendChatMessage: (
-    requestId: string,
+    threadId: string,
     message: string,
     type?: ChatMessage['type'],
   ) => void
@@ -76,6 +85,8 @@ interface AppContextValue {
   getUserById: (userId: string) => UserProfile | null
   getUserByUsername: (username: string) => UserProfile | null
   getSwapById: (swapId: string) => SwapRequest | null
+  getThreadById: (threadId: string) => MessageThread | null
+  getMessagesForThread: (threadId: string) => ChatMessage[]
   getMessagesForSwap: (swapId: string) => ChatMessage[]
   getReviewsForUser: (userId: string) => Review[]
 }
@@ -148,6 +159,38 @@ function createNotification(
   } satisfies NotificationItem
 }
 
+function touchUsers(users: UserProfile[], ...userIds: Array<string | null | undefined>) {
+  const updatedAt = new Date().toISOString()
+  const targetIds = new Set(userIds.filter(Boolean))
+
+  if (!targetIds.size) {
+    return users
+  }
+
+  return users.map((user) =>
+    targetIds.has(user.id)
+      ? {
+          ...user,
+          lastActiveAt: updatedAt,
+        }
+      : user,
+  )
+}
+
+function resolveThreadPartnerId(state: AppState, currentUserId: string, threadId: string) {
+  const swap = state.swapRequests.find((item) => item.id === threadId)
+  if (swap) {
+    return swap.senderId === currentUserId ? swap.receiverId : swap.senderId
+  }
+
+  const connection = state.connectionRequests.find((item) => item.id === threadId)
+  if (connection) {
+    return connection.senderId === currentUserId ? connection.receiverId : connection.senderId
+  }
+
+  return null
+}
+
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(loadInitialState)
   const stateRef = useRef(state)
@@ -218,6 +261,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         (notification) => notification.userId === currentUser.id && !notification.read,
       ).length
     : 0
+  const messageThreads = buildMessageThreads(state, currentUserId)
 
   const suggestedMatches = currentUser
     ? state.users
@@ -315,6 +359,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       availability: ['Weekends'],
       mode: 'Online',
       joinedAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
       badges: ['New Today'],
       skillsOffered: [],
       skillsWanted: [],
@@ -370,6 +415,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
     mutateState((current) => ({
       ...current,
+      users: touchUsers(current.users, user.id),
       auth: {
         currentUserId: user.id,
         provider: 'email',
@@ -398,6 +444,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
     mutateState((current) => ({
       ...current,
+      users: touchUsers(current.users, demoUser?.id),
       auth: {
         currentUserId: demoUser?.id ?? null,
         provider: 'google',
@@ -434,6 +481,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           ? {
               ...user,
               ...payload,
+              lastActiveAt: new Date().toISOString(),
             }
           : user,
       ),
@@ -468,6 +516,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
     mutateState((current) => ({
       ...current,
+      users: touchUsers(current.users, currentUser.id),
       swapRequests: [
         {
           id: createId('swap'),
@@ -499,6 +548,61 @@ export function AppProvider({ children }: PropsWithChildren) {
     return true
   }
 
+  function sendConnectionRequest(payload: ConnectionRequestPayload) {
+    if (!currentUser) {
+      toast.error('Log in to connect with members.')
+      return false
+    }
+
+    const duplicate = stateRef.current.connectionRequests.some(
+      (request) =>
+        ((request.senderId === currentUser.id && request.receiverId === payload.receiverId) ||
+          (request.senderId === payload.receiverId && request.receiverId === currentUser.id)) &&
+        ['Pending', 'Accepted'].includes(request.status),
+    )
+
+    if (duplicate) {
+      toast.error('You already have an active connection with this member.')
+      return false
+    }
+
+    const receiver = stateRef.current.users.find((user) => user.id === payload.receiverId)
+    if (!receiver) {
+      toast.error('Could not find that member.')
+      return false
+    }
+
+    mutateState((current) => ({
+      ...current,
+      users: touchUsers(current.users, currentUser.id),
+      connectionRequests: [
+        {
+          id: createId('connection'),
+          senderId: currentUser.id,
+          receiverId: payload.receiverId,
+          message: payload.message.trim(),
+          status: 'Pending',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        ...current.connectionRequests,
+      ],
+      notifications: [
+        createNotification(
+          receiver.id,
+          'connection',
+          `${currentUser.name} wants to connect`,
+          payload.message.trim(),
+          '/dashboard',
+        ),
+        ...current.notifications,
+      ],
+    }))
+
+    toast.success('Connection request sent.')
+    return true
+  }
+
   function respondToSwapRequest(
     requestId: string,
     status: Extract<SwapRequest['status'], 'Accepted' | 'Declined'>,
@@ -519,6 +623,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
     mutateState((current) => ({
       ...current,
+      users: touchUsers(current.users, currentUser.id, sender.id),
       swapRequests: current.swapRequests.map((item) =>
         item.id === requestId
           ? {
@@ -534,8 +639,10 @@ export function AppProvider({ children }: PropsWithChildren) {
               ...current.messages,
               {
                 id: createId('message'),
+                threadId: requestId,
                 swapRequestId: requestId,
                 senderId: currentUser.id,
+                receiverId: sender.id,
                 message: 'Swap request accepted. Chat is now open for planning.',
                 timestamp: new Date().toISOString(),
                 type: 'system',
@@ -550,13 +657,77 @@ export function AppProvider({ children }: PropsWithChildren) {
           status === 'Accepted'
             ? 'Your swap can now move into chat and session planning.'
             : 'No worries. Explore other strong matches nearby.',
-          status === 'Accepted' ? `/chat/${requestId}` : '/explore',
+          status === 'Accepted' ? `/messages/${requestId}` : '/explore',
         ),
         ...current.notifications,
       ],
     }))
 
     toast.success(status === 'Accepted' ? 'Request accepted.' : 'Request declined.')
+  }
+
+  function respondToConnectionRequest(
+    requestId: string,
+    status: 'Accepted' | 'Declined',
+  ) {
+    if (!currentUser) {
+      return
+    }
+
+    const request = stateRef.current.connectionRequests.find((item) => item.id === requestId)
+    if (!request) {
+      return
+    }
+
+    const sender = stateRef.current.users.find((user) => user.id === request.senderId)
+    if (!sender) {
+      return
+    }
+
+    mutateState((current) => ({
+      ...current,
+      users: touchUsers(current.users, currentUser.id, sender.id),
+      connectionRequests: current.connectionRequests.map((item) =>
+        item.id === requestId
+          ? {
+              ...item,
+              status,
+              updatedAt: new Date().toISOString(),
+            }
+          : item,
+      ),
+      messages:
+        status === 'Accepted'
+          ? [
+              ...current.messages,
+              {
+                id: createId('message'),
+                threadId: requestId,
+                swapRequestId: requestId,
+                connectionRequestId: requestId,
+                senderId: currentUser.id,
+                receiverId: sender.id,
+                message: 'Connection accepted. You can now start chatting directly.',
+                timestamp: new Date().toISOString(),
+                type: 'system',
+              },
+            ]
+          : current.messages,
+      notifications: [
+        createNotification(
+          sender.id,
+          'connection',
+          `${currentUser.name} ${status === 'Accepted' ? 'accepted' : 'declined'} your connection`,
+          status === 'Accepted'
+            ? 'Direct messaging is now unlocked.'
+            : 'Try exploring other members with similar goals.',
+          status === 'Accepted' ? `/messages/${requestId}` : '/explore',
+        ),
+        ...current.notifications,
+      ],
+    }))
+
+    toast.success(status === 'Accepted' ? 'Connection accepted.' : 'Connection declined.')
   }
 
   function completeSwap(requestId: string) {
@@ -572,6 +743,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     const partner = resolveSwapPartner(swap, currentUser.id, stateRef.current.users)
     mutateState((current) => ({
       ...current,
+      users: touchUsers(current.users, currentUser.id, partner?.id),
       swapRequests: current.swapRequests.map((item) =>
         item.id === requestId
           ? {
@@ -586,8 +758,10 @@ export function AppProvider({ children }: PropsWithChildren) {
         ...current.messages,
         {
           id: createId('message'),
+          threadId: requestId,
           swapRequestId: requestId,
           senderId: currentUser.id,
+          receiverId: partner?.id,
           message: 'Swap marked complete. Leave a rating and review to wrap it up.',
           timestamp: new Date().toISOString(),
           type: 'system',
@@ -611,7 +785,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   }
 
   function sendChatMessage(
-    requestId: string,
+    threadId: string,
     message: string,
     type: ChatMessage['type'] = 'text',
   ) {
@@ -619,20 +793,23 @@ export function AppProvider({ children }: PropsWithChildren) {
       return
     }
 
-    const swap = stateRef.current.swapRequests.find((item) => item.id === requestId)
-    if (!swap) {
+    const partnerId = resolveThreadPartnerId(stateRef.current, currentUser.id, threadId)
+    if (!partnerId) {
       return
     }
 
-    const partner = resolveSwapPartner(swap, currentUser.id, stateRef.current.users)
+    const partner = stateRef.current.users.find((user) => user.id === partnerId) ?? null
     mutateState((current) => ({
       ...current,
+      users: touchUsers(current.users, currentUser.id, partner?.id),
       messages: [
         ...current.messages,
         {
           id: createId('message'),
-          swapRequestId: requestId,
+          threadId,
+          swapRequestId: threadId,
           senderId: currentUser.id,
+          receiverId: partner?.id,
           message: message.trim(),
           timestamp: new Date().toISOString(),
           type,
@@ -645,7 +822,7 @@ export function AppProvider({ children }: PropsWithChildren) {
               'chat',
               `${currentUser.name} sent a message`,
               message.trim(),
-              `/chat/${requestId}`,
+              `/messages/${threadId}`,
             ),
             ...current.notifications,
           ]
@@ -718,6 +895,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
     mutateState((current) => ({
       ...current,
+      users: touchUsers(current.users, currentUser.id),
       posts: [
         {
           id: createId('post'),
@@ -754,13 +932,16 @@ export function AppProvider({ children }: PropsWithChildren) {
 
     mutateState((current) => ({
       ...current,
-      users: current.users.map((user) =>
-        user.id === userId
-          ? {
-              ...user,
-              reports: user.reports + 1,
-            }
-          : user,
+      users: touchUsers(
+        current.users.map((user) =>
+          user.id === userId
+            ? {
+                ...user,
+                reports: user.reports + 1,
+              }
+            : user,
+        ),
+        currentUser.id,
       ),
     }))
 
@@ -831,13 +1012,21 @@ export function AppProvider({ children }: PropsWithChildren) {
     return stateRef.current.swapRequests.find((swap) => swap.id === swapId) ?? null
   }
 
-  function getMessagesForSwap(swapId: string) {
+  function getThreadById(threadId: string) {
+    return buildMessageThreads(stateRef.current, currentUserId).find((thread) => thread.id === threadId) ?? null
+  }
+
+  function getMessagesForThread(threadId: string) {
     return stateRef.current.messages
-      .filter((message) => message.swapRequestId === swapId)
+      .filter((message) => (message.threadId || message.swapRequestId) === threadId)
       .sort(
         (left, right) =>
           new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime(),
       )
+  }
+
+  function getMessagesForSwap(swapId: string) {
+    return getMessagesForThread(swapId)
   }
 
   function getReviewsForUser(userId: string) {
@@ -857,6 +1046,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         currentUser,
         isAuthenticated,
         unreadNotificationCount,
+        messageThreads,
         suggestedMatches,
         newTodayUsers,
         topRatedUsers,
@@ -866,7 +1056,9 @@ export function AppProvider({ children }: PropsWithChildren) {
         logout,
         updateProfile,
         sendSwapRequest,
+        sendConnectionRequest,
         respondToSwapRequest,
+        respondToConnectionRequest,
         completeSwap,
         sendChatMessage,
         addReview,
@@ -879,6 +1071,8 @@ export function AppProvider({ children }: PropsWithChildren) {
         getUserById,
         getUserByUsername,
         getSwapById,
+        getThreadById,
+        getMessagesForThread,
         getMessagesForSwap,
         getReviewsForUser,
       }}

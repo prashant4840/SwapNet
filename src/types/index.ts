@@ -4,9 +4,12 @@ export type AvailabilitySlot = 'Weekdays' | 'Weekends' | 'Evenings'
 export type LearningMode = 'Online' | 'In-person' | 'Both'
 export type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced'
 export type RequestStatus = 'Pending' | 'Accepted' | 'Declined' | 'Completed'
+export type ConnectionRequestStatus = 'Pending' | 'Accepted' | 'Declined'
+export type MatchType = 'perfect' | 'good' | 'partial'
 export type NotificationType =
   | 'match'
   | 'request'
+  | 'connection'
   | 'chat'
   | 'review'
   | 'system'
@@ -41,6 +44,7 @@ export interface UserProfile {
   availability: AvailabilitySlot[]
   mode: LearningMode
   joinedAt: string
+  lastActiveAt: string
   swapScore: number
   rating: number
   reviewCount: number
@@ -68,11 +72,36 @@ export interface SwapRequest {
 
 export interface ChatMessage {
   id: string
+  threadId: string
   swapRequestId: string
+  connectionRequestId?: string
   senderId: string
+  receiverId?: string
   message: string
   timestamp: string
   type: 'text' | 'template' | 'system'
+}
+
+export interface ConnectionRequest {
+  id: string
+  senderId: string
+  receiverId: string
+  message: string
+  status: ConnectionRequestStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MessageThread {
+  id: string
+  kind: 'swap' | 'connection'
+  partnerId: string
+  createdAt: string
+  updatedAt: string
+  preview: string
+  contextLabel: string
+  status: 'active' | 'completed' | 'pending'
+  unreadCount: number
 }
 
 export interface Review {
@@ -120,11 +149,16 @@ export interface FeedFilters {
   city: 'All' | string
   mode: 'All' | LearningMode
   rating: 'All' | '3+' | '4+' | '4.5+'
+  sort: 'match' | 'rating' | 'recent'
+  perfectOnly: boolean
+  nearbyOnly: boolean
+  topRatedOnly: boolean
 }
 
 export interface AppState {
   users: UserProfile[]
   swapRequests: SwapRequest[]
+  connectionRequests: ConnectionRequest[]
   messages: ChatMessage[]
   reviews: Review[]
   notifications: NotificationItem[]
@@ -136,9 +170,14 @@ export interface AppState {
 
 export interface MatchResult {
   score: number
+  matchType: MatchType
   isPerfect: boolean
   matchesOffering: string[]
   matchesLearning: string[]
+  reasons: string[]
+  sharedAvailability: AvailabilitySlot[]
+  locationBonus: boolean
+  ratingBoost: boolean
 }
 
 export interface SignupPayload {
@@ -171,4 +210,9 @@ export interface SwapRequestPayload {
   message: string
   offeredSkillId: string
   wantedSkillId: string
+}
+
+export interface ConnectionRequestPayload {
+  receiverId: string
+  message: string
 }

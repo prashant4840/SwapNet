@@ -318,7 +318,7 @@ export function LandingPage() {
       <div id="top" className="relative">
         <header
           className={cn(
-            'fixed inset-x-0 top-0 z-50 border-b transition-all duration-300 ease-out',
+            'fixed inset-x-0 top-0 z-50 w-full overflow-hidden border-b transition-all duration-300 ease-out',
             isScrolled
               ? 'border-black/5 bg-white/70 backdrop-blur-xl dark:border-brand-400/15 dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.8))]'
               : 'border-transparent bg-transparent backdrop-blur-0',
@@ -326,7 +326,7 @@ export function LandingPage() {
         >
           <div
             className={cn(
-              'mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 transition-all duration-300 ease-out sm:px-6 lg:px-8',
+              'mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-4 transition-all duration-300 ease-out sm:px-6',
               isScrolled ? 'py-3' : 'py-4',
             )}
           >
@@ -346,7 +346,7 @@ export function LandingPage() {
 
               <ButtonLink
                 className={cn(
-                  'h-10 rounded-full border-0 bg-brand-600 px-5 text-white shadow-[0_14px_28px_rgba(79,70,229,0.24)] hover:bg-brand-500 hover:text-white',
+                  'h-auto rounded-full border-0 bg-brand-600 px-4 py-2 text-white shadow-[0_14px_28px_rgba(79,70,229,0.24)] hover:bg-brand-500 hover:text-white lg:px-6 lg:py-2.5',
                   hoverButtonClass,
                 )}
                 to="/auth"
@@ -394,7 +394,7 @@ export function LandingPage() {
 
                   <ButtonLink
                     className={cn(
-                      'h-11 w-full rounded-2xl border-0 bg-brand-600 px-5 text-white shadow-soft hover:bg-brand-500 hover:text-white',
+                      'h-auto w-full rounded-2xl border-0 bg-brand-600 px-4 py-2 text-white shadow-soft hover:bg-brand-500 hover:text-white',
                       hoverButtonClass,
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -605,7 +605,7 @@ export function LandingPage() {
                   viewport={revealViewport}
                   whileInView={{ opacity: 1, y: 0 }}
                 >
-                  <span className="absolute left-4 top-1 text-[4.5rem] font-black leading-none text-slate-200/75 dark:text-slate-700/70">
+                  <span className="absolute right-4 top-3 text-[5rem] font-extrabold leading-none text-brand-600/10 dark:text-white/[0.06]">
                     {(index + 1).toString().padStart(2, '0')}
                   </span>
                   <div className="relative space-y-4">

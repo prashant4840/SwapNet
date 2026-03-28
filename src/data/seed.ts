@@ -9,10 +9,21 @@ function avatar(id: number) {
 }
 
 function user(
-  profile: Omit<UserProfile, 'swapScore' | 'rating' | 'reviewCount' | 'completedSwaps' | 'taughtCount' | 'learnedCount' | 'reports'>,
+  profile: Omit<
+    UserProfile,
+    | 'swapScore'
+    | 'rating'
+    | 'reviewCount'
+    | 'completedSwaps'
+    | 'taughtCount'
+    | 'learnedCount'
+    | 'reports'
+    | 'lastActiveAt'
+  > & { lastActiveAt?: string },
 ) {
   return {
     ...profile,
+    lastActiveAt: profile.lastActiveAt ?? profile.joinedAt,
     swapScore: 0,
     rating: 0,
     reviewCount: 0,
@@ -67,6 +78,7 @@ const users = [
     availability: ['Weekends', 'Evenings'],
     mode: 'Both',
     joinedAt: today,
+    lastActiveAt: '2026-03-28T12:30:00.000Z',
     badges: ['Host', 'Fast Responder'],
     skillsOffered: avaOffered,
     skillsWanted: avaWanted,
@@ -84,6 +96,7 @@ const users = [
     availability: ['Weekdays', 'Evenings'],
     mode: 'Online',
     joinedAt: today,
+    lastActiveAt: '2026-03-28T12:12:00.000Z',
     badges: ['Top Rated'],
     skillsOffered: rohanOffered,
     skillsWanted: rohanWanted,
@@ -101,6 +114,7 @@ const users = [
     availability: ['Weekdays', 'Weekends'],
     mode: 'Both',
     joinedAt: '2026-03-27T09:00:00.000Z',
+    lastActiveAt: '2026-03-28T07:40:00.000Z',
     badges: ['Wellness Guide'],
     skillsOffered: [
       createSkill('skill-mia-yoga', 'Yoga', 'Wellness', 'Advanced'),
@@ -124,6 +138,7 @@ const users = [
     availability: ['Weekends', 'Evenings'],
     mode: 'Both',
     joinedAt: '2026-03-20T09:00:00.000Z',
+    lastActiveAt: '2026-03-27T16:15:00.000Z',
     badges: ['Top Rated'],
     skillsOffered: [
       createSkill('skill-sofia-spanish', 'Spanish', 'Languages', 'Advanced'),
@@ -147,6 +162,7 @@ const users = [
     availability: ['Weekends'],
     mode: 'In-person',
     joinedAt: '2026-03-16T09:00:00.000Z',
+    lastActiveAt: '2026-03-24T18:20:00.000Z',
     badges: ['Chef Circle'],
     skillsOffered: [
       createSkill('skill-arjun-cooking', 'Cooking', 'Lifestyle', 'Advanced'),
@@ -170,6 +186,7 @@ const users = [
     availability: ['Weekdays', 'Evenings'],
     mode: 'Online',
     joinedAt: '2026-03-14T09:00:00.000Z',
+    lastActiveAt: '2026-03-28T11:55:00.000Z',
     badges: ['Creative Pro'],
     skillsOffered: [
       createSkill('skill-neha-video', 'Video Editing', 'Creative', 'Advanced'),
@@ -193,6 +210,7 @@ const users = [
     availability: ['Weekdays'],
     mode: 'Online',
     joinedAt: '2026-03-23T09:00:00.000Z',
+    lastActiveAt: '2026-03-27T05:40:00.000Z',
     badges: ['Global Mentor'],
     skillsOffered: [
       createSkill('skill-leo-japanese', 'Japanese', 'Languages', 'Advanced'),
@@ -216,6 +234,7 @@ const users = [
     availability: ['Weekends', 'Evenings'],
     mode: 'Online',
     joinedAt: '2026-03-18T09:00:00.000Z',
+    lastActiveAt: '2026-03-28T08:18:00.000Z',
     badges: ['Top Rated'],
     skillsOffered: [
       createSkill('skill-emma-speaking', 'Public Speaking', 'Business', 'Advanced'),
@@ -239,6 +258,7 @@ const users = [
     availability: ['Weekdays', 'Evenings'],
     mode: 'Both',
     joinedAt: today,
+    lastActiveAt: '2026-03-28T10:25:00.000Z',
     badges: ['Academic Ace'],
     skillsOffered: [
       createSkill('skill-kavya-maths', 'Maths', 'Academic', 'Advanced'),
@@ -262,6 +282,7 @@ const users = [
     availability: ['Weekends'],
     mode: 'Online',
     joinedAt: '2026-03-21T09:00:00.000Z',
+    lastActiveAt: '2026-03-26T09:45:00.000Z',
     badges: ['Product Builder'],
     skillsOffered: [
       createSkill('skill-daniel-webdev', 'Web Dev', 'Tech', 'Advanced'),
@@ -285,6 +306,7 @@ const users = [
     availability: ['Weekdays', 'Weekends'],
     mode: 'Both',
     joinedAt: '2026-03-22T09:00:00.000Z',
+    lastActiveAt: '2026-03-28T09:40:00.000Z',
     badges: ['Reliable Swap'],
     skillsOffered: [
       createSkill('skill-priya-fitness', 'Fitness', 'Wellness', 'Advanced'),
@@ -308,6 +330,7 @@ const users = [
     availability: ['Weekdays', 'Evenings'],
     mode: 'Online',
     joinedAt: '2026-03-10T09:00:00.000Z',
+    lastActiveAt: '2026-03-28T12:05:00.000Z',
     badges: ['Top Rated'],
     skillsOffered: [
       createSkill('skill-omar-finance', 'Finance', 'Business', 'Advanced'),
@@ -398,37 +421,97 @@ const swapRequests = [
   },
 ] as AppState['swapRequests']
 
+const connectionRequests = [
+  {
+    id: 'connection-ava-emma',
+    senderId: 'user-ava',
+    receiverId: 'user-emma',
+    message: 'I like how you coach public speaking. Want to connect and compare lesson formats?',
+    status: 'Accepted',
+    createdAt: '2026-03-27T15:00:00.000Z',
+    updatedAt: '2026-03-27T16:00:00.000Z',
+  },
+  {
+    id: 'connection-kavya-ava',
+    senderId: 'user-kavya',
+    receiverId: 'user-ava',
+    message: 'Would love to connect around beginner guitar practice and workshop marketing.',
+    status: 'Pending',
+    createdAt: '2026-03-28T10:45:00.000Z',
+    updatedAt: '2026-03-28T10:45:00.000Z',
+  },
+  {
+    id: 'connection-neha-daniel',
+    senderId: 'user-neha',
+    receiverId: 'user-daniel',
+    message: 'Happy to trade async creative feedback with someone building product-side systems.',
+    status: 'Accepted',
+    createdAt: '2026-03-26T10:30:00.000Z',
+    updatedAt: '2026-03-26T12:15:00.000Z',
+  },
+] as AppState['connectionRequests']
+
 const messages = [
   {
     id: 'msg-1',
+    threadId: 'swap-ava-rohan',
     swapRequestId: 'swap-ava-rohan',
     senderId: 'user-rohan',
+    receiverId: 'user-ava',
     message: 'Accepted. Want to do our first 30-minute swap on Saturday evening?',
     timestamp: '2026-03-28T10:05:00.000Z',
     type: 'text',
   },
   {
     id: 'msg-2',
+    threadId: 'swap-ava-rohan',
     swapRequestId: 'swap-ava-rohan',
     senderId: 'user-ava',
+    receiverId: 'user-rohan',
     message: 'Session scheduled: Saturday 7 PM IST. I will share a Google Meet link.',
     timestamp: '2026-03-28T10:06:00.000Z',
     type: 'template',
   },
   {
     id: 'msg-3',
+    threadId: 'swap-ava-rohan',
     swapRequestId: 'swap-ava-rohan',
     senderId: 'user-ava',
+    receiverId: 'user-rohan',
     message: 'Here is the meeting link: https://meet.google.com/xyz-demo-room',
     timestamp: '2026-03-28T10:07:00.000Z',
     type: 'text',
   },
   {
     id: 'msg-4',
+    threadId: 'swap-neha-omar',
     swapRequestId: 'swap-neha-omar',
     senderId: 'user-neha',
+    receiverId: 'user-omar',
     message: 'I made a short Loom with video notes. Want me to send it before we meet?',
     timestamp: '2026-03-27T12:10:00.000Z',
+    type: 'text',
+  },
+  {
+    id: 'msg-5',
+    threadId: 'connection-ava-emma',
+    swapRequestId: 'connection-ava-emma',
+    connectionRequestId: 'connection-ava-emma',
+    senderId: 'user-emma',
+    receiverId: 'user-ava',
+    message: 'Absolutely. I can share my public speaking workshop framework if you want.',
+    timestamp: '2026-03-27T16:05:00.000Z',
+    type: 'text',
+  },
+  {
+    id: 'msg-6',
+    threadId: 'connection-neha-daniel',
+    swapRequestId: 'connection-neha-daniel',
+    connectionRequestId: 'connection-neha-daniel',
+    senderId: 'user-daniel',
+    receiverId: 'user-neha',
+    message: 'Let us do async feedback first, then a live review later this week.',
+    timestamp: '2026-03-26T12:20:00.000Z',
     type: 'text',
   },
 ] as AppState['messages']
@@ -516,7 +599,16 @@ const notifications = [
     'Saturday 7 PM IST is locked in.',
     'chat',
     '2026-03-28T10:07:00.000Z',
-    '/chat/swap-ava-rohan',
+    '/messages/swap-ava-rohan',
+  ),
+  note(
+    'notification-4',
+    'user-ava',
+    'Emma accepted your connection',
+    'You can now start a direct conversation.',
+    'connection',
+    '2026-03-27T16:01:00.000Z',
+    '/messages/connection-ava-emma',
   ),
 ] as AppState['notifications']
 
@@ -560,6 +652,7 @@ export function getSeedState(theme: AppState['theme'] = 'light') {
   return hydrateState({
     users,
     swapRequests,
+    connectionRequests,
     messages,
     reviews,
     notifications,
