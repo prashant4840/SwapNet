@@ -318,7 +318,8 @@ export function LandingPage() {
       <div id="top" className="relative">
         <header
           className={cn(
-            'fixed left-1/2 top-0 z-50 w-[calc(100%-1.5rem)] max-w-[1200px] -translate-x-1/2 overflow-hidden rounded-b-2xl rounded-t-none border border-[rgba(255,255,255,0.08)] transition-all duration-300 ease-out sm:w-[calc(100%-3rem)]',
+           // 'fixed left-1/2 top-0 z-50 w-[calc(100%-1.5rem)] max-w-[1200px] -translate-x-1/2 overflow-hidden rounded-b-2xl rounded-t-none border border-[rgba(255,255,255,0.08)] transition-all duration-300 ease-out sm:w-[calc(100%-3rem)]',
+           'fixed left-0 top-0 z-50 w-full transition-all duration-300 ease-out',
             isScrolled
               ? 'border-black/5 bg-white/70 backdrop-blur-xl dark:border-brand-400/15 dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.82),rgba(15,23,42,0.8))]'
               : 'border-transparent bg-transparent backdrop-blur-0',
@@ -326,7 +327,8 @@ export function LandingPage() {
         >
           <div
             className={cn(
-              'mx-auto flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden px-4 transition-all duration-300 ease-out sm:px-6',
+             // 'mx-auto flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden px-4 transition-all duration-300 ease-out sm:px-6',
+             'mx-auto flex w-full max-w-7xl min-w-0 items-center justify-between gap-3 overflow-hidden px-4 transition-all duration-300 ease-out sm:px-6 lg:px-8',
               isScrolled ? 'py-3' : 'py-4',
             )}
           >
