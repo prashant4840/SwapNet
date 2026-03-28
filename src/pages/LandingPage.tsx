@@ -326,14 +326,14 @@ export function LandingPage() {
         >
           <div
             className={cn(
-              'mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-4 transition-all duration-300 ease-out sm:px-6',
+              'mx-auto flex w-full max-w-[1200px] min-w-0 items-center justify-between gap-3 overflow-hidden px-4 transition-all duration-300 ease-out sm:px-6',
               isScrolled ? 'py-3' : 'py-4',
             )}
           >
             <LandingBrand />
 
-            <div className="hidden items-center gap-6 md:flex">
-              <nav className="flex items-center gap-6">
+            <div className="hidden min-w-0 items-center gap-4 md:flex lg:gap-6">
+              <nav className="flex min-w-0 items-center gap-4 lg:gap-6">
                 {landingLinks.map((item) => (
                   <LandingNavItem item={item} key={item.label} />
                 ))}
@@ -346,7 +346,7 @@ export function LandingPage() {
 
               <ButtonLink
                 className={cn(
-                  'h-auto rounded-full border-0 bg-brand-600 px-4 py-2 text-white shadow-[0_14px_28px_rgba(79,70,229,0.24)] hover:bg-brand-500 hover:text-white lg:px-6 lg:py-2.5',
+                  'h-auto shrink-0 rounded-full border-0 bg-brand-600 px-4 py-2 text-white shadow-[0_14px_28px_rgba(79,70,229,0.24)] hover:bg-brand-500 hover:text-white lg:px-6 lg:py-2.5',
                   hoverButtonClass,
                 )}
                 to="/auth"
@@ -605,10 +605,10 @@ export function LandingPage() {
                   viewport={revealViewport}
                   whileInView={{ opacity: 1, y: 0 }}
                 >
-                  <span className="absolute right-4 top-3 text-[5rem] font-extrabold leading-none text-brand-600/10 dark:text-white/[0.06]">
+                  <span className="pointer-events-none absolute right-4 top-3 select-none text-[5rem] font-extrabold leading-none text-[rgba(99,102,241,0.08)] dark:text-[rgba(255,255,255,0.06)]">
                     {(index + 1).toString().padStart(2, '0')}
                   </span>
-                  <div className="relative space-y-4">
+                  <div className="relative z-10 space-y-4">
                     <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
                       <Icon className="size-5" />
                     </div>
