@@ -63,11 +63,12 @@ The app works out of the box in demo mode with seeded local data and becomes rea
 
 ![Mobile explore page](public/screenshots/mobile-explore.png) -->
 
-### Mobile
+<!-- ### Mobile
 
 | Explore | Profile | Chat |
 |--------|---------|------|
-| ![Mobile explore](public/screenshots/mobile-explore.png) | ![Profile](public/screenshots/profile.png) | ![Chat](public/screenshots/chat.png) |
+| ![Mobile explore](public/screenshots/mobile-explore.png) | ![Profile](public/screenshots/profile.png) | ![Chat](public/screenshots/chat.png) | -->
+
 
 ## Local Setup
 
