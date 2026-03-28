@@ -59,9 +59,15 @@ The app works out of the box in demo mode with seeded local data and becomes rea
 
 ![Profile page](public/screenshots/profile.png)
 
-### Mobile Explore
+<!-- ### Mobile Explore
 
-![Mobile explore page](public/screenshots/mobile-explore.png)
+![Mobile explore page](public/screenshots/mobile-explore.png) -->
+
+### Mobile
+
+| Explore | Profile | Chat |
+|--------|---------|------|
+| ![Mobile explore](public/screenshots/mobile-explore.png) | ![Profile](public/screenshots/profile.png) | ![Chat](public/screenshots/chat.png) |
 
 ## Local Setup
 
