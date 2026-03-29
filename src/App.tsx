@@ -1,6 +1,13 @@
 import { Suspense, lazy } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { AppProvider, useApp } from '@/context/AppContext'
 
@@ -48,10 +55,15 @@ function RouteFallback() {
 }
 
 function ProtectedLayout() {
-  const { isAuthenticated } = useApp()
+  const location = useLocation()
+  const { currentUser, isAuthenticated, loading } = useApp()
+
+  if (loading || (isAuthenticated && !currentUser)) {
+    return <RouteFallback />
+  }
 
   if (!isAuthenticated) {
-    return <Navigate replace to="/auth" />
+    return <Navigate replace state={{ from: location.pathname }} to="/auth" />
   }
 
   return <Outlet />
