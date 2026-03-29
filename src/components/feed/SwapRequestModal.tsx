@@ -49,6 +49,7 @@ export function SwapRequestModal({
   const [message, setMessage] = useState(initialState.message)
   const [offeredSkillId, setOfferedSkillId] = useState(initialState.offeredSkillId)
   const [wantedSkillId, setWantedSkillId] = useState(initialState.wantedSkillId)
+  const [sending, setSending] = useState(false)
 
   if (!isOpen || !user) {
     return null
@@ -81,6 +82,20 @@ export function SwapRequestModal({
 
   const selectedOffered = currentUser.skillsOffered.find((skill) => skill.id === offeredSkillId)
   const selectedWanted = currentUser.skillsWanted.find((skill) => skill.id === wantedSkillId)
+
+  async function handleSend() {
+    setSending(true)
+    const didSend = await sendSwapRequest({
+      receiverId: user!.id,
+      message,
+      offeredSkillId,
+      wantedSkillId,
+    })
+    setSending(false)
+    if (didSend) {
+      onClose()
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
@@ -153,7 +168,7 @@ export function SwapRequestModal({
           <textarea
             className="min-h-32 w-full rounded-3xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
             onChange={(event) => setMessage(event.target.value)}
-            placeholder="Tell them how you’d like to exchange skills."
+            placeholder="Tell them how you'd like to exchange skills."
             value={message}
           />
         </label>
@@ -162,21 +177,8 @@ export function SwapRequestModal({
           <Button onClick={onClose} variant="ghost">
             Cancel
           </Button>
-          <Button
-            onClick={() => {
-              const didSend = sendSwapRequest({
-                receiverId: user.id,
-                message,
-                offeredSkillId,
-                wantedSkillId,
-              })
-
-              if (didSend) {
-                onClose()
-              }
-            }}
-          >
-            Send request
+          <Button disabled={sending} onClick={handleSend}>
+            {sending ? 'Sending...' : 'Send request'}
           </Button>
         </div>
       </div>
