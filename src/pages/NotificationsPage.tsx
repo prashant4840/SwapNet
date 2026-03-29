@@ -8,8 +8,30 @@ import { SectionTitle } from '@/components/common/SectionTitle'
 import { useApp } from '@/context/AppContext'
 import { formatRelativeTime } from '@/utils/app'
 
+function SkeletonNotificationItem() {
+  return (
+    <div className="glass-panel flex items-center justify-between gap-4 p-5 animate-pulse">
+      <div className="flex items-start gap-4">
+        <div className="rounded-2xl p-3 bg-slate-200 dark:bg-slate-700">
+          <div className="size-5" />
+        </div>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+            <div className="h-5 w-12 bg-slate-200 dark:bg-slate-700 rounded-full" />
+          </div>
+          <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+        </div>
+      </div>
+      <div className="size-4 bg-slate-200 dark:bg-slate-700 rounded" />
+    </div>
+  )
+}
+
 export function NotificationsPage() {
-  const { currentUser, markAllNotificationsRead, markNotificationRead, state } = useApp()
+  const { currentUser, loading, markAllNotificationsRead, markNotificationRead, state } = useApp()
 
   if (!currentUser) {
     return null
@@ -41,7 +63,13 @@ export function NotificationsPage() {
           </SectionTitle>
         </section>
 
-        {notifications.length ? (
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <SkeletonNotificationItem key={i} />
+            ))}
+          </div>
+        ) : notifications.length > 0 ? (
           <section className="space-y-4">
             {notifications.map((notification) => {
               const content = (
