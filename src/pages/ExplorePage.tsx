@@ -1,7 +1,8 @@
-import { useDeferredValue, useState, type ReactNode } from 'react'
+import { useDeferredValue, useState, useEffect, startTransition, type ReactNode, useMemo } from 'react'
 import {
   ArrowUpDown,
   MapPin,
+  RefreshCw,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -18,8 +19,9 @@ import { SwapRequestModal } from '@/components/feed/SwapRequestModal'
 import { UserCard } from '@/components/feed/UserCard'
 import { useApp } from '@/context/AppContext'
 import { skillCategories } from '@/data/skills'
-import type { FeedFilters, UserProfile } from '@/types'
+import type { FeedFilters, UserProfile, SkillEntry, MatchResult } from '@/types'
 import { computeMatchResult, uniqueCities } from '@/utils/app'
+import { useDebounce } from '@/hooks/useDebounce'
 
 const initialFilters: FeedFilters = {
   query: '',
@@ -90,71 +92,92 @@ function ToggleButton({
 }
 
 export function ExplorePage() {
-  const { currentUser, state, suggestedMatches } = useApp()
+  const { currentUser, state, suggestedMatches, loading } = useApp()
   const [filters, setFilters] = useState(initialFilters)
   const [page, setPage] = useState(1)
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const deferredQuery = useDeferredValue(filters.query)
-  const query = deferredQuery.trim().toLowerCase()
+  const debouncedQuery = useDebounce(deferredQuery, 300)
+  const query = debouncedQuery.trim().toLowerCase()
 
-  const results = state.users
-    .filter((user) => user.id !== currentUser?.id)
-    .map((user) => ({
-      user,
-      match: computeMatchResult(currentUser, user),
-    }))
-    .filter(({ user, match }) => {
-      if (filters.category !== 'All') {
+  const deferredFilters = useDeferredValue(filters)
+
+  const memoizedResults = useMemo(() => {
+    if (!currentUser) return []
+    
+    const deferredResults = currentUser
+      ? state.users
+          .filter((user) => user.id !== currentUser.id)
+          .map((user) => ({
+            user,
+            match: computeMatchResult(currentUser, user),
+          }))
+      : []
+
+    return deferredResults.filter(({ user, match }: { user: UserProfile; match: MatchResult }) => {
+      // Query filtering
+      if (query && !user.name.toLowerCase().includes(query) && 
+          !user.skillsOffered?.some((s: SkillEntry) => s.name.toLowerCase().includes(query)) &&
+          !user.skillsWanted?.some((s: SkillEntry) => s.name.toLowerCase().includes(query))) {
+        return false
+      }
+
+      if (deferredFilters.category !== 'All') {
         const matchesCategory = [...user.skillsOffered, ...user.skillsWanted].some(
-          (skill) => skill.category === filters.category,
+          (skill) => skill.category === deferredFilters.category,
         )
-        if (!matchesCategory) {
-          return false
-        }
+        if (!matchesCategory) return false
       }
 
-      if (filters.city !== 'All' && user.city !== filters.city) {
+      if (deferredFilters.city !== 'All' && user.city !== deferredFilters.city) {
         return false
       }
 
-      if (!modeMatches(filters.mode, user.mode)) {
+      if (!modeMatches(deferredFilters.mode, user.mode)) {
         return false
       }
 
-      if (user.rating < minimumRating(filters.rating)) {
+      const minRating = minimumRating(deferredFilters.rating)
+      if (deferredFilters.rating !== 'All' && user.rating < minRating) {
         return false
       }
 
-      if (filters.perfectOnly && match.matchType !== 'perfect') {
+      if (deferredFilters.perfectOnly && match.matchType !== 'perfect') {
         return false
       }
 
-      if (filters.nearbyOnly && currentUser && currentUser.city !== user.city) {
+      if (deferredFilters.nearbyOnly && currentUser && user.city !== currentUser.city) {
         return false
       }
 
-      if (filters.topRatedOnly && user.rating < 4.8) {
+      if (deferredFilters.topRatedOnly && user.rating < 4.8) {
         return false
       }
 
-      if (!query) {
-        return true
+      if (deferredFilters.query) {
+        const searchLower = deferredFilters.query.toLowerCase()
+        return (
+          user.name.toLowerCase().includes(searchLower) ||
+          user.headline.toLowerCase().includes(searchLower) ||
+          user.bio.toLowerCase().includes(searchLower) ||
+          user.skillsOffered.some((skill) => skill.name.toLowerCase().includes(searchLower)) ||
+          user.skillsWanted.some((skill) => skill.name.toLowerCase().includes(searchLower))
+        )
       }
 
-      const haystack = [
-        user.name,
-        user.city,
-        user.bio,
-        user.headline,
-        ...user.skillsOffered.map((skill) => skill.name),
-        ...user.skillsWanted.map((skill) => skill.name),
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      return haystack.includes(query)
+      return true
     })
-    .sort((left, right) => {
+  }, [state.users, currentUser, deferredFilters, query])
+
+  const paginatedResults = useMemo(() => {
+    const startIndex = (page - 1) * 6
+    return memoizedResults.slice(startIndex, startIndex + 6)
+  }, [memoizedResults, page])
+
+  const sortedResults = useMemo(() => {
+    return paginatedResults.sort((left, right) => {
       if (filters.sort === 'rating') {
         return (
           right.user.rating - left.user.rating ||
@@ -172,9 +195,48 @@ export function ExplorePage() {
 
       return right.match.score - left.match.score || right.user.rating - left.user.rating
     })
+  }, [paginatedResults, filters.sort])
 
   const perPage = 6
-  const visibleResults = results.slice(0, page * perPage)
+  const visibleResults = sortedResults.slice(0, page * perPage)
+
+  useEffect(() => {
+    if (!loading) {
+      startTransition(() => {
+        setIsInitialLoad(false)
+      })
+    }
+  }, [loading])
+
+  async function handleRefresh() {
+    setIsRefreshing(true)
+    // Simulate refresh delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    setIsRefreshing(false)
+  }
+
+  function SkeletonCard() {
+    return (
+      <div className="glass-panel p-5 space-y-4 animate-pulse">
+        <div className="flex items-center gap-4">
+          <div className="size-14 rounded-3xl bg-slate-200 dark:bg-slate-700" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+            <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
+          </div>
+          <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-16" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-5/6" />
+        </div>
+        <div className="flex gap-2">
+          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded flex-1" />
+          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-16" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <PageTransition>
@@ -186,9 +248,20 @@ export function ExplorePage() {
             <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
               <div className="max-w-3xl space-y-3">
                 <Badge tone="brand">Smart Match Feed</Badge>
-                <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
-                  Discover people you can actually learn with.
-                </h1>
+                <div className="flex items-center gap-4">
+                  <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
+                    Discover people you can actually learn with.
+                  </h1>
+                  <Button
+                    disabled={isRefreshing || loading}
+                    onClick={handleRefresh}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
                 <p className="text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
                   Explore reciprocal skill matches sorted by compatibility, availability,
                   proximity, and trust signals. The strongest swaps rise to the top by default.
@@ -199,17 +272,17 @@ export function ExplorePage() {
                 {[
                   {
                     label: 'Perfect matches',
-                    value: results.filter((entry) => entry.match.matchType === 'perfect').length,
+                    value: sortedResults.filter((entry) => entry.match.matchType === 'perfect').length,
                   },
                   {
                     label: 'Top rated',
-                    value: results.filter((entry) => entry.user.rating >= 4.8).length,
+                    value: sortedResults.filter((entry) => entry.user.rating >= 4.8).length,
                   },
                   {
                     label: 'Nearby',
                     value: currentUser
-                      ? results.filter((entry) => entry.user.city === currentUser.city).length
-                      : results.length,
+                      ? sortedResults.filter((entry) => entry.user.city === currentUser.city).length
+                      : sortedResults.length,
                   },
                 ].map((stat) => (
                   <div
@@ -312,7 +385,7 @@ export function ExplorePage() {
             </div>
 
             <div className="relative flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 overflow-x-auto">
                 <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-600 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-300">
                   <SlidersHorizontal className="size-4" />
                   Filters
@@ -460,13 +533,19 @@ export function ExplorePage() {
 
         <section className="space-y-4">
           <SectionTitle
-            description={`${results.length} members match your current filters.`}
+            description={`${sortedResults.length} members match your current filters.`}
             eyebrow="Explore Community"
           >
             Browse profiles ranked for relevance
           </SectionTitle>
 
-          {visibleResults.length ? (
+          {isInitialLoad ? (
+            <div className="grid gap-5 xl:grid-cols-2">
+              {[...Array(6)].map((_, index) => (
+                <SkeletonCard key={index} />
+              ))}
+            </div>
+          ) : visibleResults.length ? (
             <div className="grid gap-5 xl:grid-cols-2">
               {visibleResults.map(({ user, match }) => (
                 <UserCard key={user.id} match={match} onRequest={setSelectedUser} user={user} />
@@ -490,7 +569,7 @@ export function ExplorePage() {
             />
           )}
 
-          {visibleResults.length < results.length ? (
+          {visibleResults.length < sortedResults.length ? (
             <div className="flex justify-center pt-2">
               <Button onClick={() => setPage((current) => current + 1)} variant="outline">
                 Load more matches
