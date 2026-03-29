@@ -64,24 +64,24 @@ interface AppContextValue {
   login: (payload: { email: string; password: string }) => Promise<AuthActionResult>
   loginWithGoogle: () => Promise<AuthActionResult>
   logout: () => Promise<void>
-  updateProfile: (payload: ProfilePayload) => void
-  sendSwapRequest: (payload: SwapRequestPayload) => boolean
+  updateProfile: (payload: ProfilePayload) => Promise<void>
+  sendSwapRequest: (payload: SwapRequestPayload) => Promise<boolean>
   sendConnectionRequest: (payload: ConnectionRequestPayload) => boolean
   respondToSwapRequest: (
     requestId: string,
     status: Extract<SwapRequest['status'], 'Accepted' | 'Declined'>,
-  ) => void
+  ) => Promise<void>
   respondToConnectionRequest: (
     requestId: string,
     status: 'Accepted' | 'Declined',
   ) => void
-  completeSwap: (requestId: string) => void
+  completeSwap: (requestId: string) => Promise<void>
   sendChatMessage: (
     threadId: string,
     message: string,
     type?: ChatMessage['type'],
-  ) => void
-  addReview: (requestId: string, rating: number, comment: string) => boolean
+  ) => Promise<void>
+  addReview: (requestId: string, rating: number, comment: string) => Promise<boolean>
   createPost: (payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>) => void
   reportUser: (userId: string) => void
   markNotificationRead: (notificationId: string) => void
@@ -134,15 +134,8 @@ function loadInitialState() {
 
 function resolveAuthProvider(user: User | null): AppState['auth']['provider'] {
   const provider = user?.app_metadata?.provider
-
-  if (provider === 'google') {
-    return 'google'
-  }
-
-  if (provider === 'email') {
-    return 'email'
-  }
-
+  if (provider === 'google') return 'google'
+  if (provider === 'email') return 'email'
   return user ? 'email' : null
 }
 
@@ -154,11 +147,7 @@ function getAuthMetadataValue(user: User, key: string) {
 function deriveNameFromAuthUser(user: User) {
   const explicitName =
     getAuthMetadataValue(user, 'full_name') || getAuthMetadataValue(user, 'name')
-
-  if (explicitName) {
-    return explicitName
-  }
-
+  if (explicitName) return explicitName
   const emailPrefix = normalizeEmail(user.email).split('@')[0]?.replace(/[._-]+/g, ' ') ?? ''
   return emailPrefix ? toTitleCase(emailPrefix) : 'SkillBridge Member'
 }
@@ -166,13 +155,11 @@ function deriveNameFromAuthUser(user: User) {
 function deriveAvatarFromAuthUser(user: User, username: string) {
   const avatarUrl =
     getAuthMetadataValue(user, 'avatar_url') || getAuthMetadataValue(user, 'picture')
-
   return avatarUrl || `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(username)}`
 }
 
 function findUserProfileByAuthUser(users: UserProfile[], authUser: User) {
   const authEmail = normalizeEmail(authUser.email)
-
   return (
     users.find(
       (profile) =>
@@ -208,8 +195,8 @@ function createProfileFromAuthUser(authUser: User, users: UserProfile[]) {
     headline: 'New member ready to trade skills',
     photo: deriveAvatarFromAuthUser(authUser, username),
     age: undefined,
-    availability: ['Weekends'],
-    mode: 'Online',
+    availability: ['Weekends'] as ['Weekends'],
+    mode: 'Online' as const,
     joinedAt: authUser.created_at ?? new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
     badges: ['New Today'],
@@ -236,14 +223,9 @@ function syncStateWithAuthenticatedUser(current: AppState, authUser: User | null
     ) {
       return current
     }
-
     return {
       ...current,
-      auth: {
-        currentUserId: null,
-        provider: null,
-        mode,
-      },
+      auth: { currentUserId: null, provider: null, mode },
     }
   }
 
@@ -263,29 +245,18 @@ function syncStateWithAuthenticatedUser(current: AppState, authUser: User | null
       current.auth.provider !== provider ||
       current.auth.mode !== mode
 
-    if (!profileChanged && !authChanged) {
-      return current
-    }
+    if (!profileChanged && !authChanged) return current
 
     return {
       ...current,
       users: profileChanged
         ? current.users.map((profile) =>
             profile.id === existingProfile.id
-              ? {
-                  ...profile,
-                  name: nextName,
-                  email: nextEmail,
-                  photo: nextPhoto,
-                }
+              ? { ...profile, name: nextName, email: nextEmail, photo: nextPhoto }
               : profile,
           )
         : current.users,
-      auth: {
-        currentUserId: existingProfile.id,
-        provider,
-        mode,
-      },
+      auth: { currentUserId: existingProfile.id, provider, mode },
     }
   }
 
@@ -294,11 +265,7 @@ function syncStateWithAuthenticatedUser(current: AppState, authUser: User | null
   return {
     ...current,
     users: [newProfile, ...current.users],
-    auth: {
-      currentUserId: newProfile.id,
-      provider,
-      mode,
-    },
+    auth: { currentUserId: newProfile.id, provider, mode },
     notifications: [
       createNotification(
         newProfile.id,
@@ -334,34 +301,173 @@ function createNotification(
 function touchUsers(users: UserProfile[], ...userIds: Array<string | null | undefined>) {
   const updatedAt = new Date().toISOString()
   const targetIds = new Set(userIds.filter(Boolean))
-
-  if (!targetIds.size) {
-    return users
-  }
-
+  if (!targetIds.size) return users
   return users.map((user) =>
-    targetIds.has(user.id)
-      ? {
-          ...user,
-          lastActiveAt: updatedAt,
-        }
-      : user,
+    targetIds.has(user.id) ? { ...user, lastActiveAt: updatedAt } : user,
   )
 }
 
 function resolveThreadPartnerId(state: AppState, currentUserId: string, threadId: string) {
   const swap = state.swapRequests.find((item) => item.id === threadId)
-  if (swap) {
-    return swap.senderId === currentUserId ? swap.receiverId : swap.senderId
-  }
-
+  if (swap) return swap.senderId === currentUserId ? swap.receiverId : swap.senderId
   const connection = state.connectionRequests.find((item) => item.id === threadId)
-  if (connection) {
-    return connection.senderId === currentUserId ? connection.receiverId : connection.senderId
-  }
-
+  if (connection) return connection.senderId === currentUserId ? connection.receiverId : connection.senderId
   return null
 }
+
+// ─── Supabase DB helpers ──────────────────────────────────────────────────────
+
+async function dbUpsertProfile(profile: UserProfile) {
+  if (!supabase) return
+  await supabase.from('users').upsert({
+    id: profile.id,
+    username: profile.username,
+    name: profile.name,
+    email: profile.email,
+    photo: profile.photo,
+    city: profile.city,
+    bio: profile.bio,
+    headline: profile.headline,
+    age: profile.age ?? null,
+    availability: profile.availability,
+    mode: profile.mode,
+    joined_at: profile.joinedAt,
+    last_active_at: profile.lastActiveAt,
+    swap_score: profile.swapScore,
+    rating: profile.rating,
+    review_count: profile.reviewCount,
+    completed_swaps: profile.completedSwaps,
+    taught_count: profile.taughtCount,
+    learned_count: profile.learnedCount,
+    badges: profile.badges,
+    reports: profile.reports,
+  }, { onConflict: 'id' })
+}
+
+async function dbUpsertSkills(userId: string, offered: UserProfile['skillsOffered'], wanted: UserProfile['skillsWanted']) {
+  if (!supabase) return
+
+  await supabase.from('skills_offered').delete().eq('user_id', userId)
+  await supabase.from('skills_wanted').delete().eq('user_id', userId)
+
+  if (offered.length > 0) {
+    await supabase.from('skills_offered').insert(
+      offered.map((s) => ({
+        id: s.id,
+        user_id: userId,
+        skill_name: s.name,
+        category: s.category,
+        level: s.level ?? 'Beginner',
+      }))
+    )
+  }
+
+  if (wanted.length > 0) {
+    await supabase.from('skills_wanted').insert(
+      wanted.map((s) => ({
+        id: s.id,
+        user_id: userId,
+        skill_name: s.name,
+        category: s.category,
+      }))
+    )
+  }
+}
+
+async function dbFetchAllUsers(): Promise<UserProfile[]> {
+  if (!supabase) return []
+
+  const { data: users, error } = await supabase
+    .from('users')
+    .select('*')
+    .order('joined_at', { ascending: false })
+
+  if (error || !users) return []
+
+  const { data: offered } = await supabase.from('skills_offered').select('*')
+  const { data: wanted } = await supabase.from('skills_wanted').select('*')
+
+  return users.map((u) => ({
+    id: u.id,
+    username: u.username,
+    name: u.name,
+    email: u.email,
+    photo: u.photo,
+    city: u.city,
+    bio: u.bio,
+    headline: u.headline,
+    age: u.age ?? undefined,
+    availability: u.availability ?? [],
+    mode: u.mode,
+    joinedAt: u.joined_at,
+    lastActiveAt: u.last_active_at,
+    swapScore: u.swap_score ?? 0,
+    rating: u.rating ?? 0,
+    reviewCount: u.review_count ?? 0,
+    completedSwaps: u.completed_swaps ?? 0,
+    taughtCount: u.taught_count ?? 0,
+    learnedCount: u.learned_count ?? 0,
+    badges: u.badges ?? [],
+    reports: u.reports ?? 0,
+    skillsOffered: (offered ?? [])
+      .filter((s) => s.user_id === u.id)
+      .map((s) => ({ id: s.id, name: s.skill_name, category: s.category, level: s.level })),
+    skillsWanted: (wanted ?? [])
+      .filter((s) => s.user_id === u.id)
+      .map((s) => ({ id: s.id, name: s.skill_name, category: s.category })),
+  }))
+}
+
+async function dbFetchSwapRequests(userId: string): Promise<SwapRequest[]> {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('swap_requests')
+    .select('*')
+    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((r) => ({
+    id: r.id,
+    senderId: r.sender_id,
+    receiverId: r.receiver_id,
+    message: r.message,
+    status: r.status,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    offeredSkillId: r.offered_skill_id ?? '',
+    wantedSkillId: r.wanted_skill_id ?? '',
+    completedBy: r.completed_by ?? [],
+  }))
+}
+
+
+
+async function dbFetchReviews(userId: string): Promise<Review[]> {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('reviewee_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((r) => ({
+    id: r.id,
+    reviewerId: r.reviewer_id,
+    revieweeId: r.reviewee_id,
+    swapRequestId: r.swap_id,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
+  }))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(loadInitialState)
@@ -375,10 +481,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, [state])
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
+    if (typeof window === 'undefined') return
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
@@ -389,19 +492,14 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, [state.theme])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') {
-      return
-    }
-
+    if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return
     const channel = new BroadcastChannel(CHANNEL_KEY)
     channelRef.current = channel
-
     channel.onmessage = (event: MessageEvent<AppState>) => {
       const next = hydrateState(event.data)
       stateRef.current = next
       startTransition(() => setState(next))
     }
-
     return () => {
       channel.close()
       channelRef.current = null
@@ -412,10 +510,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     const hydrated = hydrateState(next)
     stateRef.current = hydrated
     startTransition(() => setState(hydrated))
-
-    if (broadcast) {
-      channelRef.current?.postMessage(hydrated)
-    }
+    if (broadcast) channelRef.current?.postMessage(hydrated)
   }
 
   function mutateState(
@@ -425,42 +520,60 @@ export function AppProvider({ children }: PropsWithChildren) {
     applyState(updater(stateRef.current), options?.broadcast ?? true)
   }
 
+  // ── Load real data from Supabase after auth ─────────────────────────────────
+  const loadSupabaseData = useEffectEvent(async (authUser: User) => {
+    if (!isSupabaseConfigured) return
+
+    try {
+      const [allUsers, swapRequests, reviews] = await Promise.all([
+        dbFetchAllUsers(),
+        dbFetchSwapRequests(authUser.id),
+        dbFetchReviews(authUser.id),
+      ])
+
+      mutateState((current) => {
+        // Merge real users with local seed — real users take priority
+        const seedUserIds = new Set(allUsers.map((u) => u.id))
+        const localOnlyUsers = current.users.filter((u) => !seedUserIds.has(u.id))
+
+        return {
+          ...current,
+          users: [...allUsers, ...localOnlyUsers],
+          swapRequests: swapRequests.length > 0 ? swapRequests : current.swapRequests,
+          reviews: reviews.length > 0 ? reviews : current.reviews,
+        }
+      })
+    } catch (err) {
+      console.error('Failed to load Supabase data', err)
+    }
+  })
+
   const syncSupabaseSession = useEffectEvent((nextUser: User | null) => {
     setUser(nextUser)
     mutateState((current) => syncStateWithAuthenticatedUser(current, nextUser))
     setLoading(false)
+
+    if (nextUser && isSupabaseConfigured) {
+      void loadSupabaseData(nextUser)
+    }
   })
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) {
-      return
-    }
+    if (!isSupabaseConfigured || !supabase) return
 
     const authClient = supabase
     let isActive = true
 
     async function initializeSession() {
       const response = await authClient.auth.getSession()
-      console.log('Supabase getSession response', response)
-
-      if (!isActive) {
-        return
-      }
-
+      if (!isActive) return
       syncSupabaseSession(response.data.session?.user ?? null)
     }
 
     void initializeSession()
 
-    const {
-      data: { subscription },
-    } = authClient.auth.onAuthStateChange((event, session) => {
-      console.log('Supabase auth state change', { event, session })
-
-      if (!isActive) {
-        return
-      }
-
+    const { data: { subscription } } = authClient.auth.onAuthStateChange((_event, session) => {
+      if (!isActive) return
       syncSupabaseSession(session?.user ?? null)
     })
 
@@ -470,64 +583,83 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
   }, [])
 
+  // ── Supabase Realtime chat subscription ─────────────────────────────────────
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+
+    const channel = supabase
+      .channel('chats-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, (payload) => {
+        const m = payload.new as Record<string, unknown>
+        const newMessage: ChatMessage = {
+          id: m.id as string,
+          threadId: m.swap_id as string,
+          swapRequestId: m.swap_id as string,
+          senderId: m.sender_id as string,
+          receiverId: (m.receiver_id as string) ?? undefined,
+          message: m.message as string,
+          timestamp: m.created_at as string,
+          type: (m.type as ChatMessage['type']) ?? 'text',
+        }
+
+        mutateState((current) => {
+          const exists = current.messages.some((msg) => msg.id === newMessage.id)
+          if (exists) return current
+          return { ...current, messages: [...current.messages, newMessage] }
+        })
+      })
+      .subscribe()
+
+    return () => {
+      void supabase?.removeChannel(channel)
+    }
+  // mutateState is stable — defined inside the component but never recreated
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const users = state.users
   const currentUser = user ? findUserProfileByAuthUser(state.users, user) : null
   const currentUserId = currentUser?.id ?? null
   const isAuthenticated = Boolean(user)
   const unreadNotificationCount = currentUser
     ? state.notifications.filter(
-        (notification) => notification.userId === currentUser.id && !notification.read,
+        (n) => n.userId === currentUser.id && !n.read,
       ).length
     : 0
   const messageThreads = buildMessageThreads(state, currentUserId)
 
   const suggestedMatches = currentUser
     ? state.users
-        .filter((user) => user.id !== currentUser.id)
-        .map((user) => ({
-          ...user,
-          match: computeMatchResult(currentUser, user),
-        }))
-        .filter((user) => user.match.score >= 55)
-        .sort((left, right) => right.match.score - left.match.score)
+        .filter((u) => u.id !== currentUser.id)
+        .map((u) => ({ ...u, match: computeMatchResult(currentUser, u) }))
+        .filter((u) => u.match.score >= 55)
+        .sort((a, b) => b.match.score - a.match.score)
         .slice(0, 6)
     : []
 
   const newTodayUsers = state.users
-    .filter((user) => formatShortDate(user.joinedAt) === formatShortDate(new Date().toISOString()))
+    .filter((u) => formatShortDate(u.joinedAt) === formatShortDate(new Date().toISOString()))
     .slice(0, 4)
 
   const topRatedUsers = [...state.users]
-    .sort((left, right) => right.rating - left.rating || right.swapScore - left.swapScore)
+    .sort((a, b) => b.rating - a.rating || b.swapScore - a.swapScore)
     .slice(0, 4)
 
   useEffect(() => {
-    if (!currentUserId) {
-      return
-    }
-
-    const activeUser = stateRef.current.users.find((user) => user.id === currentUserId)
-    if (!activeUser) {
-      return
-    }
-
+    if (!currentUserId) return
+    const activeUser = stateRef.current.users.find((u) => u.id === currentUserId)
+    if (!activeUser) return
     const today = new Date().toISOString().slice(0, 10)
-    if (stateRef.current.lastSuggestionDate === today) {
-      return
-    }
+    if (stateRef.current.lastSuggestionDate === today) return
 
     const suggestions = stateRef.current.users
-      .filter((user) => user.id !== currentUserId)
-      .map((user) => ({ user, match: computeMatchResult(activeUser, user) }))
+      .filter((u) => u.id !== currentUserId)
+      .map((u) => ({ user: u, match: computeMatchResult(activeUser, u) }))
       .filter(({ match }) => match.score >= 55)
-      .sort((left, right) => right.match.score - left.match.score)
+      .sort((a, b) => b.match.score - a.match.score)
       .slice(0, 3)
 
-    const base = {
-      ...stateRef.current,
-      lastSuggestionDate: today,
-    }
-
+    const base = { ...stateRef.current, lastSuggestionDate: today }
     const next = suggestions.length
       ? {
           ...base,
@@ -547,12 +679,11 @@ export function AppProvider({ children }: PropsWithChildren) {
     applyState(next)
   }, [currentUserId])
 
-  async function signUp(payload: SignupPayload) {
+  // ── Auth ────────────────────────────────────────────────────────────────────
+
+  async function signUp(payload: SignupPayload): Promise<AuthActionResult> {
     if (!isSupabaseConfigured || !supabase) {
-      return {
-        success: false,
-        message: 'Supabase auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
-      }
+      return { success: false, message: 'Supabase is not configured.' }
     }
 
     const name = payload.name.trim()
@@ -562,19 +693,11 @@ export function AppProvider({ children }: PropsWithChildren) {
       password: payload.password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: {
-          city: payload.city.trim(),
-          full_name: name,
-          name,
-        },
+        data: { city: payload.city.trim(), full_name: name, name },
       },
     })
 
-    console.log('Supabase signUp response', response)
-
-    if (response.error) {
-      return { success: false, message: response.error.message }
-    }
+    if (response.error) return { success: false, message: response.error.message }
 
     if (response.data.session) {
       toast.success('Account created. Finish your profile to start matching.')
@@ -589,12 +712,9 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
   }
 
-  async function login(payload: { email: string; password: string }) {
+  async function login(payload: { email: string; password: string }): Promise<AuthActionResult> {
     if (!isSupabaseConfigured || !supabase) {
-      return {
-        success: false,
-        message: 'Supabase auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
-      }
+      return { success: false, message: 'Supabase is not configured.' }
     }
 
     const response = await supabase.auth.signInWithPassword({
@@ -602,39 +722,24 @@ export function AppProvider({ children }: PropsWithChildren) {
       password: payload.password,
     })
 
-    console.log('Supabase signInWithPassword response', response)
+    if (response.error) return { success: false, message: response.error.message }
 
-    if (response.error) {
-      return { success: false, message: response.error.message }
-    }
-
-    const firstName =
-      deriveNameFromAuthUser(response.data.user).split(' ')[0] || 'there'
+    const firstName = deriveNameFromAuthUser(response.data.user).split(' ')[0] || 'there'
     toast.success(`Welcome back, ${firstName}.`)
     return { success: true, shouldNavigate: true }
   }
 
-  async function loginWithGoogle() {
+  async function loginWithGoogle(): Promise<AuthActionResult> {
     if (!isSupabaseConfigured || !supabase) {
-      return {
-        success: false,
-        message: 'Supabase auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
-      }
+      return { success: false, message: 'Supabase is not configured.' }
     }
 
     const response = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
+      options: { redirectTo: `${window.location.origin}/dashboard` },
     })
 
-    console.log('Supabase Google OAuth response', response)
-
-    if (response.error) {
-      return { success: false, message: response.error.message }
-    }
-
+    if (response.error) return { success: false, message: response.error.message }
     return { success: true, shouldNavigate: false }
   }
 
@@ -645,38 +750,42 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
 
     const response = await supabase.auth.signOut()
-    console.log('Supabase signOut response', response)
-
     if (response.error) {
       toast.error(response.error.message)
       return
     }
-
     toast.success('Logged out.')
   }
 
-  function updateProfile(payload: ProfilePayload) {
-    if (!currentUser) {
-      return
+  // ── Profile ─────────────────────────────────────────────────────────────────
+
+  async function updateProfile(payload: ProfilePayload) {
+    if (!currentUser) return
+
+    const updated: UserProfile = {
+      ...currentUser,
+      ...payload,
+      lastActiveAt: new Date().toISOString(),
     }
 
+    // Optimistic local update
     mutateState((current) => ({
       ...current,
-      users: current.users.map((user) =>
-        user.id === currentUser.id
-          ? {
-              ...user,
-              ...payload,
-              lastActiveAt: new Date().toISOString(),
-            }
-          : user,
-      ),
+      users: current.users.map((u) => (u.id === currentUser.id ? updated : u)),
     }))
+
+    // Persist to Supabase
+    if (isSupabaseConfigured) {
+      await dbUpsertProfile(updated)
+      await dbUpsertSkills(updated.id, updated.skillsOffered, updated.skillsWanted)
+    }
 
     toast.success('Profile updated.')
   }
 
-  function sendSwapRequest(payload: SwapRequestPayload) {
+  // ── Swap Requests ───────────────────────────────────────────────────────────
+
+  async function sendSwapRequest(payload: SwapRequestPayload): Promise<boolean> {
     if (!currentUser) {
       toast.error('Log in to send a swap request.')
       return false
@@ -694,30 +803,30 @@ export function AppProvider({ children }: PropsWithChildren) {
       return false
     }
 
-    const receiver = stateRef.current.users.find((user) => user.id === payload.receiverId)
+    const receiver = stateRef.current.users.find((u) => u.id === payload.receiverId)
     if (!receiver) {
       toast.error('Could not find that member.')
       return false
     }
 
+    const newSwap: SwapRequest = {
+      id: createId('swap'),
+      senderId: currentUser.id,
+      receiverId: payload.receiverId,
+      message: payload.message.trim(),
+      status: 'Pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      offeredSkillId: payload.offeredSkillId,
+      wantedSkillId: payload.wantedSkillId,
+      completedBy: [],
+    }
+
+    // Optimistic local update
     mutateState((current) => ({
       ...current,
       users: touchUsers(current.users, currentUser.id),
-      swapRequests: [
-        {
-          id: createId('swap'),
-          senderId: currentUser.id,
-          receiverId: payload.receiverId,
-          message: payload.message.trim(),
-          status: 'Pending',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          offeredSkillId: payload.offeredSkillId,
-          wantedSkillId: payload.wantedSkillId,
-          completedBy: [],
-        },
-        ...current.swapRequests,
-      ],
+      swapRequests: [newSwap, ...current.swapRequests],
       notifications: [
         createNotification(
           receiver.id,
@@ -730,21 +839,40 @@ export function AppProvider({ children }: PropsWithChildren) {
       ],
     }))
 
+    // Persist to Supabase
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('swap_requests').insert({
+        id: newSwap.id,
+        sender_id: newSwap.senderId,
+        receiver_id: newSwap.receiverId,
+        message: newSwap.message,
+        status: newSwap.status,
+        offered_skill_id: newSwap.offeredSkillId || null,
+        wanted_skill_id: newSwap.wantedSkillId || null,
+        completed_by: [],
+      })
+
+      if (error) {
+        toast.error('Failed to send request. Try again.')
+        return false
+      }
+    }
+
     toast.success('Swap request sent.')
     return true
   }
 
-  function sendConnectionRequest(payload: ConnectionRequestPayload) {
+  function sendConnectionRequest(payload: ConnectionRequestPayload): boolean {
     if (!currentUser) {
       toast.error('Log in to connect with members.')
       return false
     }
 
     const duplicate = stateRef.current.connectionRequests.some(
-      (request) =>
-        ((request.senderId === currentUser.id && request.receiverId === payload.receiverId) ||
-          (request.senderId === payload.receiverId && request.receiverId === currentUser.id)) &&
-        ['Pending', 'Accepted'].includes(request.status),
+      (r) =>
+        ((r.senderId === currentUser.id && r.receiverId === payload.receiverId) ||
+          (r.senderId === payload.receiverId && r.receiverId === currentUser.id)) &&
+        ['Pending', 'Accepted'].includes(r.status),
     )
 
     if (duplicate) {
@@ -752,7 +880,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       return false
     }
 
-    const receiver = stateRef.current.users.find((user) => user.id === payload.receiverId)
+    const receiver = stateRef.current.users.find((u) => u.id === payload.receiverId)
     if (!receiver) {
       toast.error('Could not find that member.')
       return false
@@ -789,34 +917,24 @@ export function AppProvider({ children }: PropsWithChildren) {
     return true
   }
 
-  function respondToSwapRequest(
+  async function respondToSwapRequest(
     requestId: string,
     status: Extract<SwapRequest['status'], 'Accepted' | 'Declined'>,
   ) {
-    if (!currentUser) {
-      return
-    }
+    if (!currentUser) return
 
     const swap = stateRef.current.swapRequests.find((item) => item.id === requestId)
-    if (!swap) {
-      return
-    }
+    if (!swap) return
 
-    const sender = stateRef.current.users.find((user) => user.id === swap.senderId)
-    if (!sender) {
-      return
-    }
+    const sender = stateRef.current.users.find((u) => u.id === swap.senderId)
+    if (!sender) return
 
     mutateState((current) => ({
       ...current,
       users: touchUsers(current.users, currentUser.id, sender.id),
       swapRequests: current.swapRequests.map((item) =>
         item.id === requestId
-          ? {
-              ...item,
-              status,
-              updatedAt: new Date().toISOString(),
-            }
+          ? { ...item, status, updatedAt: new Date().toISOString() }
           : item,
       ),
       messages:
@@ -831,7 +949,7 @@ export function AppProvider({ children }: PropsWithChildren) {
                 receiverId: sender.id,
                 message: 'Swap request accepted. Chat is now open for planning.',
                 timestamp: new Date().toISOString(),
-                type: 'system',
+                type: 'system' as const,
               },
             ]
           : current.messages,
@@ -849,37 +967,31 @@ export function AppProvider({ children }: PropsWithChildren) {
       ],
     }))
 
+    if (isSupabaseConfigured && supabase) {
+      await supabase
+        .from('swap_requests')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', requestId)
+    }
+
     toast.success(status === 'Accepted' ? 'Request accepted.' : 'Request declined.')
   }
 
-  function respondToConnectionRequest(
-    requestId: string,
-    status: 'Accepted' | 'Declined',
-  ) {
-    if (!currentUser) {
-      return
-    }
+  function respondToConnectionRequest(requestId: string, status: 'Accepted' | 'Declined') {
+    if (!currentUser) return
 
     const request = stateRef.current.connectionRequests.find((item) => item.id === requestId)
-    if (!request) {
-      return
-    }
+    if (!request) return
 
-    const sender = stateRef.current.users.find((user) => user.id === request.senderId)
-    if (!sender) {
-      return
-    }
+    const sender = stateRef.current.users.find((u) => u.id === request.senderId)
+    if (!sender) return
 
     mutateState((current) => ({
       ...current,
       users: touchUsers(current.users, currentUser.id, sender.id),
       connectionRequests: current.connectionRequests.map((item) =>
         item.id === requestId
-          ? {
-              ...item,
-              status,
-              updatedAt: new Date().toISOString(),
-            }
+          ? { ...item, status, updatedAt: new Date().toISOString() }
           : item,
       ),
       messages:
@@ -895,7 +1007,7 @@ export function AppProvider({ children }: PropsWithChildren) {
                 receiverId: sender.id,
                 message: 'Connection accepted. You can now start chatting directly.',
                 timestamp: new Date().toISOString(),
-                type: 'system',
+                type: 'system' as const,
               },
             ]
           : current.messages,
@@ -916,17 +1028,14 @@ export function AppProvider({ children }: PropsWithChildren) {
     toast.success(status === 'Accepted' ? 'Connection accepted.' : 'Connection declined.')
   }
 
-  function completeSwap(requestId: string) {
-    if (!currentUser) {
-      return
-    }
+  async function completeSwap(requestId: string) {
+    if (!currentUser) return
 
     const swap = stateRef.current.swapRequests.find((item) => item.id === requestId)
-    if (!swap || swap.status === 'Completed') {
-      return
-    }
+    if (!swap || swap.status === 'Completed') return
 
     const partner = resolveSwapPartner(swap, currentUser.id, stateRef.current.users)
+
     mutateState((current) => ({
       ...current,
       users: touchUsers(current.users, currentUser.id, partner?.id),
@@ -950,7 +1059,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           receiverId: partner?.id,
           message: 'Swap marked complete. Leave a rating and review to wrap it up.',
           timestamp: new Date().toISOString(),
-          type: 'system',
+          type: 'system' as const,
         },
       ],
       notifications: partner
@@ -967,40 +1076,52 @@ export function AppProvider({ children }: PropsWithChildren) {
         : current.notifications,
     }))
 
+    if (isSupabaseConfigured && supabase) {
+      const completedBy = Array.from(
+        new Set([...(swap.completedBy ?? []), currentUser.id]),
+      )
+      await supabase
+        .from('swap_requests')
+        .update({
+          status: 'Completed',
+          completed_by: completedBy,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requestId)
+    }
+
     toast.success('Swap marked complete.')
   }
 
-  function sendChatMessage(
+  // ── Chat ────────────────────────────────────────────────────────────────────
+
+  async function sendChatMessage(
     threadId: string,
     message: string,
     type: ChatMessage['type'] = 'text',
   ) {
-    if (!currentUser || !message.trim()) {
-      return
-    }
+    if (!currentUser || !message.trim()) return
 
     const partnerId = resolveThreadPartnerId(stateRef.current, currentUser.id, threadId)
-    if (!partnerId) {
-      return
+    if (!partnerId) return
+
+    const partner = stateRef.current.users.find((u) => u.id === partnerId) ?? null
+    const newMessage: ChatMessage = {
+      id: createId('message'),
+      threadId,
+      swapRequestId: threadId,
+      senderId: currentUser.id,
+      receiverId: partner?.id,
+      message: message.trim(),
+      timestamp: new Date().toISOString(),
+      type,
     }
 
-    const partner = stateRef.current.users.find((user) => user.id === partnerId) ?? null
+    // Optimistic local update
     mutateState((current) => ({
       ...current,
       users: touchUsers(current.users, currentUser.id, partner?.id),
-      messages: [
-        ...current.messages,
-        {
-          id: createId('message'),
-          threadId,
-          swapRequestId: threadId,
-          senderId: currentUser.id,
-          receiverId: partner?.id,
-          message: message.trim(),
-          timestamp: new Date().toISOString(),
-          type,
-        },
-      ],
+      messages: [...current.messages, newMessage],
       notifications: partner
         ? [
             createNotification(
@@ -1014,12 +1135,24 @@ export function AppProvider({ children }: PropsWithChildren) {
           ]
         : current.notifications,
     }))
+
+    // Persist to Supabase
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from('chats').insert({
+        id: newMessage.id,
+        swap_id: threadId,
+        sender_id: currentUser.id,
+        receiver_id: partner?.id ?? null,
+        message: message.trim(),
+        type,
+      })
+    }
   }
 
-  function addReview(requestId: string, rating: number, comment: string) {
-    if (!currentUser) {
-      return false
-    }
+  // ── Reviews ─────────────────────────────────────────────────────────────────
+
+  async function addReview(requestId: string, rating: number, comment: string): Promise<boolean> {
+    if (!currentUser) return false
 
     const swap = stateRef.current.swapRequests.find((item) => item.id === requestId)
     if (!swap || swap.status !== 'Completed') {
@@ -1027,13 +1160,12 @@ export function AppProvider({ children }: PropsWithChildren) {
       return false
     }
 
-    const revieweeId =
-      swap.senderId === currentUser.id ? swap.receiverId : swap.senderId
+    const revieweeId = swap.senderId === currentUser.id ? swap.receiverId : swap.senderId
     const exists = stateRef.current.reviews.some(
-      (review) =>
-        review.swapRequestId === requestId &&
-        review.reviewerId === currentUser.id &&
-        review.revieweeId === revieweeId,
+      (r) =>
+        r.swapRequestId === requestId &&
+        r.reviewerId === currentUser.id &&
+        r.revieweeId === revieweeId,
     )
 
     if (exists) {
@@ -1041,20 +1173,19 @@ export function AppProvider({ children }: PropsWithChildren) {
       return false
     }
 
+    const newReview: Review = {
+      id: createId('review'),
+      reviewerId: currentUser.id,
+      revieweeId,
+      swapRequestId: requestId,
+      rating,
+      comment: comment.trim(),
+      createdAt: new Date().toISOString(),
+    }
+
     mutateState((current) => ({
       ...current,
-      reviews: [
-        {
-          id: createId('review'),
-          reviewerId: currentUser.id,
-          revieweeId,
-          swapRequestId: requestId,
-          rating,
-          comment: comment.trim(),
-          createdAt: new Date().toISOString(),
-        },
-        ...current.reviews,
-      ],
+      reviews: [newReview, ...current.reviews],
       notifications: [
         createNotification(
           revieweeId,
@@ -1067,13 +1198,29 @@ export function AppProvider({ children }: PropsWithChildren) {
       ],
     }))
 
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('reviews').insert({
+        id: newReview.id,
+        reviewer_id: newReview.reviewerId,
+        reviewee_id: newReview.revieweeId,
+        swap_id: newReview.swapRequestId,
+        rating: newReview.rating,
+        comment: newReview.comment,
+      })
+
+      if (error) {
+        toast.error('Failed to submit review.')
+        return false
+      }
+    }
+
     toast.success('Review submitted.')
     return true
   }
 
-  function createPost(
-    payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>,
-  ) {
+  // ── Posts & misc ────────────────────────────────────────────────────────────
+
+  function createPost(payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>) {
     if (!currentUser) {
       toast.error('Log in to create a post.')
       return
@@ -1112,20 +1259,13 @@ export function AppProvider({ children }: PropsWithChildren) {
   }
 
   function reportUser(userId: string) {
-    if (!currentUser || currentUser.id === userId) {
-      return
-    }
+    if (!currentUser || currentUser.id === userId) return
 
     mutateState((current) => ({
       ...current,
       users: touchUsers(
-        current.users.map((user) =>
-          user.id === userId
-            ? {
-                ...user,
-                reports: user.reports + 1,
-              }
-            : user,
+        current.users.map((u) =>
+          u.id === userId ? { ...u, reports: u.reports + 1 } : u,
         ),
         currentUser.id,
       ),
@@ -1135,37 +1275,21 @@ export function AppProvider({ children }: PropsWithChildren) {
   }
 
   function markNotificationRead(notificationId: string) {
-    if (!currentUser) {
-      return
-    }
-
+    if (!currentUser) return
     mutateState((current) => ({
       ...current,
-      notifications: current.notifications.map((notification) =>
-        notification.id === notificationId
-          ? {
-              ...notification,
-              read: true,
-            }
-          : notification,
+      notifications: current.notifications.map((n) =>
+        n.id === notificationId ? { ...n, read: true } : n,
       ),
     }))
   }
 
   function markAllNotificationsRead() {
-    if (!currentUser) {
-      return
-    }
-
+    if (!currentUser) return
     mutateState((current) => ({
       ...current,
-      notifications: current.notifications.map((notification) =>
-        notification.userId === currentUser.id
-          ? {
-              ...notification,
-              read: true,
-            }
-          : notification,
+      notifications: current.notifications.map((n) =>
+        n.userId === currentUser.id ? { ...n, read: true } : n,
       ),
     }))
   }
@@ -1185,28 +1309,25 @@ export function AppProvider({ children }: PropsWithChildren) {
   }
 
   function getUserById(userId: string) {
-    return stateRef.current.users.find((user) => user.id === userId) ?? null
+    return stateRef.current.users.find((u) => u.id === userId) ?? null
   }
 
   function getUserByUsername(username: string) {
-    return stateRef.current.users.find((user) => user.username === username) ?? null
+    return stateRef.current.users.find((u) => u.username === username) ?? null
   }
 
   function getSwapById(swapId: string) {
-    return stateRef.current.swapRequests.find((swap) => swap.id === swapId) ?? null
+    return stateRef.current.swapRequests.find((s) => s.id === swapId) ?? null
   }
 
   function getThreadById(threadId: string) {
-    return buildMessageThreads(stateRef.current, currentUserId).find((thread) => thread.id === threadId) ?? null
+    return buildMessageThreads(stateRef.current, currentUserId).find((t) => t.id === threadId) ?? null
   }
 
   function getMessagesForThread(threadId: string) {
     return stateRef.current.messages
-      .filter((message) => (message.threadId || message.swapRequestId) === threadId)
-      .sort(
-        (left, right) =>
-          new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime(),
-      )
+      .filter((m) => (m.threadId || m.swapRequestId) === threadId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
   }
 
   function getMessagesForSwap(swapId: string) {
@@ -1215,11 +1336,8 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   function getReviewsForUser(userId: string) {
     return stateRef.current.reviews
-      .filter((review) => review.revieweeId === userId)
-      .sort(
-        (left, right) =>
-          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-      )
+      .filter((r) => r.revieweeId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   }
 
   return (
@@ -1270,30 +1388,19 @@ export function AppProvider({ children }: PropsWithChildren) {
 
 export function useApp() {
   const context = useContext(AppContext)
-
-  if (!context) {
-    throw new Error('useApp must be used within AppProvider')
-  }
-
+  if (!context) throw new Error('useApp must be used within AppProvider')
   return context
 }
 
 export function useShareProfile(username: string) {
   async function shareProfile() {
     const url = buildShareUrl(username)
-
     if (navigator.share) {
-      await navigator.share({
-        title: 'SkillBridge profile',
-        text: 'Check out this SkillBridge member',
-        url,
-      })
+      await navigator.share({ title: 'SkillBridge profile', text: 'Check out this SkillBridge member', url })
       return
     }
-
     await navigator.clipboard.writeText(url)
     toast.success('Profile link copied.')
   }
-
   return { shareProfile }
 }
