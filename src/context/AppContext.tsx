@@ -4,12 +4,14 @@ import {
   startTransition,
   useContext,
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
   type PropsWithChildren,
 } from 'react'
+import type { User } from '@supabase/supabase-js'
 import toast from 'react-hot-toast'
-import { demoCredentials, getSeedState } from '@/data/seed'
+import { getSeedState } from '@/data/seed'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type {
   AppState,
@@ -38,26 +40,30 @@ import {
 } from '@/utils/app'
 
 const STORAGE_KEY = 'skillbridge-state-v1'
-const PASSWORDS_KEY = 'skillbridge-passwords-v1'
 const CHANNEL_KEY = 'skillbridge-live-sync'
+
+interface AuthActionResult {
+  success: boolean
+  message?: string
+  shouldNavigate?: boolean
+}
 
 interface AppContextValue {
   state: AppState
+  user: User | null
   users: UserProfile[]
   currentUser: UserProfile | null
   isAuthenticated: boolean
+  loading: boolean
   unreadNotificationCount: number
   messageThreads: MessageThread[]
   suggestedMatches: Array<UserProfile & { match: MatchResult }>
   newTodayUsers: UserProfile[]
   topRatedUsers: UserProfile[]
-  signUp: (payload: SignupPayload) => Promise<{ success: boolean; message?: string }>
-  login: (payload: { email: string; password: string }) => Promise<{
-    success: boolean
-    message?: string
-  }>
-  loginWithGoogle: () => Promise<{ success: boolean; message?: string }>
-  logout: () => void
+  signUp: (payload: SignupPayload) => Promise<AuthActionResult>
+  login: (payload: { email: string; password: string }) => Promise<AuthActionResult>
+  loginWithGoogle: () => Promise<AuthActionResult>
+  logout: () => Promise<void>
   updateProfile: (payload: ProfilePayload) => void
   sendSwapRequest: (payload: SwapRequestPayload) => boolean
   sendConnectionRequest: (payload: ConnectionRequestPayload) => boolean
@@ -93,29 +99,16 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null)
 
-function getPasswords() {
-  if (typeof window === 'undefined') {
-    return {} as Record<string, string>
-  }
-
-  const raw = window.localStorage.getItem(PASSWORDS_KEY)
-  if (!raw) {
-    return { [demoCredentials.email]: demoCredentials.password }
-  }
-
-  try {
-    return JSON.parse(raw) as Record<string, string>
-  } catch {
-    return { [demoCredentials.email]: demoCredentials.password }
-  }
+function normalizeEmail(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? ''
 }
 
-function savePasswords(passwords: Record<string, string>) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.setItem(PASSWORDS_KEY, JSON.stringify(passwords))
+function toTitleCase(value: string) {
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 function loadInitialState() {
@@ -128,7 +121,6 @@ function loadInitialState() {
   const fallback = getSeedState(prefersDark ? 'dark' : 'light')
 
   if (!rawState) {
-    savePasswords({ [demoCredentials.email]: demoCredentials.password })
     return fallback
   }
 
@@ -137,6 +129,186 @@ function loadInitialState() {
     return hydrateState(parsed)
   } catch {
     return fallback
+  }
+}
+
+function resolveAuthProvider(user: User | null): AppState['auth']['provider'] {
+  const provider = user?.app_metadata?.provider
+
+  if (provider === 'google') {
+    return 'google'
+  }
+
+  if (provider === 'email') {
+    return 'email'
+  }
+
+  return user ? 'email' : null
+}
+
+function getAuthMetadataValue(user: User, key: string) {
+  const value = user.user_metadata?.[key]
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function deriveNameFromAuthUser(user: User) {
+  const explicitName =
+    getAuthMetadataValue(user, 'full_name') || getAuthMetadataValue(user, 'name')
+
+  if (explicitName) {
+    return explicitName
+  }
+
+  const emailPrefix = normalizeEmail(user.email).split('@')[0]?.replace(/[._-]+/g, ' ') ?? ''
+  return emailPrefix ? toTitleCase(emailPrefix) : 'SkillBridge Member'
+}
+
+function deriveAvatarFromAuthUser(user: User, username: string) {
+  const avatarUrl =
+    getAuthMetadataValue(user, 'avatar_url') || getAuthMetadataValue(user, 'picture')
+
+  return avatarUrl || `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(username)}`
+}
+
+function findUserProfileByAuthUser(users: UserProfile[], authUser: User) {
+  const authEmail = normalizeEmail(authUser.email)
+
+  return (
+    users.find(
+      (profile) =>
+        profile.id === authUser.id ||
+        (authEmail.length > 0 && normalizeEmail(profile.email) === authEmail),
+    ) ?? null
+  )
+}
+
+function createProfileFromAuthUser(authUser: User, users: UserProfile[]) {
+  const name = deriveNameFromAuthUser(authUser)
+  const usernameSeed =
+    getAuthMetadataValue(authUser, 'user_name') ||
+    getAuthMetadataValue(authUser, 'preferred_username') ||
+    normalizeEmail(authUser.email).split('@')[0] ||
+    name
+  const usernameBase = slugify(usernameSeed) || `member-${authUser.id.slice(0, 8)}`
+  let username = usernameBase
+  let count = 1
+
+  while (users.some((profile) => profile.username === username)) {
+    count += 1
+    username = `${usernameBase}-${count}`
+  }
+
+  return {
+    id: authUser.id,
+    username,
+    name,
+    email: authUser.email ?? '',
+    city: getAuthMetadataValue(authUser, 'city') || 'Remote',
+    bio: 'Tell the community what you love teaching and what you want to learn next.',
+    headline: 'New member ready to trade skills',
+    photo: deriveAvatarFromAuthUser(authUser, username),
+    age: undefined,
+    availability: ['Weekends'],
+    mode: 'Online',
+    joinedAt: authUser.created_at ?? new Date().toISOString(),
+    lastActiveAt: new Date().toISOString(),
+    badges: ['New Today'],
+    skillsOffered: [],
+    skillsWanted: [],
+    swapScore: 0,
+    rating: 0,
+    reviewCount: 0,
+    completedSwaps: 0,
+    taughtCount: 0,
+    learnedCount: 0,
+    reports: 0,
+  } satisfies UserProfile
+}
+
+function syncStateWithAuthenticatedUser(current: AppState, authUser: User | null) {
+  const mode = isSupabaseConfigured ? 'supabase' : current.auth.mode
+
+  if (!authUser) {
+    if (
+      current.auth.currentUserId === null &&
+      current.auth.provider === null &&
+      current.auth.mode === mode
+    ) {
+      return current
+    }
+
+    return {
+      ...current,
+      auth: {
+        currentUserId: null,
+        provider: null,
+        mode,
+      },
+    }
+  }
+
+  const provider = resolveAuthProvider(authUser)
+  const existingProfile = findUserProfileByAuthUser(current.users, authUser)
+
+  if (existingProfile) {
+    const nextName = existingProfile.name || deriveNameFromAuthUser(authUser)
+    const nextEmail = authUser.email ?? existingProfile.email
+    const nextPhoto = existingProfile.photo || deriveAvatarFromAuthUser(authUser, existingProfile.username)
+    const profileChanged =
+      nextName !== existingProfile.name ||
+      nextEmail !== existingProfile.email ||
+      nextPhoto !== existingProfile.photo
+    const authChanged =
+      current.auth.currentUserId !== existingProfile.id ||
+      current.auth.provider !== provider ||
+      current.auth.mode !== mode
+
+    if (!profileChanged && !authChanged) {
+      return current
+    }
+
+    return {
+      ...current,
+      users: profileChanged
+        ? current.users.map((profile) =>
+            profile.id === existingProfile.id
+              ? {
+                  ...profile,
+                  name: nextName,
+                  email: nextEmail,
+                  photo: nextPhoto,
+                }
+              : profile,
+          )
+        : current.users,
+      auth: {
+        currentUserId: existingProfile.id,
+        provider,
+        mode,
+      },
+    }
+  }
+
+  const newProfile = createProfileFromAuthUser(authUser, current.users)
+
+  return {
+    ...current,
+    users: [newProfile, ...current.users],
+    auth: {
+      currentUserId: newProfile.id,
+      provider,
+      mode,
+    },
+    notifications: [
+      createNotification(
+        newProfile.id,
+        'system',
+        'Profile created',
+        'Add the skills you offer and want to learn to unlock better matches.',
+        '/settings',
+      ),
+      ...current.notifications,
+    ],
   }
 }
 
@@ -193,6 +365,8 @@ function resolveThreadPartnerId(state: AppState, currentUserId: string, threadId
 
 export function AppProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AppState>(loadInitialState)
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(isSupabaseConfigured)
   const stateRef = useRef(state)
   const channelRef = useRef<BroadcastChannel | null>(null)
 
@@ -251,11 +425,55 @@ export function AppProvider({ children }: PropsWithChildren) {
     applyState(updater(stateRef.current), options?.broadcast ?? true)
   }
 
+  const syncSupabaseSession = useEffectEvent((nextUser: User | null) => {
+    setUser(nextUser)
+    mutateState((current) => syncStateWithAuthenticatedUser(current, nextUser))
+    setLoading(false)
+  })
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      return
+    }
+
+    const authClient = supabase
+    let isActive = true
+
+    async function initializeSession() {
+      const response = await authClient.auth.getSession()
+      console.log('Supabase getSession response', response)
+
+      if (!isActive) {
+        return
+      }
+
+      syncSupabaseSession(response.data.session?.user ?? null)
+    }
+
+    void initializeSession()
+
+    const {
+      data: { subscription },
+    } = authClient.auth.onAuthStateChange((event, session) => {
+      console.log('Supabase auth state change', { event, session })
+
+      if (!isActive) {
+        return
+      }
+
+      syncSupabaseSession(session?.user ?? null)
+    })
+
+    return () => {
+      isActive = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
   const users = state.users
-  const currentUser =
-    state.users.find((user) => user.id === state.auth.currentUserId) ?? null
+  const currentUser = user ? findUserProfileByAuthUser(state.users, user) : null
   const currentUserId = currentUser?.id ?? null
-  const isAuthenticated = Boolean(currentUser)
+  const isAuthenticated = Boolean(user)
   const unreadNotificationCount = currentUser
     ? state.notifications.filter(
         (notification) => notification.userId === currentUser.id && !notification.read,
@@ -330,141 +548,109 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, [currentUserId])
 
   async function signUp(payload: SignupPayload) {
+    if (!isSupabaseConfigured || !supabase) {
+      return {
+        success: false,
+        message: 'Supabase auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+      }
+    }
+
     const name = payload.name.trim()
     const email = payload.email.trim().toLowerCase()
-
-    if (stateRef.current.users.some((user) => user.email.toLowerCase() === email)) {
-      return { success: false, message: 'An account with that email already exists.' }
-    }
-
-    const usernameBase = slugify(name) || 'member'
-    let username = usernameBase
-    let count = 1
-
-    while (stateRef.current.users.some((user) => user.username === username)) {
-      count += 1
-      username = `${usernameBase}-${count}`
-    }
-
-    const newUser: UserProfile = {
-      id: createId('user'),
-      username,
-      name,
+    const response = await supabase.auth.signUp({
       email,
-      city: payload.city.trim(),
-      bio: 'Tell the community what you love teaching and what you want to learn next.',
-      headline: 'New member ready to trade skills',
-      photo: `https://api.dicebear.com/9.x/shapes/svg?seed=${username}`,
-      age: undefined,
-      availability: ['Weekends'],
-      mode: 'Online',
-      joinedAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-      badges: ['New Today'],
-      skillsOffered: [],
-      skillsWanted: [],
-      swapScore: 0,
-      rating: 0,
-      reviewCount: 0,
-      completedSwaps: 0,
-      taughtCount: 0,
-      learnedCount: 0,
-      reports: 0,
+      password: payload.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          city: payload.city.trim(),
+          full_name: name,
+          name,
+        },
+      },
+    })
+
+    console.log('Supabase signUp response', response)
+
+    if (response.error) {
+      return { success: false, message: response.error.message }
     }
 
-    const passwords = getPasswords()
-    passwords[email] = payload.password
-    savePasswords(passwords)
+    if (response.data.session) {
+      toast.success('Account created. Finish your profile to start matching.')
+      return { success: true, shouldNavigate: true }
+    }
 
-    mutateState((current) => ({
-      ...current,
-      users: [newUser, ...current.users],
-      auth: {
-        currentUserId: newUser.id,
-        provider: 'email',
-        mode: isSupabaseConfigured ? 'supabase' : 'demo',
-      },
-      notifications: [
-        createNotification(
-          newUser.id,
-          'system',
-          'Profile created',
-          'Add the skills you offer and want to learn to unlock better matches.',
-          '/settings',
-        ),
-        ...current.notifications,
-      ],
-    }))
-
-    toast.success('Account created. Finish your profile to start matching.')
-    return { success: true }
+    toast.success('Account created. Check your email to confirm your address.')
+    return {
+      success: true,
+      message: 'Check your email to confirm your account before continuing.',
+      shouldNavigate: false,
+    }
   }
 
   async function login(payload: { email: string; password: string }) {
-    const email = payload.email.trim().toLowerCase()
-    const user = stateRef.current.users.find((entry) => entry.email.toLowerCase() === email)
-
-    if (!user) {
-      return { success: false, message: 'No account found for that email.' }
+    if (!isSupabaseConfigured || !supabase) {
+      return {
+        success: false,
+        message: 'Supabase auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+      }
     }
 
-    const passwords = getPasswords()
-    if ((passwords[email] ?? demoCredentials.password) !== payload.password) {
-      return { success: false, message: 'Incorrect password.' }
+    const response = await supabase.auth.signInWithPassword({
+      email: payload.email.trim().toLowerCase(),
+      password: payload.password,
+    })
+
+    console.log('Supabase signInWithPassword response', response)
+
+    if (response.error) {
+      return { success: false, message: response.error.message }
     }
 
-    mutateState((current) => ({
-      ...current,
-      users: touchUsers(current.users, user.id),
-      auth: {
-        currentUserId: user.id,
-        provider: 'email',
-        mode: isSupabaseConfigured ? 'supabase' : 'demo',
-      },
-    }))
-
-    toast.success(`Welcome back, ${user.name.split(' ')[0]}.`)
-    return { success: true }
+    const firstName =
+      deriveNameFromAuthUser(response.data.user).split(' ')[0] || 'there'
+    toast.success(`Welcome back, ${firstName}.`)
+    return { success: true, shouldNavigate: true }
   }
 
   async function loginWithGoogle() {
-    if (isSupabaseConfigured && supabase) {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      })
-      return { success: true }
+    if (!isSupabaseConfigured || !supabase) {
+      return {
+        success: false,
+        message: 'Supabase auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+      }
     }
 
-    const demoUser =
-      stateRef.current.users.find((user) => user.email === demoCredentials.email) ??
-      stateRef.current.users[0]
-
-    mutateState((current) => ({
-      ...current,
-      users: touchUsers(current.users, demoUser?.id),
-      auth: {
-        currentUserId: demoUser?.id ?? null,
-        provider: 'google',
-        mode: 'demo',
+    const response = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
       },
-    }))
+    })
 
-    toast.success('Demo Google sign-in active. Connect Supabase env vars for real OAuth.')
-    return { success: true }
+    console.log('Supabase Google OAuth response', response)
+
+    if (response.error) {
+      return { success: false, message: response.error.message }
+    }
+
+    return { success: true, shouldNavigate: false }
   }
 
-  function logout() {
-    mutateState((current) => ({
-      ...current,
-      auth: {
-        currentUserId: null,
-        provider: null,
-        mode: current.auth.mode,
-      },
-    }))
+  async function logout() {
+    if (!isSupabaseConfigured || !supabase) {
+      mutateState((current) => syncStateWithAuthenticatedUser(current, null))
+      return
+    }
+
+    const response = await supabase.auth.signOut()
+    console.log('Supabase signOut response', response)
+
+    if (response.error) {
+      toast.error(response.error.message)
+      return
+    }
 
     toast.success('Logged out.')
   }
@@ -994,9 +1180,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   function resetDemoData() {
     const theme = stateRef.current.theme
     const next = getSeedState(theme)
-    const passwords = { [demoCredentials.email]: demoCredentials.password }
-    savePasswords(passwords)
-    applyState(next)
+    applyState(syncStateWithAuthenticatedUser(next, user))
     toast.success('Demo data reset.')
   }
 
@@ -1042,9 +1226,11 @@ export function AppProvider({ children }: PropsWithChildren) {
     <AppContext.Provider
       value={{
         state,
+        user,
         users,
         currentUser,
         isAuthenticated,
+        loading,
         unreadNotificationCount,
         messageThreads,
         suggestedMatches,
