@@ -9,7 +9,9 @@ import {
   useLocation,
 } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import { AppProvider, useApp } from '@/context/AppContext'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
+import { AppProvider } from '@/context/AppContext'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 
 const LandingPage = lazy(async () =>
   import('@/pages/LandingPage').then((module) => ({ default: module.LandingPage })),
@@ -56,10 +58,17 @@ function RouteFallback() {
 
 function ProtectedLayout() {
   const location = useLocation()
-  const { currentUser, isAuthenticated, loading } = useApp()
+  const { isAuthenticated, loading } = useAuth()
 
-  if (loading || (isAuthenticated && !currentUser)) {
-    return <RouteFallback />
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading SkillBridge...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -76,25 +85,25 @@ function AnimatedRoutes() {
     <Suspense fallback={<RouteFallback />}>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route element={<LandingPage />} path="/" />
-          <Route element={<AuthPage />} path="/auth" />
+          <Route element={<ErrorBoundary><LandingPage /></ErrorBoundary>} path="/" />
+          <Route element={<ErrorBoundary><AuthPage /></ErrorBoundary>} path="/auth" />
 
           <Route element={<AppShell />}>
-            <Route element={<ExplorePage />} path="/explore" />
-            <Route element={<ProfilePage />} path="/profile/:username" />
-            <Route element={<PostPage />} path="/post" />
+            <Route element={<ErrorBoundary><ExplorePage /></ErrorBoundary>} path="/explore" />
+            <Route element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} path="/profile/:username" />
+            <Route element={<ErrorBoundary><PostPage /></ErrorBoundary>} path="/post" />
 
             <Route element={<ProtectedLayout />}>
-              <Route element={<DashboardPage />} path="/dashboard" />
-              <Route element={<ChatPage />} path="/messages" />
-              <Route element={<ChatPage />} path="/messages/:threadId" />
-              <Route element={<ChatPage />} path="/chat/:swapId" />
-              <Route element={<NotificationsPage />} path="/notifications" />
-              <Route element={<SettingsPage />} path="/settings" />
+              <Route element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} path="/dashboard" />
+              <Route element={<ErrorBoundary><ChatPage /></ErrorBoundary>} path="/messages" />
+              <Route element={<ErrorBoundary><ChatPage /></ErrorBoundary>} path="/messages/:threadId" />
+              <Route element={<ErrorBoundary><ChatPage /></ErrorBoundary>} path="/chat/:swapId" />
+              <Route element={<ErrorBoundary><NotificationsPage /></ErrorBoundary>} path="/notifications" />
+              <Route element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} path="/settings" />
             </Route>
           </Route>
 
-          <Route element={<NotFoundPage />} path="*" />
+          <Route element={<ErrorBoundary><NotFoundPage /></ErrorBoundary>} path="*" />
         </Routes>
       </AnimatePresence>
     </Suspense>
@@ -103,16 +112,18 @@ function AnimatedRoutes() {
 
 function App() {
   return (
-    <AppProvider>
-      <BrowserRouter
-        future={{
-          v7_relativeSplatPath: true,
-          v7_startTransition: true,
-        }}
-      >
-        <AnimatedRoutes />
-      </BrowserRouter>
-    </AppProvider>
+    <BrowserRouter
+      future={{
+        v7_relativeSplatPath: true,
+        v7_startTransition: true,
+      }}
+    >
+      <AuthProvider>
+        <AppProvider>
+          <AnimatedRoutes />
+        </AppProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 
