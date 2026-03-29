@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Save, Sparkles, Trash2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Save, Sparkles, Trash2, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { PageTransition } from '@/components/common/PageTransition'
@@ -72,6 +73,9 @@ export function SettingsPage() {
     name: '',
   })
   const [form, setForm] = useState<ProfileFormState>(() => buildFormState(currentUser))
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!currentUser) {
     return null
@@ -109,6 +113,72 @@ export function SettingsPage() {
     }
 
     setDraftWanted((current) => ({ ...current, name: '' }))
+  }
+
+  async function handleAvatarUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file || !currentUser) return
+
+    // Validate file size (2MB limit)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File size must be less than 2MB')
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('File must be an image')
+      return
+    }
+
+    setIsUploadingAvatar(true)
+
+    try {
+      const { supabase } = await import('@/lib/supabase')
+      if (!supabase) {
+        toast.error('Supabase is not configured')
+        return
+      }
+
+      // Generate unique file name
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          upsert: true,
+        })
+
+      if (uploadError) {
+        toast.error('Failed to upload image')
+        return
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
+
+      // Update form with new photo URL
+      setForm((current) => ({ ...current, photo: publicUrl }))
+      
+      toast.success('Photo uploaded successfully')
+    } catch (error) {
+      console.error('Avatar upload error:', error)
+      toast.error('Failed to upload photo')
+    } finally {
+      setIsUploadingAvatar(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  function handleAvatarClick() {
+    fileInputRef.current?.click()
   }
 
   return (
@@ -160,14 +230,48 @@ export function SettingsPage() {
                 />
               </label>
               <label className="space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                Photo URL
-                <input
-                  className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80"
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, photo: event.target.value }))
-                  }
-                  value={form.photo}
-                />
+                Profile Photo
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <input
+                      ref={fileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                      type="file"
+                    />
+                    <button
+                      className="relative overflow-hidden rounded-2xl transition-transform hover:scale-105"
+                      disabled={isUploadingAvatar}
+                      onClick={handleAvatarClick}
+                      type="button"
+                    >
+                      <img
+                        alt={form.name}
+                        className="size-20 rounded-2xl object-cover ring-4 ring-slate-200 dark:ring-slate-700"
+                        src={form.photo}
+                      />
+                      {isUploadingAvatar && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl">
+                          <Loader2 className="size-6 animate-spin text-white" />
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80"
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, photo: event.target.value }))
+                      }
+                      placeholder="Or paste image URL here"
+                      value={form.photo}
+                    />
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Click avatar to upload (max 2MB)
+                    </p>
+                  </div>
+                </div>
               </label>
               <label className="space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
                 Age
@@ -370,24 +474,43 @@ export function SettingsPage() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
               <Button
-                onClick={() =>
-                  updateProfile({
-                    name: form.name,
-                    city: form.city,
-                    bio: form.bio,
-                    age: form.age ? Number(form.age) : undefined,
-                    photo: form.photo,
-                    headline: form.headline,
-                    availability: form.availability,
-                    mode: form.mode,
-                    skillsOffered: form.skillsOffered,
-                    skillsWanted: form.skillsWanted,
-                  })
-                }
+                disabled={isSaving}
+                onClick={async () => {
+                  setIsSaving(true)
+                  try {
+                    await updateProfile({
+                      name: form.name,
+                      city: form.city,
+                      bio: form.bio,
+                      age: form.age ? Number(form.age) : undefined,
+                      photo: form.photo,
+                      headline: form.headline,
+                      availability: form.availability,
+                      mode: form.mode,
+                      skillsOffered: form.skillsOffered,
+                      skillsWanted: form.skillsWanted,
+                    })
+                    toast.success('Profile updated successfully!')
+                  } catch (error) {
+                    console.error('Profile update error:', error)
+                    toast.error('Failed to update profile. Please try again.')
+                  } finally {
+                    setIsSaving(false)
+                  }
+                }}
                 size="lg"
               >
-                <Save className="size-4" />
-                Save profile
+                {isSaving ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4" />
+                    Save profile
+                  </>
+                )}
               </Button>
               <Button onClick={resetDemoData} size="lg" variant="ghost">
                 <Trash2 className="size-4" />
