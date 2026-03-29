@@ -132,7 +132,9 @@ export function AppShell() {
                   </NavLink>
                   <button
                     className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
-                    onClick={logout}
+                    onClick={() => {
+                      void logout()
+                    }}
                     type="button"
                   >
                     <LogOut className="size-4" />
