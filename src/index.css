@@ -11,6 +11,7 @@
   --foreground-soft: 71 85 105;
   --border: 226 232 240;
   --card-shadow: 15 23 42;
+  scroll-behavior: smooth;
 }
 
 .dark {
