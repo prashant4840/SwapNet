@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Flag, MapPin, Share2, UserRoundPen } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Flag, MapPin, Share2, UserRoundPen, Loader2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
@@ -12,6 +12,37 @@ import { SkillChip } from '@/components/common/SkillChip'
 import { SwapRequestModal } from '@/components/feed/SwapRequestModal'
 import { useApp, useShareProfile } from '@/context/AppContext'
 import { buildShareUrl, computeMatchResult, formatRelativeTime } from '@/utils/app'
+import type { Review } from '@/types'
+
+function SkeletonProfileHeader() {
+  return (
+    <section className="glass-panel overflow-hidden">
+      <div className="bg-gradient-to-r from-brand-600 via-brand-500 to-tealish-500 px-6 py-10 text-white sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+            <div className="size-28 rounded-[2rem] bg-white/20 animate-pulse" />
+            <div className="space-y-3 flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="h-8 w-48 bg-white/20 rounded animate-pulse" />
+                <div className="h-6 w-24 bg-white/20 rounded-full animate-pulse" />
+              </div>
+              <div className="h-5 w-3/4 bg-white/20 rounded animate-pulse" />
+              <div className="flex gap-4">
+                <div className="h-4 w-20 bg-white/20 rounded animate-pulse" />
+                <div className="h-4 w-16 bg-white/20 rounded animate-pulse" />
+                <div className="h-4 w-24 bg-white/20 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="h-10 w-32 bg-white/20 rounded-lg animate-pulse" />
+            <div className="h-10 w-32 bg-white/20 rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
 
 export function ProfilePage() {
   const { username = '' } = useParams()
@@ -19,16 +50,68 @@ export function ProfilePage() {
     currentUser,
     getReviewsForUser,
     getUserByUsername,
+    loading,
     reportUser,
     state,
   } = useApp()
   const { shareProfile } = useShareProfile(username)
   const [isModalOpen, setModalOpen] = useState(false)
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false)
+  const [reviewsWithAuthors, setReviewsWithAuthors] = useState<(Review & { reviewer: { name: string; photo: string } })[]>([])
   const user = getUserByUsername(username)
-  const reviews = getReviewsForUser(user?.id ?? '')
   const posts = state.posts.filter((post) => post.userId === user?.id)
-  const match = user ? computeMatchResult(currentUser, user) : null
+  const match = user && currentUser ? computeMatchResult(currentUser, user) : null
   const shareUrl = buildShareUrl(username)
+  useEffect(() => {
+    if (user && !loading) {
+      const fetchReviewsWithAuthors = async () => {
+        setIsLoadingReviews(true)
+        try {
+          const { supabase } = await import('@/lib/supabase')
+          if (!supabase) return
+          
+          const reviews = getReviewsForUser(user.id)
+          
+          if (reviews.length > 0) {
+            // Fetch reviewer details from public.users
+            const reviewerIds = [...new Set(reviews.map(r => r.reviewerId))]
+            const { data: reviewers } = await supabase
+              .from('users')
+              .select('id, name, photo')
+              .in('id', reviewerIds)
+            
+            const reviewsWithData = reviews.map(review => ({
+              ...review,
+              reviewer: reviewers?.find(r => r.id === review.reviewerId) || { name: 'Anonymous', photo: '' }
+            }))
+            
+            setReviewsWithAuthors(reviewsWithData)
+          } else {
+            setReviewsWithAuthors([])
+          }
+        } catch (error) {
+          console.error('Failed to fetch reviews:', error)
+        } finally {
+          setIsLoadingReviews(false)
+        }
+      }
+      
+      fetchReviewsWithAuthors()
+    }
+  }, [user, loading, getReviewsForUser])
+  
+  // Calculate real average rating
+  const averageRating = reviewsWithAuthors.length > 0 
+    ? reviewsWithAuthors.reduce((sum, review) => sum + review.rating, 0) / reviewsWithAuthors.length
+    : 0
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <SkeletonProfileHeader />
+      </PageTransition>
+    )
+  }
 
   if (!user) {
     return (
@@ -122,7 +205,7 @@ export function ProfilePage() {
 
           <div className="grid gap-6 p-6 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: 'Overall rating', value: user.rating.toFixed(1), sublabel: `${user.reviewCount} reviews` },
+              { label: 'Overall rating', value: averageRating.toFixed(1), sublabel: `${reviewsWithAuthors.length} reviews` },
               { label: 'Swap score', value: `${user.swapScore}`, sublabel: 'Reputation metric' },
               { label: 'Completed swaps', value: `${user.completedSwaps}`, sublabel: 'Finished exchanges' },
               { label: 'Availability', value: user.availability.join(', '), sublabel: user.mode },
@@ -174,13 +257,14 @@ export function ProfilePage() {
                 description="Public reviews left after completed swaps."
                 eyebrow="Ratings & Reviews"
               >
-                Community feedback
-              </SectionTitle>
-              {reviews.length ? (
-                <div className="mt-6 space-y-4">
-                  {reviews.map((review) => {
-                    const author = state.users.find((entry) => entry.id === review.reviewerId)
-                    return (
+                {isLoadingReviews ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="size-6 animate-spin text-slate-400" />
+                    <span className="ml-2 text-sm text-slate-500 dark:text-slate-400">Loading reviews...</span>
+                  </div>
+                ) : reviewsWithAuthors.length > 0 ? (
+                  <div className="mt-6 space-y-4">
+                    {reviewsWithAuthors.map((review) => (
                       <div
                         className="rounded-3xl border border-slate-200 bg-white/80 p-4 dark:border-slate-700 dark:bg-slate-900/80"
                         key={review.id}
@@ -188,13 +272,13 @@ export function ProfilePage() {
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
                             <img
-                              alt={author?.name ?? 'Reviewer'}
+                              alt={review.reviewer.name}
                               className="size-10 rounded-2xl object-cover"
-                              src={author?.photo}
+                              src={review.reviewer.photo}
                             />
                             <div>
                               <p className="font-semibold text-slate-950 dark:text-white">
-                                {author?.name}
+                                {review.reviewer.name}
                               </p>
                               <p className="text-sm text-slate-500 dark:text-slate-300">
                                 {formatRelativeTime(review.createdAt)}
@@ -207,17 +291,17 @@ export function ProfilePage() {
                           {review.comment}
                         </p>
                       </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="mt-6">
-                  <EmptyState
-                    title="No public reviews yet"
-                    description="Complete a swap with this member to leave the first review."
-                  />
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-6">
+                    <EmptyState
+                      title="No reviews yet"
+                      description="Complete a swap with this member to leave the first review."
+                    />
+                  </div>
+                )}
+              </SectionTitle>
             </div>
           </div>
 
