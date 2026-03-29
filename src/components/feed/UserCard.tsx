@@ -5,6 +5,7 @@ import { Button } from '@/components/common/Button'
 import { SkillChip } from '@/components/common/SkillChip'
 import { useApp } from '@/context/AppContext'
 import type { MatchResult, UserProfile } from '@/types'
+import { memo } from 'react'
 
 interface UserCardProps {
   user: UserProfile
@@ -12,7 +13,7 @@ interface UserCardProps {
   onRequest: (user: UserProfile) => void
 }
 
-export function UserCard({ user, match, onRequest }: UserCardProps) {
+export const UserCard = memo(function UserCard({ user, match, onRequest }: UserCardProps) {
   const { currentUser, sendConnectionRequest } = useApp()
 
   return (
@@ -134,11 +135,12 @@ export function UserCard({ user, match, onRequest }: UserCardProps) {
                     message: `Hi ${user.name.split(' ')[0]}, your profile looks like a strong fit for a SkillBridge connection.`,
                   })
                 }
+                className="h-11"
                 variant="outline"
               >
                 Connect
               </Button>
-              <Button onClick={() => onRequest(user)}>
+              <Button className="h-11" onClick={() => onRequest(user)}>
                 <Sparkles className="size-4" />
                 Request Swap
               </Button>
@@ -155,4 +157,4 @@ export function UserCard({ user, match, onRequest }: UserCardProps) {
       </div>
     </article>
   )
-}
+})

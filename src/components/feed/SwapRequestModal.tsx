@@ -99,7 +99,7 @@ export function SwapRequestModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
-      <div className="glass-panel w-full max-w-xl space-y-6 p-6">
+      <div className="glass-panel w-full max-w-xl space-y-6 p-6 overflow-y-auto max-h-[90vh]">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-600 dark:text-brand-300">
