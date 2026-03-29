@@ -2,9 +2,9 @@
 import {
   createContext,
   startTransition,
+  useCallback,
   useContext,
   useEffect,
-  useEffectEvent,
   useRef,
   useState,
   type PropsWithChildren,
@@ -24,6 +24,7 @@ import type {
   ProfilePayload,
   Review,
   SignupPayload,
+  SkillCategory,
   SwapRequest,
   SwapRequestPayload,
   UserProfile,
@@ -55,8 +56,8 @@ interface AppContextValue {
   currentUser: UserProfile | null
   isAuthenticated: boolean
   loading: boolean
-  unreadNotificationCount: number
   messageThreads: MessageThread[]
+  unreadNotificationCount: number
   suggestedMatches: Array<UserProfile & { match: MatchResult }>
   newTodayUsers: UserProfile[]
   topRatedUsers: UserProfile[]
@@ -95,6 +96,12 @@ interface AppContextValue {
   getMessagesForThread: (threadId: string) => ChatMessage[]
   getMessagesForSwap: (swapId: string) => ChatMessage[]
   getReviewsForUser: (userId: string) => Review[]
+  dbFetchAllUsers: () => Promise<UserProfile[]>
+  dbFetchSwapRequests: (userId: string) => Promise<SwapRequest[]>
+  dbFetchNotifications: (userId: string) => Promise<NotificationItem[]>
+  dbFetchPosts: () => Promise<LookingForPost[]>
+  dbCreatePost: (post: Omit<LookingForPost, 'id' | 'createdAt' | 'responses'>) => Promise<LookingForPost>
+  dbFetchReviews: (userId: string) => Promise<Review[]>
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -217,15 +224,19 @@ function syncStateWithAuthenticatedUser(current: AppState, authUser: User | null
 
   if (!authUser) {
     if (
-      current.auth.currentUserId === null &&
-      current.auth.provider === null &&
-      current.auth.mode === mode
+      current.users.length > 0 ||
+      current.messageThreads.length > 0 ||
+      current.unreadNotificationCount > 0
     ) {
-      return current
+      return {
+        ...current,
+        auth: { mode, provider: 'email' as const, currentUserId: null },
+      }
     }
+
     return {
       ...current,
-      auth: { currentUserId: null, provider: null, mode },
+      auth: { mode, provider: 'email' as const, currentUserId: null, user: authUser },
     }
   }
 
@@ -445,6 +456,125 @@ async function dbFetchSwapRequests(userId: string): Promise<SwapRequest[]> {
 
 
 
+async function dbFetchChatMessages(swapId: string): Promise<ChatMessage[]> {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('chats')
+    .select('*')
+    .eq('swap_id', swapId)
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return []
+
+  return data.map((m) => ({
+    id: m.id as string,
+    threadId: m.swap_id as string,
+    swapRequestId: m.swap_id as string,
+    senderId: m.sender_id as string,
+    receiverId: (m.receiver_id as string) ?? undefined,
+    message: m.message as string,
+    timestamp: m.created_at as string,
+    type: (m.type as ChatMessage['type']) ?? 'text',
+  }))
+}
+
+async function dbFetchNotifications(userId: string): Promise<NotificationItem[]> {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((n) => ({
+    id: n.id as string,
+    userId: n.user_id as string,
+    type: n.type as NotificationItem['type'],
+    title: n.title as string,
+    description: n.description as string,
+    link: n.link as string | undefined,
+    createdAt: n.created_at as string,
+    read: n.read as boolean,
+  }))
+}
+
+async function dbMarkNotificationRead(notificationId: string): Promise<void> {
+  if (!supabase) return
+  
+  await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('id', notificationId)
+}
+
+async function dbMarkAllNotificationsRead(userId: string): Promise<void> {
+  if (!supabase) return
+  
+  await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('user_id', userId)
+    .eq('read', false)
+}
+
+async function dbFetchPosts(): Promise<LookingForPost[]> {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((p) => ({
+    id: p.id as string,
+    userId: p.user_id as string,
+    skillName: p.skill_name as string,
+    category: p.category as SkillCategory,
+    note: p.note as string,
+    city: p.city as string,
+    mode: p.mode as 'Online' | 'In-person' | 'Both',
+    createdAt: p.created_at as string,
+    responses: p.responses as number,
+  }))
+}
+
+async function dbCreatePost(post: Omit<LookingForPost, 'id' | 'createdAt' | 'responses'>): Promise<LookingForPost> {
+  if (!supabase) throw new Error('Supabase not configured')
+
+  const { data, error } = await supabase
+    .from('posts')
+    .insert({
+      user_id: post.userId,
+      skill_name: post.skillName,
+      category: post.category,
+      note: post.note,
+      city: post.city,
+      mode: post.mode,
+    })
+    .select()
+    .single()
+
+  if (error || !data) throw new Error('Failed to create post')
+
+  return {
+    id: data.id as string,
+    userId: data.user_id as string,
+    skillName: data.skill_name as string,
+    category: data.category as SkillCategory,
+    note: data.note as string,
+    city: data.city as string,
+    mode: data.mode as 'Online' | 'In-person' | 'Both',
+    createdAt: data.created_at as string,
+    responses: data.responses as number,
+  }
+}
+
 async function dbFetchReviews(userId: string): Promise<Review[]> {
   if (!supabase) return []
 
@@ -513,75 +643,164 @@ export function AppProvider({ children }: PropsWithChildren) {
     if (broadcast) channelRef.current?.postMessage(hydrated)
   }
 
-  function mutateState(
+  const mutateState = useCallback((
     updater: (current: AppState) => AppState,
     options?: { broadcast?: boolean },
-  ) {
+  ) => {
     applyState(updater(stateRef.current), options?.broadcast ?? true)
-  }
+  }, [])
 
-  // ── Load real data from Supabase after auth ─────────────────────────────────
-  const loadSupabaseData = useEffectEvent(async (authUser: User) => {
+  // ── Load chat messages from Supabase ─────────────────────────────────────
+  const loadChatMessages = useCallback(async (swapId: string) => {
     if (!isSupabaseConfigured) return
-
+    
     try {
-      const [allUsers, swapRequests, reviews] = await Promise.all([
-        dbFetchAllUsers(),
-        dbFetchSwapRequests(authUser.id),
-        dbFetchReviews(authUser.id),
-      ])
-
+      const chatMessages = await dbFetchChatMessages(swapId)
+      
       mutateState((current) => {
-        // Merge real users with local seed — real users take priority
-        const seedUserIds = new Set(allUsers.map((u) => u.id))
-        const localOnlyUsers = current.users.filter((u) => !seedUserIds.has(u.id))
-
+        // Merge with existing messages and deduplicate by id
+        const existingMessageIds = new Set(current.messages.map(m => m.id))
+        const newMessages = chatMessages.filter(m => !existingMessageIds.has(m.id))
+        
         return {
           ...current,
-          users: [...allUsers, ...localOnlyUsers],
-          swapRequests: swapRequests.length > 0 ? swapRequests : current.swapRequests,
-          reviews: reviews.length > 0 ? reviews : current.reviews,
+          messages: [...current.messages, ...newMessages].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          ),
         }
       })
     } catch (err) {
-      console.error('Failed to load Supabase data', err)
+      console.error('Failed to load chat messages:', err)
     }
-  })
+  }, [mutateState])
 
-  const syncSupabaseSession = useEffectEvent((nextUser: User | null) => {
-    setUser(nextUser)
-    mutateState((current) => syncStateWithAuthenticatedUser(current, nextUser))
+  // ── Realtime notifications subscription ───────────────────────────────────
+  const setupNotificationsSubscription = useCallback((authUser: User) => {
+    if (!isSupabaseConfigured || !supabase || !authUser) return
+
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
+        const n = payload.new as Record<string, unknown>
+        
+        // Only process notifications for current user
+        if (n.user_id === authUser.id) {
+          const newNotification: NotificationItem = {
+            id: n.id as string,
+            userId: n.user_id as string,
+            type: n.type as NotificationItem['type'],
+            title: n.title as string,
+            description: n.description as string,
+            link: n.link as string | undefined,
+            createdAt: n.created_at as string,
+            read: n.read as boolean,
+          }
+          
+          mutateState((current) => ({
+            ...current,
+            notifications: [newNotification, ...current.notifications].sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            ),
+          }))
+        }
+      })
+      .subscribe()
+
+    return () => {
+      void supabase?.removeChannel(channel)
+    }
+  }, [mutateState])
+
+  const syncSupabaseSession = useCallback(async (authUser: User | null) => {
+  if (!authUser) {
+    mutateState((current) => ({
+      ...current,
+      auth: {
+        currentUserId: null,
+        provider: null,
+        mode: isSupabaseConfigured ? 'supabase' : current.auth.mode,
+      },
+    }))
     setLoading(false)
+    return
+  }
 
-    if (nextUser && isSupabaseConfigured) {
-      void loadSupabaseData(nextUser)
-    }
-  })
+  try {
+    const fetchedUsers = await dbFetchAllUsers()
 
+    mutateState((current) => {
+      const existingIds = new Set(fetchedUsers.map((u) => u.id))
+      const seedUsers = current.users.filter((u) => !existingIds.has(u.id))
+      const mergedUsers = [...fetchedUsers, ...seedUsers]
+      return {
+        ...current,
+        users: mergedUsers,
+        auth: {
+          currentUserId: authUser.id,
+          provider: resolveAuthProvider(authUser),
+          mode: isSupabaseConfigured ? 'supabase' : current.auth.mode,
+        },
+      }
+    })
+
+    mutateState((current) => {
+      const existingProfile = findUserProfileByAuthUser(current.users, authUser)
+      if (existingProfile) return current
+      const newProfile = createProfileFromAuthUser(authUser, current.users)
+      return {
+        ...current,
+        users: [...current.users, newProfile],
+        notifications: [
+          createNotification(
+            newProfile.id, 'system', 'Welcome to SkillBridge',
+            'Add skills you offer and want to learn to unlock matches.', '/settings',
+          ),
+          ...current.notifications,
+        ],
+      }
+    })
+  } catch (err) {
+    console.error('Failed to sync Supabase session:', err)
+    toast.error('Failed to load your profile. Please refresh.')
+  } finally {
+    setLoading(false)
+  }
+}, [mutateState])
+
+  // ── Sync Supabase session ───────────────────────────────────────
+  const isActiveRef = useRef(true)
+  
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return
-
-    const authClient = supabase
-    let isActive = true
-
     async function initializeSession() {
-      const response = await authClient.auth.getSession()
-      if (!isActive) return
-      syncSupabaseSession(response.data.session?.user ?? null)
+      if (!supabase) { setLoading(false); return }
+      setLoading(true)
+      try {
+        const response = await supabase.auth.getSession()
+        if (!isActiveRef.current) return
+        const authUser = response.data.session?.user ?? null
+        setUser(authUser)
+        await syncSupabaseSession(authUser)
+      } catch {
+        setLoading(false)
+      }
     }
 
     void initializeSession()
 
-    const { data: { subscription } } = authClient.auth.onAuthStateChange((_event, session) => {
-      if (!isActive) return
-      syncSupabaseSession(session?.user ?? null)
+    if (!supabase) return
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isActiveRef.current) return
+      const authUser = session?.user ?? null
+      setUser(authUser)
+      void syncSupabaseSession(authUser)
+      if (authUser) setupNotificationsSubscription(authUser)
     })
 
     return () => {
-      isActive = false
+      isActiveRef.current = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [syncSupabaseSession, setupNotificationsSubscription])
 
   // ── Supabase Realtime chat subscription ─────────────────────────────────────
   useEffect(() => {
@@ -620,13 +839,12 @@ export function AppProvider({ children }: PropsWithChildren) {
   const users = state.users
   const currentUser = user ? findUserProfileByAuthUser(state.users, user) : null
   const currentUserId = currentUser?.id ?? null
-  const isAuthenticated = Boolean(user)
-  const unreadNotificationCount = currentUser
-    ? state.notifications.filter(
-        (n) => n.userId === currentUser.id && !n.read,
-      ).length
-    : 0
+  const isAuthenticated = Boolean(currentUser)
+
   const messageThreads = buildMessageThreads(state, currentUserId)
+  const unreadNotificationCount = currentUser
+    ? state.notifications.filter((n) => n.userId === currentUser.id && !n.read).length
+    : 0
 
   const suggestedMatches = currentUser
     ? state.users
@@ -760,7 +978,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   // ── Profile ─────────────────────────────────────────────────────────────────
 
   async function updateProfile(payload: ProfilePayload) {
-    if (!currentUser) return
+    if (!currentUser) throw new Error('No current user')
 
     const updated: UserProfile = {
       ...currentUser,
@@ -776,11 +994,18 @@ export function AppProvider({ children }: PropsWithChildren) {
 
     // Persist to Supabase
     if (isSupabaseConfigured) {
-      await dbUpsertProfile(updated)
-      await dbUpsertSkills(updated.id, updated.skillsOffered, updated.skillsWanted)
+      try {
+        await dbUpsertProfile(updated)
+        await dbUpsertSkills(updated.id, updated.skillsOffered, updated.skillsWanted)
+      } catch (error) {
+        // Revert optimistic update on error
+        mutateState((current) => ({
+          ...current,
+          users: current.users.map((u) => (u.id === updated.id ? currentUser : u)),
+        }))
+        throw error
+      }
     }
-
-    toast.success('Profile updated.')
   }
 
   // ── Swap Requests ───────────────────────────────────────────────────────────
@@ -1275,23 +1500,31 @@ export function AppProvider({ children }: PropsWithChildren) {
   }
 
   function markNotificationRead(notificationId: string) {
-    if (!currentUser) return
     mutateState((current) => ({
       ...current,
       notifications: current.notifications.map((n) =>
         n.id === notificationId ? { ...n, read: true } : n,
       ),
     }))
+    
+    // Persist to Supabase
+    if (isSupabaseConfigured) {
+      void dbMarkNotificationRead(notificationId)
+    }
   }
 
   function markAllNotificationsRead() {
     if (!currentUser) return
+    
     mutateState((current) => ({
       ...current,
-      notifications: current.notifications.map((n) =>
-        n.userId === currentUser.id ? { ...n, read: true } : n,
-      ),
+      notifications: current.notifications.map((n) => ({ ...n, read: true })),
     }))
+    
+    // Persist to Supabase
+    if (isSupabaseConfigured) {
+      void dbMarkAllNotificationsRead(currentUser.id)
+    }
   }
 
   function toggleTheme() {
@@ -1324,14 +1557,17 @@ export function AppProvider({ children }: PropsWithChildren) {
     return buildMessageThreads(stateRef.current, currentUserId).find((t) => t.id === threadId) ?? null
   }
 
-  function getMessagesForThread(threadId: string) {
-    return stateRef.current.messages
-      .filter((m) => (m.threadId || m.swapRequestId) === threadId)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+  function getMessagesForSwap(swapId: string) {
+    const messages = stateRef.current.messages.filter((m) => m.swapRequestId === swapId)
+    // Load from Supabase if we don't have messages for this swap yet
+    if (messages.length === 0 && swapId) {
+      void loadChatMessages(swapId)
+    }
+    return messages
   }
 
-  function getMessagesForSwap(swapId: string) {
-    return getMessagesForThread(swapId)
+  function getMessagesForThread(threadId: string) {
+    return stateRef.current.messages.filter((m) => m.threadId === threadId)
   }
 
   function getReviewsForUser(userId: string) {
@@ -1349,8 +1585,8 @@ export function AppProvider({ children }: PropsWithChildren) {
         currentUser,
         isAuthenticated,
         loading,
-        unreadNotificationCount,
         messageThreads,
+        unreadNotificationCount,
         suggestedMatches,
         newTodayUsers,
         topRatedUsers,
@@ -1379,6 +1615,12 @@ export function AppProvider({ children }: PropsWithChildren) {
         getMessagesForThread,
         getMessagesForSwap,
         getReviewsForUser,
+        dbFetchAllUsers,
+        dbFetchSwapRequests,
+        dbFetchNotifications,
+        dbFetchPosts,
+        dbCreatePost,
+        dbFetchReviews,
       }}
     >
       {children}
