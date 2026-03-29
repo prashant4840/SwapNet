@@ -1,17 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowRight, LockKeyhole, Mail, Sparkles } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { PageTransition } from '@/components/common/PageTransition'
-import { demoCredentials } from '@/data/seed'
 import { useApp } from '@/context/AppContext'
+import { isSupabaseConfigured } from '@/lib/supabase'
 
 type AuthTab = 'signup' | 'login'
 
 export function AuthPage() {
+  const location = useLocation()
   const navigate = useNavigate()
-  const { login, loginWithGoogle, signUp } = useApp()
+  const { isAuthenticated, loading: authLoading, login, loginWithGoogle, signUp } = useApp()
   const [tab, setTab] = useState<AuthTab>('signup')
   const [signupForm, setSignupForm] = useState({
     name: '',
@@ -20,11 +21,25 @@ export function AuthPage() {
     password: '',
   })
   const [loginForm, setLoginForm] = useState({
-    email: demoCredentials.email,
-    password: demoCredentials.password,
+    email: '',
+    password: '',
   })
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
+  const redirectPath =
+    typeof location.state === 'object' &&
+    location.state !== null &&
+    'from' in location.state &&
+    typeof location.state.from === 'string'
+      ? location.state.from
+      : '/dashboard'
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(redirectPath, { replace: true })
+    }
+  }, [authLoading, isAuthenticated, navigate, redirectPath])
 
   return (
     <PageTransition>
@@ -35,15 +50,15 @@ export function AuthPage() {
             Build a profile that makes skill swapping feel obvious.
           </h1>
           <p className="mt-4 max-w-xl text-base leading-8 text-slate-600 dark:text-slate-300">
-            Start with email or continue with Google. In demo mode, the app ships with a
-            preloaded profile so you can test requests, chat, and reviews immediately.
+            Start with email or continue with Google. Supabase persists the session so refreshes,
+            redirects, and protected routes stay in sync without a manual reload.
           </p>
 
           <div className="mt-8 grid gap-4">
             {[
-              'Google OAuth flow ready when Supabase environment variables are added',
-              'Email signup instantly creates a personalized public profile',
-              'All flows persist locally with seeded demo data for fast testing',
+              'Email and Google auth are backed by the current Supabase project',
+              'Protected routes unlock automatically as soon as the session is available',
+              'Profile state is restored on refresh through Supabase session persistence',
             ].map((point) => (
               <div
                 className="flex items-center gap-3 rounded-3xl border border-white/40 bg-white/70 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70"
@@ -59,16 +74,27 @@ export function AuthPage() {
 
           <div className="mt-8 rounded-[2rem] bg-slate-950 px-5 py-5 text-slate-50 shadow-soft">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-              Demo credentials
+              Environment
             </p>
             <div className="mt-4 space-y-2 text-sm">
-              <p>Email: {demoCredentials.email}</p>
-              <p>Password: {demoCredentials.password}</p>
+              <p>
+                <code>VITE_SUPABASE_URL</code>
+              </p>
+              <p>
+                <code>VITE_SUPABASE_ANON_KEY</code>
+              </p>
             </div>
           </div>
         </section>
 
         <section className="glass-panel p-6 sm:p-8">
+          {!isSupabaseConfigured ? (
+            <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-100">
+              Supabase auth is not configured. Add <code>VITE_SUPABASE_URL</code> and{' '}
+              <code>VITE_SUPABASE_ANON_KEY</code> in <code>.env</code> before testing sign-in.
+            </p>
+          ) : null}
+
           <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800/80">
             {(['signup', 'login'] as const).map((item) => (
               <button
@@ -80,6 +106,7 @@ export function AuthPage() {
                 key={item}
                 onClick={() => {
                   setError('')
+                  setNotice('')
                   setTab(item)
                 }}
                 type="button"
@@ -102,17 +129,18 @@ export function AuthPage() {
             </div>
 
             <Button
+              disabled={loading || authLoading}
               fullWidth
               onClick={async () => {
                 setLoading(true)
                 setError('')
+                setNotice('')
                 const result = await loginWithGoogle()
+                console.log('AuthPage Google login result', result)
                 setLoading(false)
                 if (!result.success) {
                   setError(result.message ?? 'Google sign-in failed.')
-                  return
                 }
-                navigate('/dashboard')
               }}
               size="lg"
               variant="outline"
@@ -136,13 +164,20 @@ export function AuthPage() {
                   event.preventDefault()
                   setLoading(true)
                   setError('')
+                  setNotice('')
                   const result = await signUp(signupForm)
+                  console.log('AuthPage sign up result', result)
                   setLoading(false)
                   if (!result.success) {
                     setError(result.message ?? 'Could not create your account.')
                     return
                   }
-                  navigate('/settings')
+                  if (result.message) {
+                    setNotice(result.message)
+                  }
+                  if (result.shouldNavigate) {
+                    navigate(redirectPath, { replace: true })
+                  }
                 }}
               >
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -202,7 +237,12 @@ export function AuthPage() {
                     {error}
                   </p>
                 ) : null}
-                <Button disabled={loading} fullWidth size="lg" type="submit">
+                {notice ? (
+                  <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-100">
+                    {notice}
+                  </p>
+                ) : null}
+                <Button disabled={loading || authLoading} fullWidth size="lg" type="submit">
                   Create account
                   <ArrowRight className="size-4" />
                 </Button>
@@ -214,13 +254,17 @@ export function AuthPage() {
                   event.preventDefault()
                   setLoading(true)
                   setError('')
+                  setNotice('')
                   const result = await login(loginForm)
+                  console.log('AuthPage login result', result)
                   setLoading(false)
                   if (!result.success) {
                     setError(result.message ?? 'Could not log you in.')
                     return
                   }
-                  navigate('/dashboard')
+                  if (result.shouldNavigate) {
+                    navigate(redirectPath, { replace: true })
+                  }
                 }}
               >
                 <label className="space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -254,7 +298,7 @@ export function AuthPage() {
                     {error}
                   </p>
                 ) : null}
-                <Button disabled={loading} fullWidth size="lg" type="submit">
+                <Button disabled={loading || authLoading} fullWidth size="lg" type="submit">
                   <LockKeyhole className="size-4" />
                   Log in
                 </Button>
