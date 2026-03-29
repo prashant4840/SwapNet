@@ -33,6 +33,7 @@ export function ChatPage() {
     getMessagesForThread,
     getSwapById,
     getThreadById,
+    loading,
     messageThreads,
     sendChatMessage,
     state,
@@ -48,8 +49,17 @@ export function ChatPage() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [resolvedThreadId, activeMessages.length])
 
-  if (!currentUser) {
-    return null
+  if (loading || !currentUser) {
+    return (
+      <PageTransition>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading messages...</p>
+          </div>
+        </div>
+      </PageTransition>
+    )
   }
 
   if (!messageThreads.length) {
