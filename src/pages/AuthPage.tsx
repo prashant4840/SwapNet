@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, LockKeyhole, Mail, Sparkles } from 'lucide-react'
+import { ArrowRight, LockKeyhole, Mail, Sparkles, Loader2 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { PageTransition } from '@/components/common/PageTransition'
-import { useApp } from '@/context/AppContext'
+import { useAuth } from '@/context/AuthContext'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
 type AuthTab = 'signup' | 'login'
@@ -12,7 +12,7 @@ type AuthTab = 'signup' | 'login'
 export function AuthPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isAuthenticated, loading: authLoading, login, loginWithGoogle, signUp } = useApp()
+  const { isAuthenticated, loading: authLoading, login, loginWithGoogle, signUp } = useAuth()
   const [tab, setTab] = useState<AuthTab>('signup')
   const [signupForm, setSignupForm] = useState({
     name: '',
@@ -135,11 +135,18 @@ export function AuthPage() {
                 setLoading(true)
                 setError('')
                 setNotice('')
-                const result = await loginWithGoogle()
-                console.log('AuthPage Google login result', result)
-                setLoading(false)
-                if (!result.success) {
-                  setError(result.message ?? 'Google sign-in failed.')
+                try {
+                  const result = await loginWithGoogle()
+                  if (result.success) {
+                    navigate('/dashboard', { replace: true })
+                  } else {
+                    setError(result.message ?? 'Google sign-in failed.')
+                  }
+                } catch (error) {
+                  console.error('Google login error:', error)
+                  setError('Network error — check your connection')
+                } finally {
+                  setLoading(false)
                 }
               }}
               size="lg"
@@ -165,18 +172,28 @@ export function AuthPage() {
                   setLoading(true)
                   setError('')
                   setNotice('')
-                  const result = await signUp(signupForm)
-                  console.log('AuthPage sign up result', result)
-                  setLoading(false)
-                  if (!result.success) {
-                    setError(result.message ?? 'Could not create your account.')
-                    return
-                  }
-                  if (result.message) {
-                    setNotice(result.message)
-                  }
-                  if (result.shouldNavigate) {
-                    navigate(redirectPath, { replace: true })
+                  try {
+                    const result = await signUp(signupForm)
+                    console.log('AuthPage sign up result', result)
+                    if (!result.success) {
+                      if (result.message?.includes('already registered') || result.message?.includes('already in use')) {
+                        setError('Email already in use')
+                      } else {
+                        setError(result.message ?? 'Could not create your account.')
+                      }
+                      return
+                    }
+                    if (result.message) {
+                      setNotice(result.message)
+                    }
+                    if (result.shouldNavigate) {
+                      navigate('/settings', { replace: true })
+                    }
+                  } catch (error) {
+                    console.error('Sign up error:', error)
+                    setError('Network error — check your connection')
+                  } finally {
+                    setLoading(false)
                   }
                 }}
               >
@@ -243,8 +260,26 @@ export function AuthPage() {
                   </p>
                 ) : null}
                 <Button disabled={loading || authLoading} fullWidth size="lg" type="submit">
-                  Create account
-                  <ArrowRight className="size-4" />
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {tab === 'signup' ? 'Creating account...' : 'Signing in...'}
+                    </>
+                  ) : (
+                    <>
+                      {tab === 'signup' ? (
+                        <>
+                          <ArrowRight className="mr-2 h-4 w-4" />
+                          Create account
+                        </>
+                      ) : (
+                        <>
+                          <LockKeyhole className="mr-2 h-4 w-4" />
+                          Log in
+                        </>
+                      )}
+                    </>
+                  )}
                 </Button>
               </form>
             ) : (
@@ -255,15 +290,25 @@ export function AuthPage() {
                   setLoading(true)
                   setError('')
                   setNotice('')
-                  const result = await login(loginForm)
-                  console.log('AuthPage login result', result)
-                  setLoading(false)
-                  if (!result.success) {
-                    setError(result.message ?? 'Could not log you in.')
-                    return
-                  }
-                  if (result.shouldNavigate) {
-                    navigate(redirectPath, { replace: true })
+                  try {
+                    const result = await login(loginForm)
+                    console.log('AuthPage login result', result)
+                    if (!result.success) {
+                      if (result.message?.includes('Invalid login credentials')) {
+                        setError('Wrong password')
+                      } else {
+                        setError(result.message ?? 'Could not log you in.')
+                      }
+                      return
+                    }
+                    if (result.shouldNavigate) {
+                      navigate(redirectPath, { replace: true })
+                    }
+                  } catch (error) {
+                    console.error('Login error:', error)
+                    setError('Network error — check your connection')
+                  } finally {
+                    setLoading(false)
                   }
                 }}
               >
@@ -299,8 +344,17 @@ export function AuthPage() {
                   </p>
                 ) : null}
                 <Button disabled={loading || authLoading} fullWidth size="lg" type="submit">
-                  <LockKeyhole className="size-4" />
-                  Log in
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      <LockKeyhole className="mr-2 h-4 w-4" />
+                      Log in
+                    </>
+                  )}
                 </Button>
               </form>
             )}
