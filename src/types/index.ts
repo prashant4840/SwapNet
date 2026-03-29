@@ -163,6 +163,8 @@ export interface AppState {
   reviews: Review[]
   notifications: NotificationItem[]
   posts: LookingForPost[]
+  messageThreads: MessageThread[]
+  unreadNotificationCount: number
   auth: AuthSession
   theme: ThemeMode
   lastSuggestionDate: string | null
