@@ -43,7 +43,7 @@ export function AppShell() {
                     className={cn(
                       'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition',
                       active
-                        ? 'bg-slate-900 text-white shadow-soft dark:bg-white dark:text-slate-950'
+                        ? 'bg-indigo-600 text-white shadow-soft'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white',
                     )}
                     key={item.to}
@@ -59,14 +59,22 @@ export function AppShell() {
                   cn(
                     'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition',
                     isActive
-                      ? 'bg-slate-900 text-white shadow-soft dark:bg-white dark:text-slate-950'
+                      ? 'bg-indigo-600 text-white shadow-soft'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white',
                   )
                 }
                 to={profileRoute}
               >
-                <UserRound className="size-4" />
-                Profile
+                {currentUser?.photo ? (
+                  <img
+                    src={currentUser.photo}
+                    alt={currentUser.name}
+                    className="size-7 rounded-xl object-cover ring-2 ring-white/20"
+                  />
+                ) : (
+                  <UserRound className="size-4" />
+                )}
+                <span>{currentUser?.name?.split(' ')[0] ?? 'Profile'}</span>
               </NavLink>
             </nav>
           </div>
@@ -78,7 +86,7 @@ export function AppShell() {
             />
 
             <NavLink
-              className="relative inline-flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white/70 text-slate-700 shadow-soft transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-brand-400 dark:hover:text-brand-200"
+              className="relative inline-flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white/70 text-slate-700 shadow-soft transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-indigo-400 dark:hover:text-indigo-200"
               to="/notifications"
             >
               <Bell className="size-5" />
@@ -110,21 +118,42 @@ export function AppShell() {
 
                 <div className="absolute right-0 top-[calc(100%+0.75rem)] w-64 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white/95 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
                   <NavLink
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80"
+                    className={({ isActive }) =>
+                      cn(
+                        'flex flex-col items-center gap-1 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition',
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-soft'
+                          : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
+                      )
+                    }
                     to={profileRoute}
                   >
                     <UserRound className="size-4" />
                     View Profile
                   </NavLink>
                   <NavLink
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80"
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition',
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-soft'
+                          : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
+                      )
+                    }
                     to="/messages"
                   >
                     <MessageSquareMore className="size-4" />
                     Messages
                   </NavLink>
                   <NavLink
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80"
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition',
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-soft'
+                          : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
+                      )
+                    }
                     to="/settings"
                   >
                     <Settings className="size-4" />
