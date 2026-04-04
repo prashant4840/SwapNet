@@ -2,10 +2,10 @@ import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
-const baseUrl = process.env.SKILLBRIDGE_BASE_URL ?? 'http://127.0.0.1:4173'
+const baseUrl = process.env.SWAPNET_BASE_URL ?? 'http://127.0.0.1:4173'
 const screenshotDir = new URL('../public/screenshots/', import.meta.url)
-const providedTestEmail = process.env.SKILLBRIDGE_TEST_EMAIL?.trim()
-const providedTestPassword = process.env.SKILLBRIDGE_TEST_PASSWORD?.trim()
+const providedTestEmail = process.env.SWAPNET_TEST_EMAIL?.trim()
+const providedTestPassword = process.env.SWAPNET_TEST_PASSWORD?.trim()
 
 await fs.mkdir(screenshotDir, { recursive: true })
 
