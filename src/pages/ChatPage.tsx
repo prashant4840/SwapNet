@@ -16,7 +16,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { PageTransition } from '@/components/common/PageTransition'
 import { SkillChip } from '@/components/common/SkillChip'
 import { useApp } from '@/context/AppContext'
-import { formatRelativeTime, isRecentlyActive } from '@/utils/app'
+import { buildSwapThreadKey, formatRelativeTime, isRecentlyActive, parseThreadKey } from '@/utils/app'
 import { cn } from '@/utils/cn'
 
 const quickTemplates = [
@@ -36,14 +36,20 @@ export function ChatPage() {
     loading,
     messageThreads,
     sendChatMessage,
+    subscribeToThreadMessages,
     state,
   } = useApp()
   const [message, setMessage] = useState('')
   const [search, setSearch] = useState('')
   const endRef = useRef<HTMLDivElement | null>(null)
-  const resolvedThreadId = threadId || swapId || messageThreads[0]?.id || ''
+  const resolvedThreadId = threadId || (swapId ? buildSwapThreadKey(swapId) : '') || messageThreads[0]?.id || ''
   const activeThread = getThreadById(resolvedThreadId)
   const activeMessages = activeThread ? getMessagesForThread(activeThread.id) : []
+
+  useEffect(() => {
+    if (!activeThread?.id) return
+    return subscribeToThreadMessages(activeThread.id)
+  }, [activeThread?.id, subscribeToThreadMessages])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -103,7 +109,9 @@ export function ChatPage() {
   }
 
   const partner = state.users.find((user) => user.id === activeThread.partnerId) ?? null
-  const activeSwap = activeThread.kind === 'swap' ? getSwapById(activeThread.id) : null
+  const activeSwapId =
+    activeThread.kind === 'swap' ? (parseThreadKey(activeThread.id)?.sourceId ?? activeThread.id) : null
+  const activeSwap = activeSwapId ? getSwapById(activeSwapId) : null
   const sender =
     activeSwap ? state.users.find((user) => user.id === activeSwap.senderId) ?? null : null
   const senderOffer =
@@ -275,7 +283,7 @@ export function ChatPage() {
                   <div
                     className={cn(
                       'max-w-[85%] rounded-[1.75rem] px-4 py-3 text-sm leading-6 shadow-soft',
-                      chat.type === 'system'
+                      chat.message_type === 'system'
                         ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
                         : isOwn
                           ? 'bg-gradient-to-r from-brand-600 to-tealish-500 text-white'
@@ -286,7 +294,7 @@ export function ChatPage() {
                     <p
                       className={cn(
                         'mt-2 text-xs',
-                        chat.type === 'system'
+                        chat.message_type === 'system'
                           ? 'text-slate-500 dark:text-slate-400'
                           : isOwn
                             ? 'text-white/70'

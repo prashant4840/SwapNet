@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Flag, MapPin, Share2, UserRoundPen, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useParams } from 'react-router-dom'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
@@ -75,11 +76,15 @@ export function ProfilePage() {
           if (reviews.length > 0) {
             // Fetch reviewer details from public.users
             const reviewerIds = [...new Set(reviews.map(r => r.reviewerId))]
-            const { data: reviewers } = await supabase
+            const { data: reviewers, error: reviewersError } = await supabase
               .from('users')
               .select('id, name, photo')
               .in('id', reviewerIds)
-            
+
+            if (reviewersError) {
+              throw reviewersError
+            }
+
             const reviewsWithData = reviews.map(review => ({
               ...review,
               reviewer: reviewers?.find(r => r.id === review.reviewerId) || { name: 'Anonymous', photo: '' }
@@ -91,6 +96,8 @@ export function ProfilePage() {
           }
         } catch (error) {
           console.error('Failed to fetch reviews:', error)
+          toast.error('Failed to load profile reviews.')
+          setReviewsWithAuthors([])
         } finally {
           setIsLoadingReviews(false)
         }
@@ -351,7 +358,12 @@ export function ProfilePage() {
                   Copy link
                 </Button>
                 {!isOwnProfile ? (
-                  <Button onClick={() => reportUser(user.id)} variant="ghost">
+                  <Button
+                    onClick={() => {
+                      void reportUser(user.id)
+                    }}
+                    variant="ghost"
+                  >
                     <Flag className="size-4" />
                     Report user
                   </Button>

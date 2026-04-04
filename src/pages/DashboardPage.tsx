@@ -103,13 +103,17 @@ export function DashboardPage() {
                           </p>
                           <div className="flex gap-2">
                             <Button
-                              onClick={() => respondToSwapRequest(request.id, 'Accepted')}
+                              onClick={() => {
+                                void respondToSwapRequest(request.id, 'Accepted')
+                              }}
                               size="sm"
                             >
                               Accept
                             </Button>
                             <Button
-                              onClick={() => respondToSwapRequest(request.id, 'Declined')}
+                              onClick={() => {
+                                void respondToSwapRequest(request.id, 'Declined')
+                              }}
                               size="sm"
                               variant="outline"
                             >
@@ -151,13 +155,17 @@ export function DashboardPage() {
                           </p>
                           <div className="flex gap-2">
                             <Button
-                              onClick={() => respondToConnectionRequest(request.id, 'Accepted')}
+                              onClick={() => {
+                                void respondToConnectionRequest(request.id, 'Accepted')
+                              }}
                               size="sm"
                             >
                               Accept
                             </Button>
                             <Button
-                              onClick={() => respondToConnectionRequest(request.id, 'Declined')}
+                              onClick={() => {
+                                void respondToConnectionRequest(request.id, 'Declined')
+                              }}
                               size="sm"
                               variant="outline"
                             >
