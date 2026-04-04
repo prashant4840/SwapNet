@@ -37,10 +37,10 @@ SwapNet is a modern Skill Swap Platform built with React, Tailwind, Framer Motio
 
 ## Screenshots
 
-<!--
+
 ### Landing
 
-![Landing page](public/screenshots/landing.png) -->
+![Landing page](public/screenshots/landing.png) 
 
 ### Explore Feed
 
