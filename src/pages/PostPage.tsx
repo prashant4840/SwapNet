@@ -57,20 +57,21 @@ export function PostPage() {
                 }
                 try {
                   setIsLoading(true)
-                  await createPost({
+                  const didCreate = await createPost({
                     skillName: form.skillName,
                     category: form.category,
                     note: form.note,
                     mode: form.mode,
                   })
-                  
-                  // Reset form
-                  setForm({
-                    skillName: '',
-                    category: form.category,
-                    note: '',
-                    mode: form.mode,
-                  })
+
+                  if (didCreate) {
+                    setForm({
+                      skillName: '',
+                      category: form.category,
+                      note: '',
+                      mode: form.mode,
+                    })
+                  }
                 } catch (error) {
                   console.error('Failed to create post:', error)
                 } finally {

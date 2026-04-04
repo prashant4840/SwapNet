@@ -11,8 +11,37 @@ import type {
   UserProfile,
 } from '@/types'
 
+const SWAP_THREAD_PREFIX = 'swap_'
+const CONNECTION_THREAD_PREFIX = 'connection_'
+
 export function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`
+}
+
+export function buildSwapThreadKey(swapId: string) {
+  return `${SWAP_THREAD_PREFIX}${swapId}`
+}
+
+export function buildConnectionThreadKey(connectionRequestId: string) {
+  return `${CONNECTION_THREAD_PREFIX}${connectionRequestId}`
+}
+
+export function parseThreadKey(threadKey: string) {
+  if (threadKey.startsWith(SWAP_THREAD_PREFIX)) {
+    return {
+      kind: 'swap' as const,
+      sourceId: threadKey.slice(SWAP_THREAD_PREFIX.length),
+    }
+  }
+
+  if (threadKey.startsWith(CONNECTION_THREAD_PREFIX)) {
+    return {
+      kind: 'connection' as const,
+      sourceId: threadKey.slice(CONNECTION_THREAD_PREFIX.length),
+    }
+  }
+
+  return null
 }
 
 export function slugify(value: string) {
@@ -233,7 +262,8 @@ export function buildMessageThreads(state: AppState, currentUserId: string | nul
 
   const messagesByThread = new Map<string, AppState['messages']>()
   for (const message of state.messages) {
-    const threadId = message.threadId || message.swapRequestId
+    const threadId = message.threadId
+    if (!threadId) continue
     const existing = messagesByThread.get(threadId) ?? []
     existing.push({
       ...message,
@@ -261,15 +291,20 @@ export function buildMessageThreads(state: AppState, currentUserId: string | nul
         ['Accepted', 'Completed'].includes(swap.status),
     )
     .map((swap) => {
+      const threadKey = buildSwapThreadKey(swap.id)
       const partnerId = swap.senderId === currentUserId ? swap.receiverId : swap.senderId
-      const threadMessages = (messagesByThread.get(swap.id) ?? []).sort(
+      const threadMessages = (
+        messagesByThread.get(threadKey) ??
+        messagesByThread.get(swap.id) ??
+        []
+      ).sort(
         (left, right) =>
           new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime(),
       )
       const lastMessage = threadMessages.at(-1)
 
       return {
-        id: swap.id,
+        id: threadKey,
         kind: 'swap' as const,
         partnerId,
         createdAt: swap.createdAt,
@@ -277,7 +312,7 @@ export function buildMessageThreads(state: AppState, currentUserId: string | nul
         preview: lastMessage?.message ?? swap.message,
         contextLabel: swap.status === 'Completed' ? 'Swap completed' : 'Swap active',
         status: swap.status === 'Completed' ? ('completed' as const) : ('active' as const),
-        unreadCount: chatNotificationCount.get(swap.id) ?? 0,
+        unreadCount: chatNotificationCount.get(threadKey) ?? chatNotificationCount.get(swap.id) ?? 0,
       }
     })
 
@@ -288,15 +323,20 @@ export function buildMessageThreads(state: AppState, currentUserId: string | nul
         request.status === 'Accepted',
     )
     .map((request) => {
+      const threadKey = buildConnectionThreadKey(request.id)
       const partnerId = request.senderId === currentUserId ? request.receiverId : request.senderId
-      const threadMessages = (messagesByThread.get(request.id) ?? []).sort(
+      const threadMessages = (
+        messagesByThread.get(threadKey) ??
+        messagesByThread.get(request.id) ??
+        []
+      ).sort(
         (left, right) =>
           new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime(),
       )
       const lastMessage = threadMessages.at(-1)
 
       return {
-        id: request.id,
+        id: threadKey,
         kind: 'connection' as const,
         partnerId,
         createdAt: request.createdAt,
@@ -304,7 +344,8 @@ export function buildMessageThreads(state: AppState, currentUserId: string | nul
         preview: lastMessage?.message ?? request.message,
         contextLabel: 'Peer connection',
         status: 'active' as const,
-        unreadCount: chatNotificationCount.get(request.id) ?? 0,
+        unreadCount:
+          chatNotificationCount.get(threadKey) ?? chatNotificationCount.get(request.id) ?? 0,
       }
     })
 
@@ -331,7 +372,11 @@ export function hydrateState(state: AppState) {
     ),
     messages: (state.messages ?? []).map((message) => ({
       ...message,
-      threadId: message.threadId ?? message.swapRequestId,
+      threadId: message.connectionRequestId
+        ? buildConnectionThreadKey(message.connectionRequestId)
+        : message.swapRequestId
+          ? buildSwapThreadKey(message.swapRequestId)
+          : message.threadId ?? '',
     })),
   }
 }

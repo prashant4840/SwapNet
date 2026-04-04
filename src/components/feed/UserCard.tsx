@@ -129,12 +129,12 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
           {currentUser ? (
             <>
               <Button
-                onClick={() =>
-                  sendConnectionRequest({
+                onClick={() => {
+                  void sendConnectionRequest({
                     receiverId: user.id,
                     message: `Hi ${user.name.split(' ')[0]}, your profile looks like a strong fit for a SkillBridge connection.`,
                   })
-                }
+                }}
                 className="h-11"
                 variant="outline"
               >
