@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { PageTransition } from '@/components/common/PageTransition'
-import { useAuth } from '@/context/AuthContext'
+import { useApp } from '@/context/AppContext'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
 type AuthTab = 'signup' | 'login'
@@ -12,7 +12,7 @@ type AuthTab = 'signup' | 'login'
 export function AuthPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isAuthenticated, loading: authLoading, login, loginWithGoogle, signUp } = useAuth()
+  const { isAuthenticated, loading: authLoading, login, loginWithGoogle, signUp } = useApp()
   const [tab, setTab] = useState<AuthTab>('signup')
   const [signupForm, setSignupForm] = useState({
     name: '',
@@ -50,15 +50,15 @@ export function AuthPage() {
             Build a profile that makes skill swapping feel obvious.
           </h1>
           <p className="mt-4 max-w-xl text-base leading-8 text-slate-600 dark:text-slate-300">
-            Start with email or continue with Google. Supabase persists the session so refreshes,
-            redirects, and protected routes stay in sync without a manual reload.
+            Start with email or continue with Google when Supabase is configured. Supabase handles
+            session persistence so refreshes, redirects, and protected routes stay in sync.
           </p>
 
           <div className="mt-8 grid gap-4">
             {[
-              'Email and Google auth are backed by the current Supabase project',
-              'Protected routes unlock automatically as soon as the session is available',
-              'Profile state is restored on refresh through Supabase session persistence',
+              'Email and Google authentication run through the connected Supabase project',
+              'Protected routes unlock automatically after a valid session is restored',
+              'Google sign-in activates only when VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are valid',
             ].map((point) => (
               <div
                 className="flex items-center gap-3 rounded-3xl border border-white/40 bg-white/70 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70"
@@ -91,7 +91,8 @@ export function AuthPage() {
           {!isSupabaseConfigured ? (
             <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-100">
               Supabase auth is not configured. Add <code>VITE_SUPABASE_URL</code> and{' '}
-              <code>VITE_SUPABASE_ANON_KEY</code> in <code>.env</code> before testing sign-in.
+              <code>VITE_SUPABASE_ANON_KEY</code> in <code>.env</code> to enable sign-up and
+              sign-in.
             </p>
           ) : null}
 
@@ -129,7 +130,7 @@ export function AuthPage() {
             </div>
 
             <Button
-              disabled={loading || authLoading}
+              disabled={loading || authLoading || !isSupabaseConfigured}
               fullWidth
               onClick={async () => {
                 setLoading(true)
@@ -174,9 +175,11 @@ export function AuthPage() {
                   setNotice('')
                   try {
                     const result = await signUp(signupForm)
-                    console.log('AuthPage sign up result', result)
                     if (!result.success) {
-                      if (result.message?.includes('already registered') || result.message?.includes('already in use')) {
+                      if (
+                        result.message?.includes('already registered') ||
+                        result.message?.includes('already in use')
+                      ) {
                         setError('Email already in use')
                       } else {
                         setError(result.message ?? 'Could not create your account.')
@@ -292,7 +295,6 @@ export function AuthPage() {
                   setNotice('')
                   try {
                     const result = await login(loginForm)
-                    console.log('AuthPage login result', result)
                     if (!result.success) {
                       if (result.message?.includes('Invalid login credentials')) {
                         setError('Wrong password')
@@ -338,6 +340,14 @@ export function AuthPage() {
                     value={loginForm.password}
                   />
                 </label>
+                <div className="flex justify-end">
+                  <Link
+                    className="text-sm font-semibold text-brand-600 dark:text-brand-300"
+                    to="/forgot-password"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 {error ? (
                   <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
                     {error}

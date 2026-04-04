@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Save, Sparkles, Trash2, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Badge } from '@/components/common/Badge'
@@ -7,12 +7,12 @@ import { PageTransition } from '@/components/common/PageTransition'
 import { SectionTitle } from '@/components/common/SectionTitle'
 import { SkillChip } from '@/components/common/SkillChip'
 import { useApp } from '@/context/AppContext'
-import { modeOptions } from '@/data/seed'
 import { skillCategories } from '@/data/skills'
 import type { AvailabilitySlot, LearningMode, SkillCategory, SkillEntry } from '@/types'
 import { createId, profileCompletion } from '@/utils/app'
 
 const availabilityOptions: AvailabilitySlot[] = ['Weekdays', 'Weekends', 'Evenings']
+const modeOptions: LearningMode[] = ['Online', 'In-person', 'Both']
 
 interface DraftSkill {
   category: SkillCategory
@@ -63,7 +63,7 @@ function buildFormState(currentUser: ReturnType<typeof useApp>['currentUser']) {
 }
 
 export function SettingsPage() {
-  const { currentUser, resetDemoData, updateProfile } = useApp()
+  const { currentUser, updateProfile } = useApp()
   const [draftOffered, setDraftOffered] = useState<DraftSkill>({
     category: 'Tech',
     name: '',
@@ -76,6 +76,10 @@ export function SettingsPage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setForm(buildFormState(currentUser))
+  }, [currentUser])
 
   if (!currentUser) {
     return null
@@ -140,13 +144,23 @@ export function SettingsPage() {
         return
       }
 
+      const {
+        data: { user: authUser },
+        error: authUserError,
+      } = await supabase.auth.getUser()
+
+      if (authUserError || !authUser) {
+        toast.error('You must be signed in to upload a photo')
+        return
+      }
+
       // Generate unique file name
       const fileExt = file.name.split('.').pop()
-      const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`
+      const fileName = `${authUser.id}/${Date.now()}.${fileExt}`
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
+        .from('profile-photos')
         .upload(fileName, file, {
           upsert: true,
         })
@@ -158,7 +172,7 @@ export function SettingsPage() {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from('profile-photos')
         .getPublicUrl(fileName)
 
       // Update form with new photo URL
@@ -510,11 +524,16 @@ export function SettingsPage() {
                     <Save className="size-4" />
                     Save profile
                   </>
-                )}
-              </Button>
-              <Button onClick={resetDemoData} size="lg" variant="ghost">
+                  )}
+                </Button>
+              <Button
+                onClick={() => setForm(buildFormState(currentUser))}
+                size="lg"
+                type="button"
+                variant="ghost"
+              >
                 <Trash2 className="size-4" />
-                Reset demo data
+                Discard changes
               </Button>
             </div>
           </div>
