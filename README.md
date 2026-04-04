@@ -1,6 +1,11 @@
-# SkillBridge
+# SwapNet
 
-SkillBridge is a modern Skill Swap Platform built with React, Tailwind, Framer Motion, React Router, and a Supabase-backed data model. Users can offer a skill they know, request a skill they want to learn, send swap requests, chat after acceptance, and leave ratings when the exchange is complete.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+[![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-2.0-blue.svg)](CODE_OF_CONDUCT.md)
+[![Security](https://img.shields.io/badge/Security-Policy-green.svg)](SECURITY.md)
+
+SwapNet is a modern Skill Swap Platform built with React, Tailwind, Framer Motion, React Router, and a Supabase-backed data model. Users can offer a skill they know, request a skill they want to learn, send swap requests, chat after acceptance, and leave ratings when the exchange is complete.
 
 ## Highlights
 
@@ -143,3 +148,64 @@ npm run verify:browser
 ```
 
 The browser verification confirms `/`, `/explore`, `/auth`, and, when test credentials are provided, authenticated routes such as `/dashboard` and `/messages` render without console errors or page errors.
+
+## 🤝 Contributing
+
+We welcome contributions to SwapNet! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
+
+### 🚀 Quick Start
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes**
+4. **Run tests**: `npm run lint && npm run build`
+5. **Commit your changes**: `git commit -m 'feat: add amazing feature'`
+6. **Push to your fork**: `git push origin feature/amazing-feature`
+7. **Open a Pull Request**
+
+### 📚 Resources
+
+- [**Contributing Guide**](CONTRIBUTING.md) - Detailed contribution guidelines for SwapNet
+- [**Code of Conduct**](CODE_OF_CONDUCT.md) - Community guidelines
+- [**Security Policy**](SECURITY.md) - Security and vulnerability reporting
+- [**Issue Templates**](.github/ISSUE_TEMPLATE/) - Bug reports and feature requests
+- [**Pull Request Template**](.github/PULL_REQUEST_TEMPLATE.md) - PR guidelines
+
+### 🏆 Contributors
+
+Thanks to all the people who contribute to SwapNet!
+
+<a href="https://github.com/prashant4840/SkillBridge/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=prashant4840/SkillBridge" />
+</a>
+
+### 📋 What We're Looking For
+
+- 🐛 **Bug fixes** - Help us squash those bugs in SwapNet!
+- ✨ **New features** - Have an idea for SwapNet? We'd love to hear it!
+- 📚 **Documentation** - Improve our docs and help others
+- 🎨 **Design** - UI/UX improvements and accessibility
+- ⚡ **Performance** - Make SwapNet faster and more efficient
+- 🔒 **Security** - Help keep SwapNet users safe
+
+### 💬 Get Help
+
+- **GitHub Issues** - For bug reports and feature requests
+- **GitHub Discussions** - For general questions and ideas
+- **Security Issues** - For security vulnerabilities (private)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [React](https://reactjs.org/) - The UI framework
+- [Tailwind CSS](https://tailwindcss.com/) - The CSS framework
+- [Supabase](https://supabase.com/) - The backend platform
+- [Framer Motion](https://www.framer.com/motion/) - The animation library
+- [Lucide](https://lucide.dev/) - The icon library
+
+Made with ❤️ by the SwapNet team

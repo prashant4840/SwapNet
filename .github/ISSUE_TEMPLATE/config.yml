@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/prashant4840/SkillBridge#readme
+    about: Check the documentation for common questions and setup instructions
+  - name: 💬 GitHub Discussions
+    url: https://github.com/prashant4840/SkillBridge/discussions
+    about: Ask questions and share ideas with the community
+  - name: 🔒 Security Issue
+    url: https://github.com/prashant4840/SkillBridge/security/policy
+    about: Report security vulnerabilities privately

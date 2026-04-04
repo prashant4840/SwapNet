@@ -125,7 +125,7 @@ export function ProfilePage() {
       <PageTransition>
         <EmptyState
           title="Profile not found"
-          description="That SkillBridge profile does not exist or may have been renamed."
+          description="That SwapNet profile does not exist or may have been renamed."
           action={
             <ButtonLink to="/explore" variant="outline">
               Back to explore
@@ -141,7 +141,7 @@ export function ProfilePage() {
     {
       label: 'X',
       href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-        `Check out ${user.name}'s SkillBridge profile`,
+        `Check out ${user.name}'s SwapNet profile`,
       )}&url=${encodeURIComponent(shareUrl)}`,
     },
     {
@@ -151,7 +151,7 @@ export function ProfilePage() {
     {
       label: 'WhatsApp',
       href: `https://wa.me/?text=${encodeURIComponent(
-        `Check out ${user.name}'s SkillBridge profile: ${shareUrl}`,
+        `Check out ${user.name}'s SwapNet profile: ${shareUrl}`,
       )}`,
     },
   ]

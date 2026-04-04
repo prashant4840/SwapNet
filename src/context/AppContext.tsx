@@ -44,8 +44,8 @@ import {
   slugify,
 } from '@/utils/app'
 
-const STORAGE_KEY = 'skillbridge-state-v1'
-const CHANNEL_KEY = 'skillbridge-live-sync'
+const STORAGE_KEY = 'swapnet-state-v1'
+const CHANNEL_KEY = 'swapnet-live-sync'
 const DEFAULT_AUTH_MODE: AppState['auth']['mode'] = 'supabase'
 
 interface AuthActionResult {
@@ -187,7 +187,7 @@ function deriveNameFromAuthUser(user: User) {
     getAuthMetadataValue(user, 'full_name') || getAuthMetadataValue(user, 'name')
   if (explicitName) return explicitName
   const emailPrefix = normalizeEmail(user.email).split('@')[0]?.replace(/[._-]+/g, ' ') ?? ''
-  return emailPrefix ? toTitleCase(emailPrefix) : 'SkillBridge Member'
+  return emailPrefix ? toTitleCase(emailPrefix) : 'SwapNet Member'
 }
 
 function deriveAvatarFromAuthUser(user: User, username: string) {
@@ -986,7 +986,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       })
     } catch (error) {
       console.error('Failed to sync Supabase session:', error)
-      toast.error('Failed to load SkillBridge data. Please refresh.')
+      toast.error('Failed to load SwapNet data. Please refresh.')
     } finally {
       setLoading(false)
     }
@@ -1900,7 +1900,7 @@ export function useShareProfile(username: string) {
   async function shareProfile() {
     const url = buildShareUrl(username)
     if (navigator.share) {
-      await navigator.share({ title: 'SkillBridge profile', text: 'Check out this SkillBridge member', url })
+      await navigator.share({ title: 'SwapNet profile', text: 'Check out this SwapNet member', url })
       return
     }
     await navigator.clipboard.writeText(url)
