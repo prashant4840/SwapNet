@@ -208,4 +208,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Framer Motion](https://www.framer.com/motion/) - The animation library
 - [Lucide](https://lucide.dev/) - The icon library
 
-Made with ❤️ by the SwapNet team
+Made with ❤️ by the Prashant Sharma
