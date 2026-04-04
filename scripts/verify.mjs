@@ -4,6 +4,8 @@ import { chromium } from 'playwright'
 
 const baseUrl = process.env.SKILLBRIDGE_BASE_URL ?? 'http://127.0.0.1:4173'
 const screenshotDir = new URL('../public/screenshots/', import.meta.url)
+const providedTestEmail = process.env.SKILLBRIDGE_TEST_EMAIL?.trim()
+const providedTestPassword = process.env.SKILLBRIDGE_TEST_PASSWORD?.trim()
 
 await fs.mkdir(screenshotDir, { recursive: true })
 
@@ -39,30 +41,102 @@ async function snapshotRoute(path, filename) {
   }
 }
 
+async function collectVisibleError() {
+  const formText = await page.locator('form').innerText().catch(() => '')
+  const errorLine = formText
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) =>
+      /wrong password|invalid login credentials|could not log you in|supabase is not configured/i.test(line),
+    )
+
+  return errorLine ?? null
+}
+
+async function verifyProtectedRoutes() {
+  await page.goto(`${baseUrl}/auth`, { waitUntil: 'networkidle' })
+
+  const credentials =
+    providedTestEmail && providedTestPassword
+      ? { email: providedTestEmail, password: providedTestPassword }
+      : null
+
+  if (!credentials) {
+    const reason =
+      'Protected routes skipped. Add SKILLBRIDGE_TEST_EMAIL and SKILLBRIDGE_TEST_PASSWORD to .env when Supabase auth is enabled.'
+
+    return {
+      skipped: true,
+      reason,
+      entries: [
+        { path: '/dashboard', skipped: true, reason },
+        { path: '/messages', skipped: true, reason },
+      ],
+    }
+  }
+
+  await page.getByRole('button', { name: /^Log in$/ }).first().click()
+  await page.locator('input[type="email"]').fill(credentials.email)
+  await page.locator('input[type="password"]').fill(credentials.password)
+  await page.locator('form').getByRole('button', { name: /^Log in$/ }).click()
+
+  const loggedIn = await page
+    .waitForURL('**/dashboard', { timeout: 10000, waitUntil: 'networkidle' })
+    .then(() => true)
+    .catch(() => false)
+
+  if (!loggedIn) {
+    const reason = (await collectVisibleError()) ?? 'Login did not reach /dashboard within 10 seconds.'
+    throw new Error(`Protected route verification failed: ${reason}`)
+  }
+
+  await page.waitForTimeout(800)
+  await page.screenshot({
+    path: fileURLToPath(new URL('dashboard.png', screenshotDir)),
+    fullPage: true,
+  })
+
+  const protectedSummaries = [
+    {
+      path: '/dashboard',
+      url: page.url(),
+      title: await page.title(),
+      heading: await page.locator('h1, h2').first().textContent(),
+      bodyLength: (await page.locator('body').innerText()).trim().length,
+    },
+  ]
+
+  protectedSummaries.push(await snapshotRoute('/messages', 'chat.png'))
+
+  return {
+    skipped: false,
+    entries: protectedSummaries,
+  }
+}
+
+async function snapshotProfileRoute() {
+  await page.goto(`${baseUrl}/explore`, { waitUntil: 'networkidle' })
+  const profileHref = await page.locator('a[href^="/profile/"]').first().getAttribute('href')
+
+  if (!profileHref) {
+    return {
+      path: '/profile/:username',
+      skipped: true,
+      reason: 'No public profile links were available during verification.',
+    }
+  }
+
+  return snapshotRoute(profileHref, 'profile.png')
+}
+
 const summary = []
 
 summary.push(await snapshotRoute('/', 'landing.png'))
 summary.push(await snapshotRoute('/explore', 'explore.png'))
 summary.push(await snapshotRoute('/auth', 'auth.png'))
-
-await page.getByRole('button', { name: 'Log in' }).first().click()
-await page.locator('form').getByRole('button', { name: /^Log in$/ }).click()
-await page.waitForURL('**/dashboard', { waitUntil: 'networkidle' })
-await page.waitForTimeout(800)
-await page.screenshot({
-  path: fileURLToPath(new URL('dashboard.png', screenshotDir)),
-  fullPage: true,
-})
-summary.push({
-  path: '/dashboard',
-  url: page.url(),
-  title: await page.title(),
-  heading: await page.locator('h1, h2').first().textContent(),
-  bodyLength: (await page.locator('body').innerText()).trim().length,
-})
-
-summary.push(await snapshotRoute('/chat/swap-ava-rohan', 'chat.png'))
-summary.push(await snapshotRoute('/profile/ava-shah', 'profile.png'))
+const protectedRoutes = await verifyProtectedRoutes()
+summary.push(...protectedRoutes.entries)
+summary.push(await snapshotProfileRoute())
 
 const mobilePage = await browser.newPage({ viewport: { width: 390, height: 844 } })
 mobilePage.on('console', (message) => {
@@ -101,5 +175,9 @@ console.log(
     2,
   ),
 )
+
+if (consoleErrors.length || pageErrors.length) {
+  process.exitCode = 1
+}
 
 await browser.close()
