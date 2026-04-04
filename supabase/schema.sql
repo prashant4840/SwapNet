@@ -117,7 +117,7 @@ create index if not exists connection_requests_sender_idx on public.connection_r
 create index if not exists connection_requests_receiver_idx on public.connection_requests (receiver_id);
 create index if not exists connection_requests_status_idx on public.connection_requests (status);
 
-create table if not exists public.chats (
+create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),
   thread_key text not null,
   swap_id uuid references public.swap_requests(id) on delete cascade,
@@ -129,16 +129,16 @@ create table if not exists public.chats (
     message_type in ('text', 'template', 'system')
   ),
   created_at timestamptz not null default now(),
-  constraint chats_thread_source check (
+  constraint messages_thread_source check (
     (swap_id is not null and connection_request_id is null)
     or (swap_id is null and connection_request_id is not null)
   )
 );
 
-create index if not exists chats_thread_key_idx on public.chats (thread_key, created_at);
-create index if not exists chats_swap_id_idx on public.chats (swap_id, created_at);
-create index if not exists chats_connection_request_id_idx
-  on public.chats (connection_request_id, created_at);
+create index if not exists messages_thread_key_idx on public.messages (thread_key, created_at);
+create index if not exists messages_swap_id_idx on public.messages (swap_id, created_at);
+create index if not exists messages_connection_request_id_idx
+  on public.messages (connection_request_id, created_at);
 
 create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
@@ -168,7 +168,7 @@ create table if not exists public.notifications (
 
 create index if not exists notifications_user_idx on public.notifications (user_id, created_at desc);
 
-create table if not exists public.looking_for_posts (
+create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
   skill_name text not null,
@@ -216,8 +216,8 @@ before update on public.connection_requests
 for each row
 execute function public.set_updated_at();
 
-create trigger set_looking_for_posts_updated_at
-before update on public.looking_for_posts
+create trigger set_posts_updated_at
+before update on public.posts
 for each row
 execute function public.set_updated_at();
 
@@ -226,10 +226,10 @@ alter table public.skills_offered enable row level security;
 alter table public.skills_wanted enable row level security;
 alter table public.swap_requests enable row level security;
 alter table public.connection_requests enable row level security;
-alter table public.chats enable row level security;
+alter table public.messages enable row level security;
 alter table public.reviews enable row level security;
 alter table public.notifications enable row level security;
-alter table public.looking_for_posts enable row level security;
+alter table public.posts enable row level security;
 alter table public.abuse_reports enable row level security;
 
 create policy "Public profiles are readable"
@@ -397,21 +397,21 @@ with check (
 );
 
 create policy "Chat participants can read messages"
-on public.chats
+on public.messages
 for select
 to authenticated
 using (
   exists (
     select 1
     from public.users
-    where public.users.id in (chats.sender_id, chats.receiver_id)
+    where public.users.id in (messages.sender_id, messages.receiver_id)
       and public.users.auth_user_id = auth.uid()
   )
   and (
     exists (
       select 1
       from public.swap_requests
-      where public.swap_requests.id = chats.swap_id
+      where public.swap_requests.id = messages.swap_id
         and auth.uid() in (
           select auth_user_id
           from public.users
@@ -421,7 +421,7 @@ using (
     or exists (
       select 1
       from public.connection_requests
-      where public.connection_requests.id = chats.connection_request_id
+      where public.connection_requests.id = messages.connection_request_id
         and auth.uid() in (
           select auth_user_id
           from public.users
@@ -435,35 +435,35 @@ using (
 );
 
 create policy "Chat participants can send messages"
-on public.chats
+on public.messages
 for insert
 to authenticated
 with check (
   exists (
     select 1
     from public.users
-    where public.users.id = chats.sender_id
+    where public.users.id = messages.sender_id
       and public.users.auth_user_id = auth.uid()
   )
-  and chats.receiver_id is not null
+  and messages.receiver_id is not null
   and (
     exists (
       select 1
       from public.swap_requests
-      where public.swap_requests.id = chats.swap_id
-        and chats.sender_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
-        and chats.receiver_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
+      where public.swap_requests.id = messages.swap_id
+        and messages.sender_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
+        and messages.receiver_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
     )
     or exists (
       select 1
       from public.connection_requests
-      where public.connection_requests.id = chats.connection_request_id
+      where public.connection_requests.id = messages.connection_request_id
         and public.connection_requests.status = 'Accepted'
-        and chats.sender_id in (
+        and messages.sender_id in (
           public.connection_requests.sender_id,
           public.connection_requests.receiver_id
         )
-        and chats.receiver_id in (
+        and messages.receiver_id in (
           public.connection_requests.sender_id,
           public.connection_requests.receiver_id
         )
@@ -532,19 +532,19 @@ with check (
 );
 
 create policy "Looking-for posts are publicly readable"
-on public.looking_for_posts
+on public.posts
 for select
 using (true);
 
 create policy "Owners manage their looking-for posts"
-on public.looking_for_posts
+on public.posts
 for all
 to authenticated
 using (
   exists (
     select 1
     from public.users
-    where public.users.id = looking_for_posts.user_id
+    where public.users.id = posts.user_id
       and public.users.auth_user_id = auth.uid()
   )
 )
@@ -552,7 +552,7 @@ with check (
   exists (
     select 1
     from public.users
-    where public.users.id = looking_for_posts.user_id
+    where public.users.id = posts.user_id
       and public.users.auth_user_id = auth.uid()
   )
 );
@@ -593,4 +593,4 @@ using (bucket_id = 'profile-photos')
 with check (bucket_id = 'profile-photos');
 
 alter publication supabase_realtime add table public.connection_requests;
-alter publication supabase_realtime add table public.chats;
+alter publication supabase_realtime add table public.messages;

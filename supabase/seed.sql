@@ -366,7 +366,7 @@ values
     '2026-03-27T13:35:00Z'
   );
 
-insert into public.chats (
+insert into public.messages (
   thread_key,
   swap_id,
   connection_request_id,
@@ -378,7 +378,7 @@ insert into public.chats (
 )
 values
   (
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    'swap_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
     null,
     '22222222-2222-2222-2222-222222222222',
@@ -388,7 +388,7 @@ values
     '2026-03-28T10:05:00Z'
   ),
   (
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    'swap_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
     null,
     '11111111-1111-1111-1111-111111111111',
@@ -398,7 +398,7 @@ values
     '2026-03-28T10:06:00Z'
   ),
   (
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    'swap_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
     null,
     '11111111-1111-1111-1111-111111111111',
@@ -408,7 +408,7 @@ values
     '2026-03-28T10:07:00Z'
   ),
   (
-    'cccccccc-cccc-cccc-cccc-ccccccccccc1',
+    'connection_cccccccc-cccc-cccc-cccc-ccccccccccc1',
     null,
     'cccccccc-cccc-cccc-cccc-ccccccccccc1',
     '88888888-8888-8888-8888-888888888888',
@@ -418,7 +418,7 @@ values
     '2026-03-27T09:15:00Z'
   ),
   (
-    'cccccccc-cccc-cccc-cccc-ccccccccccc3',
+    'connection_cccccccc-cccc-cccc-cccc-ccccccccccc3',
     null,
     'cccccccc-cccc-cccc-cccc-ccccccccccc3',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
@@ -485,7 +485,7 @@ values
     '2026-03-27T09:12:00Z'
   );
 
-insert into public.looking_for_posts (user_id, skill_name, category, note, city, mode, responses, created_at)
+insert into public.posts (user_id, skill_name, category, note, city, mode, responses, created_at)
 values
   (
     '99999999-9999-9999-9999-999999999999',

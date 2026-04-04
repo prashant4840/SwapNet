@@ -6,6 +6,7 @@ export type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced'
 export type RequestStatus = 'Pending' | 'Accepted' | 'Declined' | 'Completed'
 export type ConnectionRequestStatus = 'Pending' | 'Accepted' | 'Declined'
 export type MatchType = 'perfect' | 'good' | 'partial'
+export type ChatMessageKind = 'text' | 'template' | 'system'
 export type NotificationType =
   | 'match'
   | 'request'
@@ -73,13 +74,14 @@ export interface SwapRequest {
 export interface ChatMessage {
   id: string
   threadId: string
-  swapRequestId: string
+  swapRequestId?: string
   connectionRequestId?: string
   senderId: string
   receiverId?: string
   message: string
   timestamp: string
-  type: 'text' | 'template' | 'system'
+  message_type?: ChatMessageKind
+  type?: ChatMessageKind
 }
 
 export interface ConnectionRequest {
