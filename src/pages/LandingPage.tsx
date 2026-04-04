@@ -153,7 +153,7 @@ function LandingBrand({ className }: { className?: string }) {
       <span className="inline-flex size-10 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-[0_16px_36px_rgba(79,70,229,0.28)]">
         <ArrowLeftRight className="size-5" />
       </span>
-      <span className="text-lg font-extrabold tracking-tight">SkillBridge</span>
+      <span className="text-lg font-extrabold tracking-tight">SwapNet</span>
     </a>
   )
 }
@@ -460,7 +460,7 @@ export function LandingPage() {
                     Teach what you know. Learn what you need. No money involved.
                   </h1>
                   <p className="max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300 sm:text-lg">
-                    SkillBridge matches people who can teach each other. Post your offers,
+                    SwapNet matches people who can teach each other. Post your offers,
                     browse live community listings, request a swap, chat, schedule sessions,
                     and review the experience once you both finish.
                   </p>
@@ -800,7 +800,7 @@ export function LandingPage() {
 
                 <div className="space-y-3">
                   <h2 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
-                    SkillBridge is free, forever.
+                    SwapNet is free, forever.
                   </h2>
                   <p className="max-w-2xl text-base leading-8 text-slate-700 dark:text-slate-200">
                     If it helped you learn something new, consider starring the repo or
@@ -929,7 +929,7 @@ export function LandingPage() {
             </div>
 
             <div className="mt-10 flex flex-col gap-3 border-t border-brand-500/15 pt-6 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-              <p>© 2025 SkillBridge</p>
+              <p>© 2025 SwapNet</p>
               <p>Made with ☕ and React by Prashant</p>
             </div>
           </div>

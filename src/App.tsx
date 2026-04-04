@@ -58,7 +58,7 @@ function RouteFallback() {
     <div className="page-shell">
       <div className="glass-panel flex min-h-[40vh] items-center justify-center p-8">
         <p className="text-sm font-medium text-slate-500 dark:text-slate-300">
-          Loading SkillBridge...
+          Loading SwapNet...
         </p>
       </div>
     </div>

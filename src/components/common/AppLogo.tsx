@@ -18,7 +18,7 @@ export function AppLogo({ className, compact, to = '/' }: AppLogoProps) {
         <ArrowLeftRight className="size-5" />
       </span>
       {!compact ? (
-        <span className="text-lg font-black tracking-tight">SkillBridge</span>
+        <span className="text-lg font-black tracking-tight">SwapNet</span>
       ) : null}
     </Link>
   )
