@@ -10,14 +10,23 @@ import {
 } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
-import { AppProvider } from '@/context/AppContext'
-import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { AppProvider, useApp } from '@/context/AppContext'
 
 const LandingPage = lazy(async () =>
   import('@/pages/LandingPage').then((module) => ({ default: module.LandingPage })),
 )
 const AuthPage = lazy(async () =>
   import('@/pages/AuthPage').then((module) => ({ default: module.AuthPage })),
+)
+const ForgotPasswordPage = lazy(async () =>
+  import('@/pages/ForgotPasswordPage').then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+)
+const ResetPasswordPage = lazy(async () =>
+  import('@/pages/ResetPasswordPage').then((module) => ({
+    default: module.ResetPasswordPage,
+  })),
 )
 const ExplorePage = lazy(async () =>
   import('@/pages/ExplorePage').then((module) => ({ default: module.ExplorePage })),
@@ -58,7 +67,7 @@ function RouteFallback() {
 
 function ProtectedLayout() {
   const location = useLocation()
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading } = useApp()
 
   if (loading) {
     return (
@@ -87,6 +96,14 @@ function AnimatedRoutes() {
         <Routes location={location} key={location.pathname}>
           <Route element={<ErrorBoundary><LandingPage /></ErrorBoundary>} path="/" />
           <Route element={<ErrorBoundary><AuthPage /></ErrorBoundary>} path="/auth" />
+          <Route
+            element={<ErrorBoundary><ForgotPasswordPage /></ErrorBoundary>}
+            path="/forgot-password"
+          />
+          <Route
+            element={<ErrorBoundary><ResetPasswordPage /></ErrorBoundary>}
+            path="/reset-password"
+          />
 
           <Route element={<AppShell />}>
             <Route element={<ErrorBoundary><ExplorePage /></ErrorBoundary>} path="/explore" />
@@ -118,11 +135,9 @@ function App() {
         v7_startTransition: true,
       }}
     >
-      <AuthProvider>
-        <AppProvider>
-          <AnimatedRoutes />
-        </AppProvider>
-      </AuthProvider>
+      <AppProvider>
+        <AnimatedRoutes />
+      </AppProvider>
     </BrowserRouter>
   )
 }
