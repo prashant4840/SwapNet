@@ -7,6 +7,11 @@
 
 SwapNet is a modern Skill Swap Platform built with React, Tailwind, Framer Motion, React Router, and a Supabase-backed data model. Users can offer a skill they know, request a skill they want to learn, send swap requests, chat after acceptance, and leave ratings when the exchange is complete.
 
+## ⚠️ Development Status
+
+This project is currently a work in progress and may not always behave as expected.
+Contributions, bug reports, and suggestions are welcome.
+
 ## Highlights
 
 - Email signup/login flow with Supabase auth
