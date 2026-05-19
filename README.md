@@ -181,8 +181,8 @@ We welcome contributions to SwapNet! Whether you're fixing bugs, adding features
 
 Thanks to all the people who contribute to SwapNet!
 
-<a href="https://github.com/prashant4840/SkillBridge/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=prashant4840/SkillBridge" />
+<a href="https://github.com/prashant4840/SwapNet/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=prashant4840/SwapNet" />
 </a>
 
 ### 📋 What We're Looking For
@@ -214,4 +214,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Framer Motion](https://www.framer.com/motion/) - The animation library
 - [Lucide](https://lucide.dev/) - The icon library
 
-Made with ❤️ by the Prashant Sharma
+Made with ❤️ by Prashant Sharma
