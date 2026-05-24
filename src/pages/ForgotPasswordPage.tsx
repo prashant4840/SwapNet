@@ -48,11 +48,14 @@ export function ForgotPasswordPage() {
       <main className="page-shell flex min-h-[calc(100vh-3rem)] items-center justify-center">
         <section className="glass-panel w-full max-w-xl p-6 sm:p-8">
           <Badge tone="brand">Password recovery</Badge>
+
           <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
             Reset your password
           </h1>
+
+          {/* FIX 8a: was "SkillBridge account" → "SwapNet account" */}
           <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-            Enter the email address tied to your SkillBridge account and we will send a secure
+            Enter the email address tied to your SwapNet account and we will send a secure
             recovery link.
           </p>
 
@@ -82,7 +85,7 @@ export function ForgotPasswordPage() {
             ) : null}
 
             <Button disabled={loading} fullWidth size="lg" type="submit">
-              {loading ? 'Sending reset link...' : 'Send reset link'}
+              {loading ? 'Sending reset link…' : 'Send reset link'}
             </Button>
           </form>
 
