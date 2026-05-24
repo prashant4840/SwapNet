@@ -159,15 +159,43 @@ function loadInitialState() {
     return createEmptyState(fallbackTheme)
   }
 
-  try {
+//   try {
+//     const parsed = JSON.parse(rawState) as Partial<AppState>
+//     const storedTheme = parsed.theme === 'dark' || parsed.theme === 'light'
+//       ? parsed.theme
+//       : fallbackTheme
+//     return createEmptyState(storedTheme)
+//   } catch {
+//     return createEmptyState(fallbackTheme)
+// }
+
+try {
     const parsed = JSON.parse(rawState) as Partial<AppState>
     const storedTheme = parsed.theme === 'dark' || parsed.theme === 'light'
       ? parsed.theme
       : fallbackTheme
-    return createEmptyState(storedTheme)
+    return hydrateState({
+      users: parsed.users ?? [],
+      swapRequests: parsed.swapRequests ?? [],
+      connectionRequests: parsed.connectionRequests ?? [],
+      messages: parsed.messages ?? [],
+      reviews: parsed.reviews ?? [],
+      notifications: parsed.notifications ?? [],
+      posts: parsed.posts ?? [],
+      messageThreads: parsed.messageThreads ?? [],
+      unreadNotificationCount: parsed.unreadNotificationCount ?? 0,
+      auth: parsed.auth ?? {
+        currentUserId: null,
+        provider: null,
+        mode: DEFAULT_AUTH_MODE,
+      },
+      theme: storedTheme,
+      lastSuggestionDate: parsed.lastSuggestionDate ?? null,
+    })
   } catch {
     return createEmptyState(fallbackTheme)
   }
+
 }
 
 function resolveAuthProvider(user: User | null): AppState['auth']['provider'] {
@@ -733,6 +761,19 @@ async function dbInsertChatMessage(input: {
 }) {
   if (!supabase) {
     throw new Error('Supabase is not configured.')
+  }
+    
+  if (!input.swapId && !input.connectionRequestId) {
+    throw new Error(
+      'dbInsertChatMessage: message must belong to either a swap or a connection request. ' +
+      `threadKey="${input.threadKey}"`,
+    )
+  }
+
+  if (input.swapId && input.connectionRequestId) {
+    throw new Error(
+      'dbInsertChatMessage: message cannot belong to both a swap and a connection request.',
+    )
   }
 
   const { data, error } = await supabase
