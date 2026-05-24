@@ -10,9 +10,10 @@ begin
 end;
 $$;
 
+-- ── Tables ────────────────────────────────────────────────────
+
 create table if not exists public.users (
   id uuid primary key default gen_random_uuid(),
-  auth_user_id uuid unique,
   username text not null unique,
   name text not null,
   email text not null unique,
@@ -40,16 +41,7 @@ create table if not exists public.skills_offered (
   user_id uuid not null references public.users(id) on delete cascade,
   skill_name text not null,
   category text not null check (
-    category in (
-      'Music',
-      'Tech',
-      'Creative',
-      'Wellness',
-      'Lifestyle',
-      'Academic',
-      'Business',
-      'Languages'
-    )
+    category in ('Music','Tech','Creative','Wellness','Lifestyle','Academic','Business','Languages')
   ),
   level text check (level in ('Beginner', 'Intermediate', 'Advanced')),
   created_at timestamptz not null default now()
@@ -63,16 +55,7 @@ create table if not exists public.skills_wanted (
   user_id uuid not null references public.users(id) on delete cascade,
   skill_name text not null,
   category text not null check (
-    category in (
-      'Music',
-      'Tech',
-      'Creative',
-      'Wellness',
-      'Lifestyle',
-      'Academic',
-      'Business',
-      'Languages'
-    )
+    category in ('Music','Tech','Creative','Wellness','Lifestyle','Academic','Business','Languages')
   ),
   created_at timestamptz not null default now()
 );
@@ -173,16 +156,7 @@ create table if not exists public.posts (
   user_id uuid not null references public.users(id) on delete cascade,
   skill_name text not null,
   category text not null check (
-    category in (
-      'Music',
-      'Tech',
-      'Creative',
-      'Wellness',
-      'Lifestyle',
-      'Academic',
-      'Business',
-      'Languages'
-    )
+    category in ('Music','Tech','Creative','Wellness','Lifestyle','Academic','Business','Languages')
   ),
   note text not null,
   city text not null,
@@ -201,25 +175,85 @@ create table if not exists public.abuse_reports (
   constraint no_self_report check (reporter_id <> reported_user_id)
 );
 
+-- ── Triggers ──────────────────────────────────────────────────
+
 create trigger set_users_updated_at
 before update on public.users
-for each row
-execute function public.set_updated_at();
+for each row execute function public.set_updated_at();
 
 create trigger set_swap_requests_updated_at
 before update on public.swap_requests
-for each row
-execute function public.set_updated_at();
+for each row execute function public.set_updated_at();
 
 create trigger set_connection_requests_updated_at
 before update on public.connection_requests
-for each row
-execute function public.set_updated_at();
+for each row execute function public.set_updated_at();
 
 create trigger set_posts_updated_at
 before update on public.posts
-for each row
-execute function public.set_updated_at();
+for each row execute function public.set_updated_at();
+
+-- ── Auto-create profile on signup ────────────────────────────
+-- When a user signs up via Supabase Auth, this trigger
+-- automatically creates their public.users profile row.
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  base_username text;
+  final_username text;
+  counter int := 1;
+begin
+  base_username := coalesce(
+    nullif(trim(new.raw_user_meta_data->>'user_name'), ''),
+    nullif(trim(new.raw_user_meta_data->>'preferred_username'), ''),
+    nullif(split_part(new.email, '@', 1), ''),
+    'member'
+  );
+  base_username := lower(regexp_replace(base_username, '[^a-zA-Z0-9]', '-', 'g'));
+  base_username := regexp_replace(base_username, '-+', '-', 'g');
+  base_username := trim(both '-' from base_username);
+  base_username := coalesce(nullif(base_username, ''), 'member');
+  final_username := base_username;
+
+  while exists (select 1 from public.users where username = final_username) loop
+    final_username := base_username || '-' || counter;
+    counter := counter + 1;
+  end loop;
+
+  insert into public.users (id, username, name, email, photo, city, bio, headline)
+  values (
+    new.id,
+    final_username,
+    coalesce(
+      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'name'), ''),
+      split_part(new.email, '@', 1)
+    ),
+    new.email,
+    coalesce(
+      nullif(trim(new.raw_user_meta_data->>'avatar_url'), ''),
+      'https://api.dicebear.com/9.x/shapes/svg?seed=' || new.id
+    ),
+    coalesce(nullif(trim(new.raw_user_meta_data->>'city'), ''), 'Remote'),
+    'Tell the community what you love teaching and what you want to learn next.',
+    'New member ready to trade skills'
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- ── Row Level Security ────────────────────────────────────────
 
 alter table public.users enable row level security;
 alter table public.skills_offered enable row level security;
@@ -232,365 +266,160 @@ alter table public.notifications enable row level security;
 alter table public.posts enable row level security;
 alter table public.abuse_reports enable row level security;
 
+-- users
 create policy "Public profiles are readable"
-on public.users
-for select
-using (true);
+on public.users for select using (true);
 
-create policy "Users can create their own profile"
-on public.users
-for insert
-to authenticated
-with check (auth.uid() = auth_user_id);
+create policy "Users can insert their own profile"
+on public.users for insert to authenticated
+with check (auth.uid() = id);
 
 create policy "Users can update their own profile"
-on public.users
-for update
-to authenticated
-using (auth.uid() = auth_user_id)
-with check (auth.uid() = auth_user_id);
+on public.users for update to authenticated
+using (auth.uid() = id)
+with check (auth.uid() = id);
 
+-- skills_offered
 create policy "Skills offered are publicly readable"
-on public.skills_offered
-for select
-using (true);
+on public.skills_offered for select using (true);
 
 create policy "Owners manage their offered skills"
-on public.skills_offered
-for all
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = skills_offered.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = skills_offered.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.skills_offered for all to authenticated
+using (exists (select 1 from public.users where id = skills_offered.user_id and id = auth.uid()))
+with check (exists (select 1 from public.users where id = skills_offered.user_id and id = auth.uid()));
 
+-- skills_wanted
 create policy "Skills wanted are publicly readable"
-on public.skills_wanted
-for select
-using (true);
+on public.skills_wanted for select using (true);
 
 create policy "Owners manage their wanted skills"
-on public.skills_wanted
-for all
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = skills_wanted.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = skills_wanted.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.skills_wanted for all to authenticated
+using (exists (select 1 from public.users where id = skills_wanted.user_id and id = auth.uid()))
+with check (exists (select 1 from public.users where id = skills_wanted.user_id and id = auth.uid()));
 
+-- swap_requests
 create policy "Swap participants can read their requests"
-on public.swap_requests
-for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id in (swap_requests.sender_id, swap_requests.receiver_id)
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.swap_requests for select to authenticated
+using (auth.uid() in (sender_id, receiver_id));
 
 create policy "Senders can create swap requests"
-on public.swap_requests
-for insert
-to authenticated
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = swap_requests.sender_id
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.swap_requests for insert to authenticated
+with check (auth.uid() = sender_id);
 
 create policy "Participants can update swap requests"
-on public.swap_requests
-for update
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id in (swap_requests.sender_id, swap_requests.receiver_id)
-      and public.users.auth_user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id in (swap_requests.sender_id, swap_requests.receiver_id)
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.swap_requests for update to authenticated
+using (auth.uid() in (sender_id, receiver_id))
+with check (auth.uid() in (sender_id, receiver_id));
 
+-- connection_requests
 create policy "Connection participants can read requests"
-on public.connection_requests
-for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id in (connection_requests.sender_id, connection_requests.receiver_id)
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.connection_requests for select to authenticated
+using (auth.uid() in (sender_id, receiver_id));
 
 create policy "Senders can create connection requests"
-on public.connection_requests
-for insert
-to authenticated
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = connection_requests.sender_id
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.connection_requests for insert to authenticated
+with check (auth.uid() = sender_id);
 
 create policy "Participants can update connection requests"
-on public.connection_requests
-for update
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id in (connection_requests.sender_id, connection_requests.receiver_id)
-      and public.users.auth_user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id in (connection_requests.sender_id, connection_requests.receiver_id)
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.connection_requests for update to authenticated
+using (auth.uid() in (sender_id, receiver_id))
+with check (auth.uid() in (sender_id, receiver_id));
 
+-- messages
 create policy "Chat participants can read messages"
-on public.messages
-for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id in (messages.sender_id, messages.receiver_id)
-      and public.users.auth_user_id = auth.uid()
-  )
-  and (
-    exists (
-      select 1
-      from public.swap_requests
-      where public.swap_requests.id = messages.swap_id
-        and auth.uid() in (
-          select auth_user_id
-          from public.users
-          where public.users.id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
-        )
-    )
-    or exists (
-      select 1
-      from public.connection_requests
-      where public.connection_requests.id = messages.connection_request_id
-        and auth.uid() in (
-          select auth_user_id
-          from public.users
-          where public.users.id in (
-            public.connection_requests.sender_id,
-            public.connection_requests.receiver_id
-          )
-        )
-    )
-  )
-);
+on public.messages for select to authenticated
+using (auth.uid() in (sender_id, receiver_id));
 
 create policy "Chat participants can send messages"
-on public.messages
-for insert
-to authenticated
+on public.messages for insert to authenticated
 with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = messages.sender_id
-      and public.users.auth_user_id = auth.uid()
-  )
-  and messages.receiver_id is not null
+  auth.uid() = sender_id
   and (
     exists (
-      select 1
-      from public.swap_requests
-      where public.swap_requests.id = messages.swap_id
-        and messages.sender_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
-        and messages.receiver_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
+      select 1 from public.swap_requests
+      where id = messages.swap_id
+        and auth.uid() in (sender_id, receiver_id)
     )
     or exists (
-      select 1
-      from public.connection_requests
-      where public.connection_requests.id = messages.connection_request_id
-        and public.connection_requests.status = 'Accepted'
-        and messages.sender_id in (
-          public.connection_requests.sender_id,
-          public.connection_requests.receiver_id
-        )
-        and messages.receiver_id in (
-          public.connection_requests.sender_id,
-          public.connection_requests.receiver_id
-        )
+      select 1 from public.connection_requests
+      where id = messages.connection_request_id
+        and status = 'Accepted'
+        and auth.uid() in (sender_id, receiver_id)
     )
   )
 );
 
+-- reviews
 create policy "Reviews are publicly readable"
-on public.reviews
-for select
-using (true);
+on public.reviews for select using (true);
 
 create policy "Participants can write one review per swap"
-on public.reviews
-for insert
-to authenticated
+on public.reviews for insert to authenticated
 with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = reviews.reviewer_id
-      and public.users.auth_user_id = auth.uid()
-  )
+  auth.uid() = reviewer_id
   and exists (
-    select 1
-    from public.swap_requests
-    where public.swap_requests.id = reviews.swap_id
-      and public.swap_requests.status = 'Completed'
-      and reviews.reviewer_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
-      and reviews.reviewee_id in (public.swap_requests.sender_id, public.swap_requests.receiver_id)
+    select 1 from public.swap_requests
+    where id = reviews.swap_id
+      and status = 'Completed'
+      and auth.uid() in (sender_id, receiver_id)
   )
 );
 
+-- notifications
 create policy "Users can read their own notifications"
-on public.notifications
-for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = notifications.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.notifications for select to authenticated
+using (auth.uid() = user_id);
 
 create policy "Users can update their own notifications"
-on public.notifications
-for update
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = notifications.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = notifications.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.notifications for update to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
 
+create policy "Authenticated users can insert notifications"
+on public.notifications for insert to authenticated
+with check (true);
+
+-- posts
 create policy "Looking-for posts are publicly readable"
-on public.posts
-for select
-using (true);
+on public.posts for select using (true);
 
-create policy "Owners manage their looking-for posts"
-on public.posts
-for all
-to authenticated
-using (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = posts.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = posts.user_id
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+create policy "Authenticated users can create posts"
+on public.posts for insert to authenticated
+with check (auth.uid() = user_id);
 
+create policy "Owners can manage their posts"
+on public.posts for all to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+-- abuse_reports
 create policy "Authenticated users can report abuse"
-on public.abuse_reports
-for insert
-to authenticated
-with check (
-  exists (
-    select 1
-    from public.users
-    where public.users.id = abuse_reports.reporter_id
-      and public.users.auth_user_id = auth.uid()
-  )
-);
+on public.abuse_reports for insert to authenticated
+with check (auth.uid() = reporter_id);
+
+-- ── Storage ───────────────────────────────────────────────────
 
 insert into storage.buckets (id, name, public)
 values ('profile-photos', 'profile-photos', true)
 on conflict (id) do nothing;
 
 create policy "Profile photos are publicly readable"
-on storage.objects
-for select
+on storage.objects for select
 using (bucket_id = 'profile-photos');
 
 create policy "Authenticated users can upload profile photos"
-on storage.objects
-for insert
-to authenticated
+on storage.objects for insert to authenticated
 with check (bucket_id = 'profile-photos');
 
 create policy "Authenticated users can update profile photos"
-on storage.objects
-for update
-to authenticated
+on storage.objects for update to authenticated
 using (bucket_id = 'profile-photos')
 with check (bucket_id = 'profile-photos');
 
+-- ── Realtime ──────────────────────────────────────────────────
+
 alter publication supabase_realtime add table public.connection_requests;
 alter publication supabase_realtime add table public.messages;
+alter publication supabase_realtime add table public.swap_requests;
+alter publication supabase_realtime add table public.notifications;
+alter publication supabase_realtime add table public.posts;
