@@ -423,3 +423,8 @@ alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.swap_requests;
 alter publication supabase_realtime add table public.notifications;
 alter publication supabase_realtime add table public.posts;
+
+-- Lock down internal trigger functions from public access
+revoke execute on function public.handle_new_user() from anon;
+revoke execute on function public.handle_new_user() from authenticated;
+alter function public.set_updated_at() set search_path = public;
