@@ -1351,7 +1351,28 @@ export function AppProvider({ children }: PropsWithChildren) {
       }))
 
       toast.success(`Swap request sent to ${receiver.name}.`)
-      return true
+
+// Send email notification to receiver
+if (receiver.email) {
+  const offeredSkill = currentUser.skillsOffered.find(
+    (s) => s.id === payload.offeredSkillId
+  )
+  const wantedSkill = currentUser.skillsWanted.find(
+    (s) => s.id === payload.wantedSkillId
+  )
+  void supabase.functions.invoke('notify-swap-request', {
+    body: {
+      receiverEmail: receiver.email,
+      receiverName: receiver.name,
+      senderName: currentUser.name,
+      skillOffered: offeredSkill?.name ?? 'a skill',
+      skillWanted: wantedSkill?.name ?? 'a skill',
+    },
+  })
+}
+
+return true
+
     } catch (error) {
       console.error('Failed to send swap request:', error)
       toast.error('Failed to send request. Try again.')
@@ -1949,3 +1970,4 @@ export function useShareProfile(username: string) {
   }
   return { shareProfile }
 }
+
