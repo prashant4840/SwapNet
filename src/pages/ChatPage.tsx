@@ -7,8 +7,12 @@ import {
   Search,
   SendHorizonal,
   SmilePlus,
+  Video,
+  Copy,
+  ExternalLink,
 } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { ButtonLink } from '@/components/common/ButtonLink'
@@ -24,6 +28,18 @@ const quickTemplates = [
   'Meet link: https://meet.google.com/replace-with-your-room',
   'I reviewed the notes. Ready for our next exchange whenever you are.',
 ]
+
+// Generate a stable room name from a thread ID
+// Uses the thread ID so both users always get the same room URL
+function generateRoomUrl(threadId: string) {
+  // Clean the thread ID to make a valid Whereby room name
+  const roomName = threadId
+    .replace(/[^a-zA-Z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 40)
+    .toLowerCase()
+  return `https://whereby.com/swapnet-${roomName}`
+}
 
 export function ChatPage() {
   const { threadId = '', swapId = '' } = useParams()
@@ -41,10 +57,14 @@ export function ChatPage() {
   } = useApp()
   const [message, setMessage] = useState('')
   const [search, setSearch] = useState('')
+  const [showVideoPanel, setShowVideoPanel] = useState(false)
   const endRef = useRef<HTMLDivElement | null>(null)
   const resolvedThreadId = threadId || (swapId ? buildSwapThreadKey(swapId) : '') || messageThreads[0]?.id || ''
   const activeThread = getThreadById(resolvedThreadId)
   const activeMessages = activeThread ? getMessagesForThread(activeThread.id) : []
+
+  // Generate a stable video room URL for this thread
+  const videoRoomUrl = activeThread ? generateRoomUrl(activeThread.id) : ''
 
   useEffect(() => {
     if (!activeThread?.id) return
@@ -54,6 +74,21 @@ export function ChatPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [resolvedThreadId, activeMessages.length])
+
+  function handleShareVideoLink() {
+    if (!activeThread) return
+    sendChatMessage(
+      activeThread.id,
+      `Video call ready 🎥 Join here: ${videoRoomUrl}`,
+      'template',
+    )
+    toast.success('Video link shared in chat!')
+  }
+
+  function handleCopyVideoLink() {
+    navigator.clipboard.writeText(videoRoomUrl)
+    toast.success('Video link copied!')
+  }
 
   if (loading || !currentUser) {
     return (
@@ -127,6 +162,7 @@ export function ChatPage() {
   return (
     <PageTransition>
       <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
+        {/* ── Left: thread list ── */}
         <aside className="glass-panel flex min-h-[78vh] flex-col overflow-hidden">
           <div className="border-b border-slate-200/80 p-5 dark:border-slate-700/80">
             <div className="space-y-2">
@@ -202,6 +238,7 @@ export function ChatPage() {
           </div>
         </aside>
 
+        {/* ── Center: chat window ── */}
         <section className="glass-panel flex min-h-[78vh] flex-col overflow-hidden">
           <div className="border-b border-slate-200/80 p-5 dark:border-slate-700/80">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -234,12 +271,64 @@ export function ChatPage() {
                 </div>
               </div>
 
-              <Link to={`/profile/${partner?.username}`}>
-                <Button size="sm" variant="outline">
-                  View profile
+              <div className="flex items-center gap-2">
+                {/* Video call button in header */}
+                <Button
+                  onClick={() => setShowVideoPanel((v) => !v)}
+                  size="sm"
+                  variant={showVideoPanel ? 'outline' : 'outline'}
+                  className={showVideoPanel ? 'border-brand-400 text-brand-600 dark:border-brand-400 dark:text-brand-300' : ''}
+                >
+                  <Video className="size-4" />
+                  Video call
                 </Button>
-              </Link>
+                <Link to={`/profile/${partner?.username}`}>
+                  <Button size="sm" variant="outline">
+                    View profile
+                  </Button>
+                </Link>
+              </div>
             </div>
+
+            {/* ── Video call panel (toggleable) ── */}
+            {showVideoPanel ? (
+              <div className="mt-4 rounded-[1.5rem] border border-brand-200/70 bg-gradient-to-r from-brand-50/80 to-tealish-50/80 p-4 dark:border-brand-400/20 dark:from-brand-500/10 dark:to-tealish-500/10">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-white">
+                  <Video className="size-4 text-brand-600 dark:text-brand-300" />
+                  Video call room for this swap
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  A dedicated room for you and {partner?.name}. No account needed — just click and join.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href={videoRoomUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+                  >
+                    <ExternalLink className="size-4" />
+                    Join room
+                  </a>
+                  <button
+                    onClick={handleShareVideoLink}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-brand-400/30 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
+                    type="button"
+                  >
+                    <SendHorizonal className="size-4" />
+                    Share in chat
+                  </button>
+                  <button
+                    onClick={handleCopyVideoLink}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                    type="button"
+                  >
+                    <Copy className="size-4" />
+                    Copy link
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {activeSwap ? (
@@ -290,7 +379,32 @@ export function ChatPage() {
                           : 'bg-slate-100/90 text-slate-700 dark:bg-slate-800/90 dark:text-slate-100',
                     )}
                   >
-                    <p>{chat.message}</p>
+                    {/* Make video call links clickable inside messages */}
+                    {chat.message.includes('whereby.com') ? (
+                      <p>
+                        {chat.message.split(/(https:\/\/whereby\.com\/\S+)/g).map((part, i) =>
+                          part.startsWith('https://whereby.com/') ? (
+                            <a
+                              key={i}
+                              href={part}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={cn(
+                                'inline-flex items-center gap-1 underline',
+                                isOwn ? 'text-white/90' : 'text-brand-600 dark:text-brand-300',
+                              )}
+                            >
+                              <Video className="size-3" />
+                              Join video call
+                            </a>
+                          ) : (
+                            part
+                          ),
+                        )}
+                      </p>
+                    ) : (
+                      <p>{chat.message}</p>
+                    )}
                     <p
                       className={cn(
                         'mt-2 text-xs',
@@ -364,6 +478,7 @@ export function ChatPage() {
           </div>
         </section>
 
+        {/* ── Right: partner info + thread context ── */}
         <aside className="space-y-6">
           <div className="glass-panel p-6">
             <div className="flex items-center gap-3">
@@ -444,6 +559,36 @@ export function ChatPage() {
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
                   Updated {formatRelativeTime(activeThread.updatedAt)}
                 </p>
+              </div>
+
+              {/* ── Video call card in sidebar ── */}
+              <div className="rounded-[1.5rem] border border-brand-200/60 bg-gradient-to-br from-brand-50/80 to-tealish-50/80 p-4 dark:border-brand-400/20 dark:from-brand-500/10 dark:to-tealish-500/10">
+                <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-white">
+                  <Video className="size-4 text-brand-600 dark:text-brand-300" />
+                  Video call
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Instant room — no signup needed.
+                </p>
+                <div className="mt-3 flex flex-col gap-2">
+                  <a
+                    href={videoRoomUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+                  >
+                    <Video className="size-4" />
+                    Start video call
+                  </a>
+                  <button
+                    onClick={handleShareVideoLink}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-brand-400/30 dark:bg-slate-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
+                    type="button"
+                  >
+                    <SendHorizonal className="size-4" />
+                    Share link in chat
+                  </button>
+                </div>
               </div>
 
               <div className="rounded-[1.5rem] bg-slate-100/80 p-4 dark:bg-slate-800/80">
