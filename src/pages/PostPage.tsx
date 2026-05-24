@@ -19,26 +19,37 @@ interface PostFormState {
 }
 
 export function PostPage() {
-  const { createPost, currentUser, state } = useApp()
+  // FIX 7: added `loading` from useApp so the posts panel uses
+  // the context's loading flag, not the form's isSubmitting flag.
+  const { createPost, currentUser, state, loading } = useApp()
+
   const [form, setForm] = useState<PostFormState>({
     skillName: '',
     category: 'Tech',
     note: '',
     mode: 'Online',
   })
-  const [isLoading, setIsLoading] = useState(false)
 
-  // Get posts from state
+  // FIX 7: renamed from isLoading → isSubmitting so it only
+  // controls the form submit button, not the posts list.
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const posts = state.posts
-  
-  // Get author info for posts
+
   const getPostAuthor = (post: LookingForPost) => {
-    return state.users.find((user: UserProfile) => user.id === post.userId) || { name: 'Anonymous', photo: '', username: '' }
+    return (
+      state.users.find((user: UserProfile) => user.id === post.userId) || {
+        name: 'Anonymous',
+        photo: '',
+        username: '',
+      }
+    )
   }
 
   return (
     <PageTransition>
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        {/* ── Left: post creation form ── */}
         <section className="glass-panel p-6">
           <SectionTitle
             description="Create a lightweight post when you want help with one specific skill outside a direct reciprocal match."
@@ -46,17 +57,17 @@ export function PostPage() {
           >
             Looking for post
           </SectionTitle>
+
           {currentUser ? (
             <form
               className="mt-6 space-y-4"
               onSubmit={async (event) => {
                 event.preventDefault()
-                if (!currentUser) {
-                  // Should not happen due to ProtectedLayout, but guard anyway
-                  return
-                }
+                if (!currentUser) return
+
                 try {
-                  setIsLoading(true)
+                  // FIX 7: use isSubmitting, not isLoading
+                  setIsSubmitting(true)
                   const didCreate = await createPost({
                     skillName: form.skillName,
                     category: form.category,
@@ -75,7 +86,7 @@ export function PostPage() {
                 } catch (error) {
                   console.error('Failed to create post:', error)
                 } finally {
-                  setIsLoading(false)
+                  setIsSubmitting(false)
                 }
               }}
             >
@@ -91,6 +102,7 @@ export function PostPage() {
                   value={form.skillName}
                 />
               </label>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
                   Category
@@ -111,6 +123,7 @@ export function PostPage() {
                     ))}
                   </select>
                 </label>
+
                 <label className="space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
                   Preferred mode
                   <select
@@ -129,6 +142,7 @@ export function PostPage() {
                   </select>
                 </label>
               </div>
+
               <label className="space-y-2 text-sm font-medium text-slate-700 dark:text-slate-200">
                 What are you looking for?
                 <textarea
@@ -141,13 +155,12 @@ export function PostPage() {
                   value={form.note}
                 />
               </label>
-              <Button disabled={isLoading} fullWidth size="lg" type="submit">
-                {isLoading ? (
+
+              {/* FIX 7 + FIX 8: use isSubmitting; fixed spinner (CSS border, not broken SVG) */}
+              <Button disabled={isSubmitting} fullWidth size="lg" type="submit">
+                {isSubmitting ? (
                   <>
-                    <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4.32m0 5.68L12 19.68l8-5.68V12z" />
-                    </svg>
+                    <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                     Publishing...
                   </>
                 ) : (
@@ -160,14 +173,13 @@ export function PostPage() {
               <EmptyState
                 title="Sign in to publish a post"
                 description="The board is public, but creating a request requires a profile."
-                action={
-                  <ButtonLink to="/auth">Join SkillBridge</ButtonLink>
-                }
+                action={<ButtonLink to="/auth">Join SwapNet</ButtonLink>}
               />
             </div>
           )}
         </section>
 
+        {/* ── Right: live posts list ── */}
         <section className="space-y-4">
           <SectionTitle
             description="A running notice board of members looking for focused help."
@@ -175,43 +187,58 @@ export function PostPage() {
           >
             Current requests
           </SectionTitle>
-          {isLoading ? (
+
+          {/* FIX 7: use `loading` (from useApp) here, NOT isSubmitting */}
+          {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-transparent border-t-brand-600"></div>
-              <span className="ml-2 text-sm text-slate-500 dark:text-slate-400">Loading posts...</span>
+              <span className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand-600" />
+              <span className="ml-2 text-sm text-slate-500 dark:text-slate-400">
+                Loading posts...
+              </span>
             </div>
           ) : posts.length > 0 ? (
             posts.map((post: LookingForPost) => {
               const author = getPostAuthor(post)
               return (
-              <div className="glass-panel p-5" key={post.id}>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <img alt={author.name} className="size-12 rounded-3xl object-cover" src={author.photo} />
-                    <div>
-                      <p className="font-semibold text-slate-950 dark:text-white">{author.name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-300">
-                        {post.city} • {formatRelativeTime(post.createdAt)}
-                      </p>
+                <div className="glass-panel p-5" key={post.id}>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <img
+                        alt={author.name}
+                        className="size-12 rounded-3xl object-cover"
+                        src={author.photo}
+                      />
+                      <div>
+                        <p className="font-semibold text-slate-950 dark:text-white">
+                          {author.name}
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-300">
+                          {post.city} • {formatRelativeTime(post.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge tone="teal">{post.skillName}</Badge>
+                      <Badge tone="slate">{post.mode}</Badge>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge tone="teal">{post.skillName}</Badge>
-                    <Badge tone="slate">{post.mode}</Badge>
+
+                  <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                    {post.note}
+                  </p>
+
+                  <div className="mt-4 flex items-center justify-between text-sm text-slate-500 dark:text-slate-300">
+                    <span>{post.responses} interested replies</span>
+                    {author.username ? (
+                      <Link
+                        className="font-semibold text-brand-600 dark:text-brand-300"
+                        to={`/profile/${author.username}`}
+                      >
+                        View profile
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
-                <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
-                  {post.note}
-                </p>
-                <div className="mt-4 flex items-center justify-between text-sm text-slate-500 dark:text-slate-300">
-                  <span>{post.responses} interested replies</span>
-                  {author.username ? (
-                    <Link className="font-semibold text-brand-600 dark:text-brand-300" to={`/profile/${author.username}`}>
-                      View profile
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
               )
             })
           ) : (
