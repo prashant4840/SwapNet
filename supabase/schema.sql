@@ -428,3 +428,28 @@ alter publication supabase_realtime add table public.posts;
 revoke execute on function public.handle_new_user() from anon;
 revoke execute on function public.handle_new_user() from authenticated;
 alter function public.set_updated_at() set search_path = public;
+
+-- Storage policies (users can only access their own folder)
+drop policy if exists "Authenticated users can upload profile photos" on storage.objects;
+drop policy if exists "Authenticated users can update profile photos" on storage.objects;
+
+create policy "Authenticated users can upload profile photos"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'profile-photos'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+create policy "Authenticated users can update profile photos"
+on storage.objects for update to authenticated
+using (
+  bucket_id = 'profile-photos'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+create policy "Authenticated users can delete their own photos"
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'profile-photos'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
