@@ -1,6 +1,16 @@
 export type ThemeMode = 'light' | 'dark'
 export type AuthMode = 'demo' | 'supabase'
-export type AvailabilitySlot = 'Weekdays' | 'Weekends' | 'Evenings'
+
+export type AvailabilitySlot =
+  | 'Weekdays' | 'Weekends' | 'Evenings'  
+  | 'Mon-Morning' | 'Mon-Afternoon' | 'Mon-Evening'
+  | 'Tue-Morning' | 'Tue-Afternoon' | 'Tue-Evening'
+  | 'Wed-Morning' | 'Wed-Afternoon' | 'Wed-Evening'
+  | 'Thu-Morning' | 'Thu-Afternoon' | 'Thu-Evening'
+  | 'Fri-Morning' | 'Fri-Afternoon' | 'Fri-Evening'
+  | 'Sat-Morning' | 'Sat-Afternoon' | 'Sat-Evening'
+  | 'Sun-Morning' | 'Sun-Afternoon' | 'Sun-Evening'
+
 export type LearningMode = 'Online' | 'In-person' | 'Both'
 export type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced'
 export type RequestStatus = 'Pending' | 'Accepted' | 'Declined' | 'Completed'
@@ -220,3 +230,4 @@ export interface ConnectionRequestPayload {
   receiverId: string
   message: string
 }
+
