@@ -409,3 +409,79 @@ export function resolveSwapPartner(
   const partnerId = swap.senderId === currentUserId ? swap.receiverId : swap.senderId
   return users.find((user) => user.id === partnerId) ?? null
 }
+
+export interface ProfileCompletionItem {
+  label: string
+  field: keyof UserProfile | 'skills'
+  prompt: string
+  link?: string
+}
+
+export function getProfileCompletionItems(profile: UserProfile): ProfileCompletionItem[] {
+  const items: ProfileCompletionItem[] = [
+    {
+      label: 'Profile photo',
+      field: 'photo',
+      prompt: 'Upload a profile photo to build trust',
+      link: '/settings',
+    },
+    {
+      label: 'Full name',
+      field: 'name',
+      prompt: 'Add your full name',
+      link: '/settings',
+    },
+    {
+      label: 'City',
+      field: 'city',
+      prompt: 'Tell us where you are',
+      link: '/settings',
+    },
+    {
+      label: 'Bio',
+      field: 'bio',
+      prompt: 'Write a short bio about yourself',
+      link: '/settings',
+    },
+    {
+      label: 'Headline',
+      field: 'headline',
+      prompt: 'Add a headline (e.g., "Full Stack Developer")',
+      link: '/settings',
+    },
+    {
+      label: 'Skills offered',
+      field: 'skills',
+      prompt: 'Add skills you can teach',
+      link: '/settings',
+    },
+    {
+      label: 'Skills wanted',
+      field: 'skills',
+      prompt: 'Add skills you want to learn',
+      link: '/settings',
+    },
+    {
+      label: 'Availability',
+      field: 'availability',
+      prompt: 'Set your availability schedule',
+      link: '/settings',
+    },
+    {
+      label: 'Preferred mode',
+      field: 'mode',
+      prompt: 'Choose online, in-person, or both',
+      link: '/settings',
+    },
+  ]
+
+  return items.filter((item) => {
+    if (item.field === 'skills') {
+      const isSkillsOffered = item.prompt.includes('teach')
+      return isSkillsOffered ? profile.skillsOffered.length === 0 : profile.skillsWanted.length === 0
+    }
+    const value = profile[item.field as keyof UserProfile]
+    if (Array.isArray(value)) return value.length === 0
+    return !value
+  })
+}

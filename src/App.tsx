@@ -49,6 +49,9 @@ const NotificationsPage = lazy(async () =>
 const SettingsPage = lazy(async () =>
   import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })),
 )
+const AdminPage = lazy(async () =>
+  import('@/pages/AdminPage').then((module) => ({ default: module.AdminPage })),
+)
 const NotFoundPage = lazy(async () =>
   import('@/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })),
 )
@@ -117,6 +120,7 @@ function AnimatedRoutes() {
               <Route element={<ErrorBoundary><ChatPage /></ErrorBoundary>} path="/chat/:swapId" />
               <Route element={<ErrorBoundary><NotificationsPage /></ErrorBoundary>} path="/notifications" />
               <Route element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} path="/settings" />
+              <Route element={<ErrorBoundary><AdminPage /></ErrorBoundary>} path="/admin" />
             </Route>
           </Route>
 

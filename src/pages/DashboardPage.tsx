@@ -1,4 +1,5 @@
 import { EndorseSkillsModal } from '@/components/feed/EndorseSkillsModal'
+import { ProfileCompletionCard } from '@/components/profile/ProfileCompletionCard'
 import type { SwapRequest } from '@/types'
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
@@ -66,8 +67,9 @@ export function DashboardPage() {
   return (
     <PageTransition>
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr_1fr] h-[calc(100vh-8rem)]">
-        {/* Left Column - Pending Requests */}
+        {/* Left Column - Profile Completion + Pending Requests */}
         <div className="space-y-6">
+          <ProfileCompletionCard profile={currentUser} />
           <div className="glass-panel p-6">
             <SectionTitle
               description="People waiting for you to approve a skill exchange."
