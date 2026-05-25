@@ -20,35 +20,24 @@ vi.mock('react-hot-toast', () => ({
   },
 }))
 
-vi.mock('@/lib/app', () => ({
-  dbFetchChatMessages: vi.fn().mockResolvedValue([]),
-  dbInsertChatMessage: vi.fn().mockResolvedValue({
-    id: 'msg-1',
-    threadKey: 'swap-1-user-1-user-2',
-    swapId: 'swap-1',
-    senderId: 'user-1',
-    content: 'Hello!',
-    kind: 'text',
-    timestamp: new Date().toISOString(),
+vi.mock('@/utils/app', () => ({
+  buildSwapThreadKey: vi.fn((id) => `swap-${id}`),
+  buildConnectionThreadKey: vi.fn((id) => `conn-${id}`),
+  parseThreadKey: vi.fn((key) => {
+    if (key.startsWith('swap-')) return { kind: 'swap', sourceId: key.replace('swap-', '') }
+    return null
   }),
-  mapChatRecord: vi.fn((record) => record),
-  resolveThreadContext: vi.fn(() => ({
-    threadKey: 'swap-1-user-1-user-2',
-    swapId: 'swap-1',
-    partnerId: 'user-2',
-    connectionRequestId: null,
-  })),
-  buildMessageThreads: vi.fn(() => []),
+  createId: vi.fn((prefix) => `${prefix}-123`),
 }))
 
 const mockMessage: ChatMessage = {
   id: 'msg-1',
-  threadKey: 'swap-1-user-1-user-2',
-  swapId: 'swap-1',
-  connectionRequestId: null,
+  threadId: 'swap-1-user-1-user-2',
+  swapRequestId: 'swap-1',
+  connectionRequestId: undefined,
   senderId: 'user-1',
-  content: 'Hello there!',
-  kind: 'text',
+  message: 'Hello there!',
+  type: 'text',
   timestamp: new Date().toISOString(),
 }
 
@@ -131,8 +120,8 @@ describe('ChatContext', () => {
   it('should getMessagesForSwap returns messages for specific swap', () => {
     const messages = [
       mockMessage,
-      { ...mockMessage, id: 'msg-2', swapId: 'swap-2' },
-      { ...mockMessage, id: 'msg-3', swapId: 'swap-1' },
+      { ...mockMessage, id: 'msg-2', swapRequestId: 'swap-2' },
+      { ...mockMessage, id: 'msg-3', swapRequestId: 'swap-1' },
     ]
 
     const { result } = renderHook(() => useChat(), {
@@ -145,7 +134,7 @@ describe('ChatContext', () => {
 
     const swapMessages = result.current.getMessagesForSwap('swap-1')
     expect(swapMessages.length).toBe(2)
-    expect(swapMessages.every((m) => m.swapId === 'swap-1')).toBe(true)
+    expect(swapMessages.every((m) => m.swapRequestId === 'swap-1')).toBe(true)
   })
 
   it('should return empty messages for swap with no messages', () => {
@@ -227,12 +216,12 @@ describe('ChatContext', () => {
   it('should preserve message data integrity', () => {
     const testMessage: ChatMessage = {
       id: 'test-msg-1',
-      threadKey: 'test-thread-123',
-      swapId: 'swap-456',
-      connectionRequestId: null,
+      threadId: 'test-thread-123',
+      swapRequestId: 'swap-456',
+      connectionRequestId: undefined,
       senderId: 'sender-789',
-      content: 'Test content',
-      kind: 'text',
+      message: 'Test content',
+      type: 'text',
       timestamp: '2024-01-01T00:00:00Z',
     }
 
@@ -246,8 +235,8 @@ describe('ChatContext', () => {
 
     const message = result.current.messages[0]
     expect(message.id).toBe('test-msg-1')
-    expect(message.threadKey).toBe('test-thread-123')
+    expect(message.threadId).toBe('test-thread-123')
     expect(message.senderId).toBe('sender-789')
-    expect(message.content).toBe('Test content')
+    expect(message.message).toBe('Test content')
   })
 })

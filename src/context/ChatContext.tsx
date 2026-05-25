@@ -1,20 +1,20 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
-import type { ChatMessage, ChatMessageKind, MessageThread, AppState } from '@/types'
-import { buildSwapThreadKey, buildConnectionThreadKey, parseThreadKey, buildMessageThreads, createId } from '@/utils/app'
+import type { ChatMessage, ChatMessageKind, MessageThread } from '@/types'
+import { buildSwapThreadKey, buildConnectionThreadKey, parseThreadKey, createId } from '@/utils/app'
 
 // Helper functions extracted from AppContext
 function mapChatRecord(record: Record<string, unknown>): ChatMessage {
   return {
     id: record.id as string,
-    threadKey: record.thread_key as string,
-    swapId: (record.swap_id as string | null) ?? undefined,
+    threadId: record.thread_key as string,
+    swapRequestId: (record.swap_id as string | null) ?? undefined,
     connectionRequestId: (record.connection_request_id as string | null) ?? undefined,
     senderId: record.sender_id as string,
-    content: record.content as string,
-    kind: (record.kind as ChatMessageKind) ?? 'text',
+    message: record.content as string,
     timestamp: record.created_at as string,
+    type: (record.kind as ChatMessageKind) ?? 'text',
   }
 }
 
@@ -140,22 +140,12 @@ export function ChatProvider({
   users = [],
 }: ChatProviderProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
-  const [messageThreads, setMessageThreads] = useState<MessageThread[]>(initialThreads)
+  const [messageThreads] = useState<MessageThread[]>(initialThreads)
   const stateRef = useRef({ messages, swapRequests, connectionRequests, currentUserId, users })
 
   useEffect(() => {
     stateRef.current = { messages, swapRequests, connectionRequests, currentUserId, users }
   }, [messages, swapRequests, connectionRequests, currentUserId, users])
-
-  const updateMessageThreads = useCallback(() => {
-    if (!currentUserId || messageThreads.length === 0) return
-    // Message threads are computed from swap/connection requests in other contexts
-    // For now, keep the initialized threads
-  }, [currentUserId, messageThreads])
-
-  useEffect(() => {
-    updateMessageThreads()
-  }, [updateMessageThreads])
 
   const loadChatMessages = useCallback(async (threadId: string) => {
     if (!supabase) return
@@ -253,10 +243,10 @@ export function ChatProvider({
 
   const sendChatMessage = useCallback(async (
     threadId: string,
-    message: string,
+    messageText: string,
     messageType: ChatMessageKind = 'text',
   ) => {
-    if (!currentUserId || !message.trim() || !supabase) return
+    if (!currentUserId || !messageText.trim() || !supabase) return
 
     const threadContext = resolveThreadContext(stateRef.current, currentUserId, threadId)
     if (!threadContext) return
@@ -270,7 +260,7 @@ export function ChatProvider({
         swapId: threadContext.swapId,
         connectionRequestId: threadContext.connectionRequestId,
         senderId: currentUserId,
-        content: message,
+        content: messageText,
         kind: messageType,
       })
 
@@ -287,14 +277,14 @@ export function ChatProvider({
       const threadContext = resolveThreadContext(stateRef.current, currentUserId ?? '', threadId)
       if (!threadContext) return []
 
-      return messages.filter((msg) => msg.threadKey === threadContext.threadKey)
+      return messages.filter((msg) => msg.threadId === threadContext.threadKey)
     },
     [messages, currentUserId]
   )
 
   const getMessagesForSwap = useCallback(
     (swapId: string) => {
-      return messages.filter((msg) => msg.swapId === swapId)
+      return messages.filter((msg) => msg.swapRequestId === swapId)
     },
     [messages]
   )
@@ -322,4 +312,3 @@ export function useChat() {
   }
   return context
 }
-

@@ -38,6 +38,7 @@ interface AuthContextValue {
   updateProfile: (payload: ProfilePayload) => Promise<void>
   getUserById: (userId: string) => UserProfile | null
   getUserByUsername: (username: string) => UserProfile | null
+  reportUser: (userId: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -230,6 +231,31 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
     return allUsers.find((u) => u.username === username) ?? null
   }, [allUsers])
 
+  const reportUser = useCallback(async (userId: string): Promise<boolean> => {
+    if (!currentUser || currentUser.id === userId || !supabase) return false
+
+    try {
+      const { error } = await supabase.from('abuse_reports').insert({
+        reporter_id: currentUser.id,
+        reported_user_id: userId,
+        reason: 'Reported from profile page',
+        created_at: new Date().toISOString(),
+      })
+
+      if (error) {
+        toast.error('Failed to report user.')
+        return false
+      }
+
+      toast.success('User reported. Thanks for helping keep the community safe.')
+      return true
+    } catch (error) {
+      console.error('Failed to report user:', error)
+      toast.error('Failed to report user.')
+      return false
+    }
+  }, [currentUser])
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -244,6 +270,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       updateProfile,
       getUserById,
       getUserByUsername,
+      reportUser,
     }}>
       {children}
     </AuthContext.Provider>
