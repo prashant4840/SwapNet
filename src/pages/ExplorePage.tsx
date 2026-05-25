@@ -506,7 +506,7 @@ export function ExplorePage() {
                   </div>
 
                   <div className="space-y-2">
-                    {entry.match.reasons.slice(0, 3).map((reason) => (
+                    {(entry.match.reasons ?? []).slice(0, 3).map((reason) => (
                       <p
                         className="inline-flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300"
                         key={reason}

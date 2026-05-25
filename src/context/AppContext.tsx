@@ -7,7 +7,7 @@ import { PostProvider, usePosts } from './PostContext'
 import { ReviewProvider, useReviews } from './ReviewContext'
 import { ChatProvider, useChat } from './ChatContext'
 import { RequestProvider, useRequests } from './RequestContext'
-import type { UserProfile, Review, LookingForPost, ChatMessage, MessageThread, SwapRequest, ConnectionRequest, NotificationItem } from '@/types'
+import type { UserProfile, Review, LookingForPost, ChatMessage, MessageThread, SwapRequest, ConnectionRequest, NotificationItem, ChatMessageKind } from '@/types'
 
 interface AppContextValue {
   // Theme
@@ -51,7 +51,7 @@ interface AppContextValue {
   // Chat
   messages: ChatMessage[]
   messageThreads: MessageThread[]
-  sendChatMessage: (threadId: string, message: string) => Promise<void>
+  sendChatMessage: (threadId: string, message: string, messageType?: ChatMessageKind) => Promise<void>
   subscribeToThreadMessages: (threadId: string) => () => void
   getMessagesForThread: (threadId: string) => ChatMessage[]
   getMessagesForSwap: (swapId: string) => ChatMessage[]
@@ -238,8 +238,13 @@ export function useApp(): AppContextValue {
 
 export { useTheme, useAuth, useNotifications, useUserDiscovery, usePosts, useReviews, useChat, useRequests }
 
-export function useShareProfile() {
+export function useShareProfile(username?: string) {
   return {
-    shareProfile: () => {},
+    shareProfile: () => {
+      if (username) {
+        const url = `${window.location.origin}/profile/${username}`
+        navigator.clipboard.writeText(url)
+      }
+    },
   }
 }
