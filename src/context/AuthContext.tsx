@@ -2,8 +2,24 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 import type { User } from '@supabase/supabase-js'
 import toast from 'react-hot-toast'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
-import type { UserProfile, SignupPayload, ProfilePayload, AuthActionResult } from '@/types'
-import { deriveNameFromAuthUser, findUserProfileByAuthUser } from '@/utils/app'
+import type { UserProfile, SignupPayload, ProfilePayload } from '@/types'
+
+// Local type definition for auth results
+interface AuthActionResult {
+  success: boolean
+  message?: string
+  shouldNavigate?: boolean
+}
+
+// Helper functions
+function deriveNameFromAuthUser(user: User): string {
+  return user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+}
+
+function findUserProfileByAuthUser(users: UserProfile[], authUser: User): UserProfile | null {
+  const email = authUser.email?.toLowerCase()
+  return users.find((u) => u.email.toLowerCase() === email) ?? null
+}
 
 interface AuthContextValue {
   user: User | null
@@ -47,7 +63,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
     const initializeSession = async () => {
       try {
         setLoading(true)
-        const response = await supabase.auth.getSession()
+        const response = await supabase!.auth.getSession()
         if (!isActiveRef.current) return
 
         const authUser = response.data.session?.user ?? null

@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type PropsWithChildren,
@@ -906,19 +907,23 @@ export function AppProvider({ children }: PropsWithChildren) {
         threadId,
       )?.threadKey ?? threadId
 
+    // Load initial messages
     void loadChatMessages(resolvedThreadKey)
 
-    const channel = supabaseClient
-      .channel(`messages-thread-${resolvedThreadKey}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `thread_key=eq.${resolvedThreadKey}`,
-        },
-        (payload) => {
+    const channelName = `messages-thread-${resolvedThreadKey}`
+    const channel = supabaseClient.channel(channelName)
+
+    // Listen for new messages (INSERT events)
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `thread_key=eq.${resolvedThreadKey}`,
+      },
+      (payload) => {
+        try {
           const newMessage = mapChatRecord(payload.new as Record<string, unknown>)
 
           mutateState((current) => {
@@ -933,12 +938,49 @@ export function AppProvider({ children }: PropsWithChildren) {
               ),
             }
           })
-        },
-      )
-      .subscribe()
+        } catch (error) {
+          console.error('[Chat] Failed to process new message:', error)
+        }
+      },
+    )
+
+    // Listen for message updates (edited messages)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `thread_key=eq.${resolvedThreadKey}`,
+      },
+      (payload) => {
+        try {
+          const updatedMessage = mapChatRecord(payload.new as Record<string, unknown>)
+
+          mutateState((current) => {
+            return {
+              ...current,
+              messages: current.messages.map((msg) =>
+                msg.id === updatedMessage.id ? updatedMessage : msg,
+              ),
+            }
+          })
+        } catch (error) {
+          console.error('[Chat] Failed to process updated message:', error)
+        }
+      },
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log(`[Chat] ✓ Realtime connected: ${resolvedThreadKey}`)
+      } else if (status === 'CLOSED') {
+        console.log(`[Chat] ✗ Realtime disconnected: ${resolvedThreadKey}`)
+      }
+    })
 
     return () => {
       void supabaseClient.removeChannel(channel)
+      console.log(`[Chat] Unsubscribed from thread: ${resolvedThreadKey}`)
     }
   }, [loadChatMessages, mutateState])
 
@@ -1093,22 +1135,34 @@ export function AppProvider({ children }: PropsWithChildren) {
     ? state.notifications.filter((n) => n.userId === currentUser.id && !n.read).length
     : 0
 
-  const suggestedMatches = currentUser
-    ? state.users
-        .filter((u) => u.id !== currentUser.id)
-        .map((u) => ({ ...u, match: computeMatchResult(currentUser, u) }))
-        .filter((u) => u.match.score >= 55)
-        .sort((a, b) => b.match.score - a.match.score)
-        .slice(0, 6)
-    : []
+  const suggestedMatches = useMemo(
+    () =>
+      currentUser
+        ? state.users
+            .filter((u) => u.id !== currentUser.id)
+            .map((u) => ({ ...u, match: computeMatchResult(currentUser, u) }))
+            .filter((u) => u.match.score >= 55)
+            .sort((a, b) => b.match.score - a.match.score)
+            .slice(0, 6)
+        : [],
+    [currentUser, state.users],
+  )
 
-  const newTodayUsers = state.users
-    .filter((u) => formatShortDate(u.joinedAt) === formatShortDate(new Date().toISOString()))
-    .slice(0, 4)
+  const newTodayUsers = useMemo(
+    () =>
+      state.users
+        .filter((u) => formatShortDate(u.joinedAt) === formatShortDate(new Date().toISOString()))
+        .slice(0, 4),
+    [state.users],
+  )
 
-  const topRatedUsers = [...state.users]
-    .sort((a, b) => b.rating - a.rating || b.swapScore - a.swapScore)
-    .slice(0, 4)
+  const topRatedUsers = useMemo(
+    () =>
+      [...state.users]
+        .sort((a, b) => b.rating - a.rating || b.swapScore - a.swapScore)
+        .slice(0, 4),
+    [state.users],
+  )
 
   useEffect(() => {
     if (!currentUserId) return

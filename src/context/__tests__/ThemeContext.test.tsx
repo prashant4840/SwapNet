@@ -1,19 +1,23 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { ThemeProvider, useTheme } from '../ThemeContext'
 
 describe('ThemeContext', () => {
   beforeEach(() => {
     // Create a real Map for localStorage
     const store = new Map<string, string>()
-    global.localStorage = {
+    const mockLocalStorage = {
       getItem: (key: string) => store.get(key) || null,
       setItem: (key: string, value: string) => store.set(key, value),
       removeItem: (key: string) => store.delete(key),
       clear: () => store.clear(),
       length: 0,
       key: () => null,
-    } as Storage
+    }
+    Object.defineProperty(global, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+    })
   })
 
   it('should provide initial theme from localStorage', () => {

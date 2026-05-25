@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { NotificationProvider, useNotifications } from '../NotificationContext'
 import type { NotificationItem } from '@/types'
 
@@ -7,7 +7,7 @@ import type { NotificationItem } from '@/types'
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     channel: vi.fn(() => ({
-      on: vi.fn(function () {
+      on: vi.fn(function (this: any) {
         return this
       }),
       subscribe: vi.fn(),
@@ -57,24 +57,12 @@ describe('NotificationContext', () => {
   })
 
   it('should calculate unreadNotificationCount correctly', () => {
-    const notifications: NotificationItem[] = [
-      mockNotification,
-      { ...mockNotification, id: 'notif-2', read: true },
-      { ...mockNotification, id: 'notif-3', read: false },
-    ]
-
     const { result } = renderHook(() => useNotifications(), {
       wrapper: ({ children }) => (
         <NotificationProvider currentUserId="user-1">
           {children}
         </NotificationProvider>
       ),
-    })
-
-    // Simulate receiving notifications
-    act(() => {
-      // In real scenario, these would come from Supabase subscription
-      // For now we're just testing the calculation
     })
 
     // Test that hook is callable

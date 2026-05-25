@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeftRight,
@@ -280,16 +280,26 @@ export function LandingPage() {
     return () => window.removeEventListener('scroll', closeMenu)
   }, [isMobileMenuOpen])
 
-  const featuredUsers =
-    currentUser && suggestedMatches.length
-      ? suggestedMatches.slice(0, 3)
-      : topRatedUsers.map((user) => ({
-          ...user,
-          match: computeMatchResult(currentUser, user),
-        }))
+  const featuredUsers = useMemo(
+    () =>
+      currentUser && suggestedMatches.length
+        ? suggestedMatches.slice(0, 3)
+        : topRatedUsers.map((user) => ({
+            ...user,
+            match: computeMatchResult(currentUser, user),
+          })),
+    [currentUser, suggestedMatches, topRatedUsers],
+  )
 
-  const activeSwaps = state.swapRequests.filter((swap) => swap.status === 'Accepted').length
-  const completedSwaps = state.swapRequests.filter((swap) => swap.status === 'Completed').length
+  const activeSwaps = useMemo(
+    () => state.swapRequests.filter((swap) => swap.status === 'Accepted').length,
+    [state.swapRequests],
+  )
+
+  const completedSwaps = useMemo(
+    () => state.swapRequests.filter((swap) => swap.status === 'Completed').length,
+    [state.swapRequests],
+  )
 
   const animatedMembers = useCountUp(users.length, statsVisible)
   const animatedActiveSwaps = useCountUp(activeSwaps, statsVisible)
