@@ -12,7 +12,6 @@ import { skillCategories } from '@/data/skills'
 import type { AvailabilitySlot, LearningMode, SkillCategory, SkillEntry } from '@/types'
 import { createId, profileCompletion } from '@/utils/app'
 
-const availabilityOptions: AvailabilitySlot[] = ['Weekdays', 'Weekends', 'Evenings']
 const modeOptions: LearningMode[] = ['Online', 'In-person', 'Both']
 
 interface DraftSkill {
