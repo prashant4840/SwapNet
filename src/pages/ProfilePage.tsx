@@ -1,3 +1,5 @@
+import { useEndorsements } from '@/hooks/useEndorsements'
+import { BadgeCheck } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Flag, MapPin, Share2, UserRoundPen, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -60,6 +62,7 @@ export function ProfilePage() {
   const [isLoadingReviews, setIsLoadingReviews] = useState(false)
   const [reviewsWithAuthors, setReviewsWithAuthors] = useState<(Review & { reviewer: { name: string; photo: string } })[]>([])
   const user = getUserByUsername(username)
+  const { isVerified, getCount } = useEndorsements(user?.id)
   const posts = state.posts.filter((post) => post.userId === user?.id)
   const match = user && currentUser ? computeMatchResult(currentUser, user) : null
   const shareUrl = buildShareUrl(username)
@@ -241,9 +244,23 @@ export function ProfilePage() {
                     Skills offered
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {user.skillsOffered.map((skill) => (
-                      <SkillChip key={skill.id} skill={skill} />
-                    ))}
+
+
+                  {user.skillsOffered.map((skill) => (
+  <div key={skill.id} className="inline-flex items-center gap-1">
+    <SkillChip skill={skill} />
+
+    {isVerified(skill.name) ? (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+        title={`Verified by ${getCount(skill.name)} swap partner${getCount(skill.name) > 1 ? 's' : ''}`}
+      >
+        <BadgeCheck className="size-3" />
+        {getCount(skill.name)}
+      </span>
+    ) : null}
+  </div>
+))}
                   </div>
                 </div>
                 <div className="space-y-3">
