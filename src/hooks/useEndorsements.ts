@@ -8,34 +8,36 @@ export interface EndorsementCount {
 
 export function useEndorsements(userId: string | undefined) {
   const [endorsements, setEndorsements] = useState<EndorsementCount[]>([])
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!userId || !supabase) return
 
-    setLoading(true)
+    async function loadEndorsements() {
+      const client = supabase
 
-    supabase
-      .from('skill_endorsements')
-      .select('skill_name')
-      .eq('endorsed_user_id', userId)
-      .then(({ data, error }) => {
-        if (error || !data) {
-          setLoading(false)
-          return
-        }
+      if (!client) return
 
-        // Count endorsements per skill
-        const counts = data.reduce<Record<string, number>>((acc, row) => {
-          acc[row.skill_name] = (acc[row.skill_name] ?? 0) + 1
-          return acc
-        }, {})
+      const { data, error } = await client
+        .from('skill_endorsements')
+        .select('skill_name')
+        .eq('endorsed_user_id', userId)
 
-        setEndorsements(
-          Object.entries(counts).map(([skillName, count]) => ({ skillName, count })),
-        )
-        setLoading(false)
-      })
+      if (error || !data) {
+        return
+      }
+
+      // Count endorsements per skill
+      const counts = data.reduce<Record<string, number>>((acc, row) => {
+        acc[row.skill_name] = (acc[row.skill_name] ?? 0) + 1
+        return acc
+      }, {})
+
+      setEndorsements(
+        Object.entries(counts).map(([skillName, count]) => ({ skillName, count })),
+      )
+    }
+
+    loadEndorsements()
   }, [userId])
 
   function getCount(skillName: string) {
@@ -46,5 +48,6 @@ export function useEndorsements(userId: string | undefined) {
     return getCount(skillName) >= 1
   }
 
-  return { endorsements, loading, getCount, isVerified }
+  return { endorsements, getCount, isVerified }
 }
+
