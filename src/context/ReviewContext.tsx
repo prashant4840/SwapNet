@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
-import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import type { Review } from '@/types'
 import { createId } from '@/utils/app'
 
