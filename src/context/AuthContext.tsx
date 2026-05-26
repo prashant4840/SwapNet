@@ -79,7 +79,8 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
   const isActiveRef = useRef(true)
 
   // Initialize auth session on mount
-  useEffect(() => {
+useEffect(() => {
+  isActiveRef.current = true
     if (!isSupabaseConfigured || !supabase) {
       setLoading(false)
       return
@@ -132,7 +133,6 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
     })
 
     return () => {
-      isActiveRef.current = false
       subscription?.unsubscribe()
     }
   }, [allUsers, onUserUpdate])
