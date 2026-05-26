@@ -453,3 +453,7 @@ using (
   bucket_id = 'profile-photos'
   and auth.uid()::text = (storage.foldername(name))[1]
 );
+
+alter table public.abuse_reports 
+add column if not exists status text not null default 'pending'
+check (status in ('pending', 'dismissed', 'banned'));
