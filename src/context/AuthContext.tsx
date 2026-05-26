@@ -120,7 +120,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
         email,
         password: payload.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: window.location.origin,
           data: { city: payload.city.trim(), full_name: name, name },
         },
       })
@@ -174,7 +174,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
     try {
       const response = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/dashboard` },
+        options: { redirectTo: window.location.origin },
       })
 
       if (response.error) return { success: false, message: response.error.message }
