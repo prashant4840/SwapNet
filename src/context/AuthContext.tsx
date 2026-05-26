@@ -262,7 +262,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       user,
       currentUser,
       currentUserId: currentUser?.id ?? null,
-      isAuthenticated: !!currentUser,
+      isAuthenticated: !!user,
       loading,
       signUp,
       login,
