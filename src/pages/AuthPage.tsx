@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, LockKeyhole, Mail, Sparkles, Loader2 } from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  Users,
+  Zap,
+} from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
@@ -44,45 +52,77 @@ export function AuthPage() {
   return (
     <PageTransition>
       <main className="page-shell grid min-h-[calc(100vh-3rem)] gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/30 bg-hero-gradient p-8 shadow-glow dark:bg-hero-gradient-dark sm:p-10">
-          <Badge tone="brand">Auth + onboarding</Badge>
-          <h1 className="mt-6 max-w-xl text-4xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl">
-            Build a profile that makes skill swapping feel obvious.
-          </h1>
-          <p className="mt-4 max-w-xl text-base leading-8 text-slate-600 dark:text-slate-300">
-            Start with email or continue with Google when Supabase is configured. Supabase handles
-            session persistence so refreshes, redirects, and protected routes stay in sync.
-          </p>
+        <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/60 bg-white/70 p-8 shadow-soft backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/60 sm:p-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_36%)]" />
 
-          <div className="mt-8 grid gap-4">
-            {[
-              'Email and Google authentication run through the connected Supabase project',
-              'Protected routes unlock automatically after a valid session is restored',
-              'Google sign-in activates only when VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are valid',
-            ].map((point) => (
-              <div
-                className="flex items-center gap-3 rounded-3xl border border-white/40 bg-white/70 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/70"
-                key={point}
-              >
-                <div className="rounded-2xl bg-brand-100 p-2 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
-                  <Sparkles className="size-4" />
-                </div>
-                <p className="text-sm text-slate-700 dark:text-slate-200">{point}</p>
+          <div className="relative z-10 flex h-full flex-col justify-between">
+            <div>
+              <Badge tone="brand">Skill Exchange Platform</Badge>
+
+              <h1 className="mt-6 max-w-2xl text-4xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl sm:leading-[1.05]">
+                Learn faster by trading skills with ambitious people.
+              </h1>
+
+              <p className="mt-5 max-w-xl text-base leading-8 text-slate-600 dark:text-slate-300">
+                Teach what you know. Learn what you don’t. Connect with developers,
+                designers, creators, and students building real-world skills together.
+              </p>
+
+              <div className="mt-10 space-y-4">
+                {[
+                  {
+                    icon: Users,
+                    title: 'Skill-based matching',
+                    text: 'Discover people whose learning goals align with your expertise.',
+                  },
+                  {
+                    icon: Zap,
+                    title: 'Fast collaboration',
+                    text: 'Start real conversations and skill swaps without friction.',
+                  },
+                  {
+                    icon: CheckCircle2,
+                    title: 'Verified community',
+                    text: 'Build credibility through profiles, ratings, and completed swaps.',
+                  },
+                ].map((item) => {
+                  const Icon = item.icon
+
+                  return (
+                    <div
+                      className="flex items-start gap-4 rounded-2xl border border-slate-200/70 bg-white/70 px-5 py-4 backdrop-blur-sm transition-all dark:border-slate-800 dark:bg-slate-900/60"
+                      key={item.title}
+                    >
+                      <div className="rounded-xl border border-brand-200/50 bg-brand-50 p-2.5 text-brand-700 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-brand-300">
+                        <Icon className="size-5" />
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                          {item.title}
+                        </h3>
+                        <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                          {item.text}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
+            </div>
 
-          <div className="mt-8 rounded-[2rem] bg-slate-950 px-5 py-5 text-slate-50 shadow-soft">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-              Environment
-            </p>
-            <div className="mt-4 space-y-2 text-sm">
-              <p>
-                <code>VITE_SUPABASE_URL</code>
-              </p>
-              <p>
-                <code>VITE_SUPABASE_ANON_KEY</code>
-              </p>
+            <div className="mt-10 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+              <div className="rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/70">
+                1,200+ active learners
+              </div>
+
+              <div className="rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/70">
+                40+ skill categories
+              </div>
+
+              <div className="rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/70">
+                Real peer-to-peer learning
+              </div>
             </div>
           </div>
         </section>
