@@ -1,8 +1,8 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, useRef, useEffect, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage, ChatMessageKind, MessageThread, SwapRequest, ConnectionRequest } from '@/types'
-import { buildSwapThreadKey, buildConnectionThreadKey, parseThreadKey, createId } from '@/utils/app'
 import { mapChatRecord, dbFetchChatMessages, dbInsertChatMessage, resolveThreadContext } from './chatUtils'
 
 interface ChatContextValue {
@@ -68,7 +68,6 @@ export function ChatProvider({
     const resolvedThreadKey =
       resolveThreadContext(
         stateRef.current,
-        currentUserId,
         threadId,
       )?.threadKey ?? threadId
 
@@ -143,7 +142,7 @@ export function ChatProvider({
   ) => {
     if (!currentUserId || !messageText.trim() || !supabase) return
 
-    const threadContext = resolveThreadContext(stateRef.current, currentUserId, threadId)
+    const threadContext = resolveThreadContext(stateRef.current, threadId)
     if (!threadContext) return
 
     const partner = stateRef.current.users.find((u) => u.id === threadContext.partnerId) ?? null
@@ -169,12 +168,12 @@ export function ChatProvider({
 
   const getMessagesForThread = useCallback(
     (threadId: string) => {
-      const threadContext = resolveThreadContext(stateRef.current, currentUserId ?? '', threadId)
+      const threadContext = resolveThreadContext(stateRef.current, threadId)
       if (!threadContext) return []
 
       return messages.filter((msg) => msg.threadId === threadContext.threadKey)
     },
-    [messages, currentUserId]
+    [messages]
   )
 
   const getMessagesForSwap = useCallback(

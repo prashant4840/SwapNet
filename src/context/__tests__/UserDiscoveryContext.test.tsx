@@ -21,7 +21,7 @@ const mockUsers: UserProfile[] = [
     swapScore: 95,
     joinedAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
-    availability: [] as any,
+    availability: [],
   },
   {
     id: 'user-2',
@@ -40,7 +40,7 @@ const mockUsers: UserProfile[] = [
     swapScore: 80,
     joinedAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
-    availability: [] as any,
+    availability: [],
   },
   {
     id: 'user-3',
@@ -59,7 +59,7 @@ const mockUsers: UserProfile[] = [
     swapScore: 70,
     joinedAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
     lastActiveAt: new Date().toISOString(),
-    availability: [] as any,
+    availability: [],
   },
 ]
 

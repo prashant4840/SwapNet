@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, type PropsWithChildren } from 'react'
 import { ThemeProvider, useTheme } from './ThemeContext'
 import { AuthProvider, useAuth } from './AuthContext'
@@ -7,21 +8,7 @@ import { PostProvider, usePosts } from './PostContext'
 import { ReviewProvider, useReviews } from './ReviewContext'
 import { ChatProvider, useChat } from './ChatContext'
 import { RequestProvider, useRequests } from './RequestContext'
-import type { UserProfile, Review, LookingForPost, ChatMessage, MessageThread, SwapRequest, ConnectionRequest, NotificationItem, ChatMessageKind } from '@/types'
-
-interface AuthPayload {
-  email: string
-  password: string
-}
-
-interface SwapRequestPayload {
-  recipientId: string
-  swapDetails: Record<string, unknown>
-}
-
-interface ConnectionRequestPayload {
-  recipientId: string
-}
+import type { UserProfile, Review, LookingForPost, ChatMessage, MessageThread, SwapRequest, ConnectionRequest, NotificationItem, ChatMessageKind, AuthActionResult, SignupPayload, ProfilePayload, SwapRequestPayload, ConnectionRequestPayload } from '@/types'
 
 interface AppContextValue {
   // Theme
@@ -32,11 +19,11 @@ interface AppContextValue {
   isAuthenticated: boolean
   currentUser: UserProfile | null
   loading: boolean
-  signUp: (payload: AuthPayload) => Promise<UserProfile>
-  login: (payload: AuthPayload) => Promise<UserProfile>
-  loginWithGoogle: () => Promise<UserProfile>
+  signUp: (payload: SignupPayload) => Promise<AuthActionResult>
+  login: (payload: { email: string; password: string }) => Promise<AuthActionResult>
+  loginWithGoogle: () => Promise<AuthActionResult>
   logout: () => Promise<void>
-  updateProfile: (payload: Partial<UserProfile>) => Promise<void>
+  updateProfile: (payload: ProfilePayload) => Promise<void>
   getUserById: (userId: string) => UserProfile | null
   getUserByUsername: (username: string) => UserProfile | null
   reportUser: (userId: string) => Promise<boolean>
@@ -117,12 +104,11 @@ export function AppProvider({
   initialMessages = [],
   initialSwapRequests = [],
   initialConnectionRequests = [],
-  initialNotifications = [],
 }: AppProviderProps) {
   return (
     <AuthProvider allUsers={initialUsers}>
       <ThemeProvider>
-        <NotificationProvider currentUserId="" initialNotifications={initialNotifications}>
+        <NotificationProvider currentUserId="">
           <UserDiscoveryProvider users={initialUsers}>
             <PostProvider posts={initialPosts}>
               <ReviewProvider reviews={initialReviews}>

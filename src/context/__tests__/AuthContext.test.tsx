@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { AuthProvider, useAuth } from '../AuthContext'
-import type { UserProfile, SignupPayload } from '@/types'
+import type { UserProfile, SignupPayload, AuthActionResult } from '@/types'
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
@@ -101,7 +101,7 @@ describe('AuthContext', () => {
         city: 'San Francisco',
       }
 
-      let signupResult: any
+      let signupResult: AuthActionResult | undefined
       await act(async () => {
         signupResult = await result.current.signUp(payload)
       })
@@ -128,7 +128,7 @@ describe('AuthContext', () => {
         ),
       })
 
-      let oauthResult
+      let oauthResult: AuthActionResult | undefined
       await act(async () => {
         oauthResult = await result.current.loginWithGoogle()
       })

@@ -116,6 +116,14 @@ export interface MessageThread {
   unreadCount: number
 }
 
+export interface ThreadContext {
+  threadKey: string
+  swapRequestId?: string
+  connectionRequestId?: string
+  partnerId: string
+  participantIds: [string, string]
+}
+
 export interface Review {
   id: string
   reviewerId: string
@@ -204,6 +212,12 @@ export interface SignupPayload {
 export interface LoginPayload {
   email: string
   password: string
+}
+
+export interface AuthActionResult {
+  success: boolean
+  message?: string
+  shouldNavigate?: boolean
 }
 
 export interface ProfilePayload {

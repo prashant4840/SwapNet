@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useMemo, type PropsWithChildren } from 'react'
 import type { UserProfile, MatchResult } from '@/types'
 import { computeMatchResult, formatShortDate } from '@/utils/app'

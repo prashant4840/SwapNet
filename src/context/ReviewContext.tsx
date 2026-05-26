@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'

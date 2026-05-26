@@ -42,6 +42,7 @@ export function AdminPage() {
     }
 
     loadReports()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, state.users])
 
   async function loadReports() {
@@ -100,7 +101,7 @@ export function AdminPage() {
 
       toast.success('Report dismissed')
       setReportedUsers((prev) => prev.filter((r) => r.userId !== userId))
-    } catch (_err) {
+    } catch {
       toast.error('Failed to dismiss report')
     } finally {
       setActionInProgress(null)

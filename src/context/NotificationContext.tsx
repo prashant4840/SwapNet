@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type PropsWithChildren } from 'react'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { NotificationItem } from '@/types'

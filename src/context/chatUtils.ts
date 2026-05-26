@@ -55,7 +55,6 @@ export async function dbInsertChatMessage(input: {
 
 export function resolveThreadContext(
   state: { swapRequests: SwapRequest[]; connectionRequests: ConnectionRequest[]; currentUserId?: string | null; users: Array<{ id: string }> },
-  currentUserId: string,
   threadId: string,
 ) {
   const parsedThread = parseThreadKey(threadId)
@@ -65,8 +64,8 @@ export function resolveThreadContext(
     if (swap) {
       return {
         threadKey: buildSwapThreadKey(swap.id),
-        swapRequestId: swap.id,
-        participantIds: [swap.senderId, swap.recipientId],
+        swapId: swap.id,
+        partnerId: swap.receiverId,
       }
     }
   } else if (parsedThread?.kind === 'connection') {
@@ -75,7 +74,7 @@ export function resolveThreadContext(
       return {
         threadKey: buildConnectionThreadKey(connection.id),
         connectionRequestId: connection.id,
-        participantIds: [connection.senderId, connection.recipientId],
+        partnerId: connection.receiverId,
       }
     }
   }

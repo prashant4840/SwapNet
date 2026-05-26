@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { NotificationProvider, useNotifications } from '../NotificationContext'
-import type { NotificationItem } from '@/types'
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     channel: vi.fn(() => ({
-      on: vi.fn(function (this: any) {
+      on: vi.fn(function (this: unknown) {
         return this
       }),
       subscribe: vi.fn(),
@@ -23,17 +22,6 @@ vi.mock('@/lib/supabase', () => ({
   },
   isSupabaseConfigured: true,
 }))
-
-const mockNotification: NotificationItem = {
-  id: 'notif-1',
-  userId: 'user-1',
-  type: 'match',
-  title: 'New Match',
-  description: 'You matched with Alice',
-  link: '/profile/alice',
-  createdAt: new Date().toISOString(),
-  read: false,
-}
 
 describe('NotificationContext', () => {
   beforeEach(() => {

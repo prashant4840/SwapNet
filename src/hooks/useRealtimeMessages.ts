@@ -123,12 +123,83 @@ export function useRealtimeMessages({
 
   // Auto-subscribe when hook mounts
   useEffect(() => {
-    subscribe()
+    if (!enabled || !isSupabaseConfigured || !supabase || !threadKey) {
+      return
+    }
+
+    // Prevent duplicate subscriptions
+    if (isSubscribedRef.current) {
+      return
+    }
+
+    try {
+      const channelName = `messages-${threadKey}`
+      const channel = supabase.channel(channelName)
+
+      // Listen for new messages (INSERT events)
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `thread_key=eq.${threadKey}`,
+        },
+        (payload) => {
+          try {
+            const newMessage = payload.new as Record<string, unknown>
+            if (newMessage && newMessage.id) {
+              onNewMessage(mapChatRecord(newMessage))
+            }
+          } catch (error) {
+            console.error('[Realtime] Error processing new message:', error)
+            onError?.(error instanceof Error ? error : new Error('Failed to process message'))
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `thread_key=eq.${threadKey}`,
+        },
+        (payload) => {
+          try {
+            const updatedMessage = payload.new as Record<string, unknown>
+            if (updatedMessage && updatedMessage.id) {
+              onNewMessage(mapChatRecord(updatedMessage))
+            }
+          } catch (error) {
+            console.error('[Realtime] Error processing updated message:', error)
+          }
+        },
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`[Realtime] Connected to thread: ${threadKey}`)
+          isSubscribedRef.current = true
+          setIsSubscribed(true)
+        } else if (status === 'CLOSED') {
+          console.log(`[Realtime] Disconnected from thread: ${threadKey}`)
+          isSubscribedRef.current = false
+          setIsSubscribed(false)
+        }
+      })
+
+      channelRef.current = channel
+      subscriptionRef.current = channel
+    } catch (error) {
+      console.error('[Realtime] Failed to setup subscription:', error)
+      onError?.(error instanceof Error ? error : new Error('Failed to setup subscription'))
+      isSubscribedRef.current = false
+    }
 
     return () => {
       unsubscribe()
     }
-  }, [subscribe, unsubscribe])
+  }, [threadKey, enabled, onNewMessage, onError, unsubscribe])
 
   return {
     subscribe,
