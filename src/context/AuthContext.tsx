@@ -22,6 +22,29 @@ function findUserProfileByAuthUser(users: UserProfile[], authUser: User): UserPr
   return users.find((u) => u.email.toLowerCase() === email) ?? null
 }
 
+function createFallbackProfile(authUser: User): UserProfile {
+  const email = authUser.email?.toLowerCase() ?? ''
+  const derivedName = deriveNameFromAuthUser(authUser)
+
+  return {
+    id: authUser.id,
+    email,
+    name: derivedName,
+    username: email.split('@')[0] || `user_${authUser.id.slice(0, 6)}`,
+    city: authUser.user_metadata?.city || '',
+    bio: '',
+    avatar: authUser.user_metadata?.avatar_url || '',
+    skillsOffered: [],
+    skillsWanted: [],
+    availability: 'Flexible',
+    rating: 0,
+    reviewCount: 0,
+    completedSwaps: 0,
+    createdAt: new Date().toISOString(),
+    lastActiveAt: new Date().toISOString(),
+  }
+}
+
 interface AuthContextValue {
   user: User | null
   currentUser: UserProfile | null
@@ -71,8 +94,11 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
         const authUser = response.data.session?.user ?? null
         setUser(authUser)
 
-        if (authUser && allUsers.length > 0) {
-          const profile = findUserProfileByAuthUser(allUsers, authUser)
+        if (authUser) {
+          const profile =
+            findUserProfileByAuthUser(allUsers, authUser) ||
+            createFallbackProfile(authUser)
+
           setCurrentUser(profile)
           onUserUpdate?.(profile)
         }
@@ -92,8 +118,11 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       const authUser = session?.user ?? null
       setUser(authUser)
 
-      if (authUser && allUsers.length > 0) {
-        const profile = findUserProfileByAuthUser(allUsers, authUser)
+      if (authUser) {
+        const profile =
+          findUserProfileByAuthUser(allUsers, authUser) ||
+          createFallbackProfile(authUser)
+
         setCurrentUser(profile)
         onUserUpdate?.(profile)
       } else {
