@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
-import type { Review } from '@/types'
+import type { Review, SwapRequest } from '@/types'
 import { createId } from '@/utils/app'
 
 interface ReviewContextValue {
@@ -16,7 +16,7 @@ interface ReviewProviderProps extends PropsWithChildren {
   reviews?: Review[]
   currentUserId?: string | null
   onReviewsUpdate?: (reviews: Review[]) => void
-  swapRequests?: any[]
+  swapRequests?: SwapRequest[]
 }
 
 export function ReviewProvider({

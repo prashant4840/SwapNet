@@ -9,6 +9,20 @@ import { ChatProvider, useChat } from './ChatContext'
 import { RequestProvider, useRequests } from './RequestContext'
 import type { UserProfile, Review, LookingForPost, ChatMessage, MessageThread, SwapRequest, ConnectionRequest, NotificationItem, ChatMessageKind } from '@/types'
 
+interface AuthPayload {
+  email: string
+  password: string
+}
+
+interface SwapRequestPayload {
+  recipientId: string
+  swapDetails: Record<string, unknown>
+}
+
+interface ConnectionRequestPayload {
+  recipientId: string
+}
+
 interface AppContextValue {
   // Theme
   theme: 'light' | 'dark'
@@ -18,11 +32,11 @@ interface AppContextValue {
   isAuthenticated: boolean
   currentUser: UserProfile | null
   loading: boolean
-  signUp: (payload: any) => Promise<any>
-  login: (payload: any) => Promise<any>
-  loginWithGoogle: () => Promise<any>
+  signUp: (payload: AuthPayload) => Promise<UserProfile>
+  login: (payload: AuthPayload) => Promise<UserProfile>
+  loginWithGoogle: () => Promise<UserProfile>
   logout: () => Promise<void>
-  updateProfile: (payload: any) => Promise<void>
+  updateProfile: (payload: Partial<UserProfile>) => Promise<void>
   getUserById: (userId: string) => UserProfile | null
   getUserByUsername: (username: string) => UserProfile | null
   reportUser: (userId: string) => Promise<boolean>
@@ -61,8 +75,8 @@ interface AppContextValue {
   swapRequests: SwapRequest[]
   connectionRequests: ConnectionRequest[]
   getSwapById: (swapId: string) => SwapRequest | null
-  sendSwapRequest: (payload: any) => Promise<boolean>
-  sendConnectionRequest: (payload: any) => Promise<boolean>
+  sendSwapRequest: (payload: SwapRequestPayload) => Promise<boolean>
+  sendConnectionRequest: (payload: ConnectionRequestPayload) => Promise<boolean>
   respondToSwapRequest: (requestId: string, status: 'Accepted' | 'Declined') => Promise<boolean>
   respondToConnectionRequest: (requestId: string, status: 'Accepted' | 'Declined') => Promise<boolean>
   completeSwap: (requestId: string) => Promise<void>
@@ -82,7 +96,7 @@ interface AppContextValue {
   }
 }
 
-const AppContext = createContext<AppContextValue | null>(null)
+const AppContext = createContext<AppContextValue | undefined>(undefined)
 
 interface AppProviderProps extends PropsWithChildren {
   // Allow optional initial data for testing/SSR
@@ -103,11 +117,12 @@ export function AppProvider({
   initialMessages = [],
   initialSwapRequests = [],
   initialConnectionRequests = [],
+  initialNotifications = [],
 }: AppProviderProps) {
   return (
     <AuthProvider allUsers={initialUsers}>
       <ThemeProvider>
-        <NotificationProvider currentUserId="">
+        <NotificationProvider currentUserId="" initialNotifications={initialNotifications}>
           <UserDiscoveryProvider users={initialUsers}>
             <PostProvider posts={initialPosts}>
               <ReviewProvider reviews={initialReviews}>
@@ -122,9 +137,9 @@ export function AppProvider({
                     connectionRequests={initialConnectionRequests}
                     users={initialUsers}
                   >
-                    <AppContextValue>
+                    <AppContextProvider>
                       {children}
-                    </AppContextValue>
+                    </AppContextProvider>
                   </RequestProvider>
                 </ChatProvider>
               </ReviewProvider>
@@ -136,7 +151,7 @@ export function AppProvider({
   )
 }
 
-function AppContextValue({ children }: PropsWithChildren) {
+function AppContextProvider({ children }: PropsWithChildren) {
   const theme = useTheme()
   const auth = useAuth()
   const notifications = useNotifications()
@@ -235,8 +250,6 @@ export function useApp(): AppContextValue {
   }
   return context
 }
-
-export { useTheme, useAuth, useNotifications, useUserDiscovery, usePosts, useReviews, useChat, useRequests }
 
 export function useShareProfile(username?: string) {
   return {

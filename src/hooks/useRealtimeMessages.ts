@@ -1,7 +1,7 @@
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useRef, useEffect, useState } from 'react'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
-import type { ChatMessage } from '@/types'
+import type { ChatMessage, ChatMessageKind } from '@/types'
 import { buildSwapThreadKey, buildConnectionThreadKey } from '@/utils/app'
 
 interface UseRealtimeMessagesOptions {
@@ -24,6 +24,7 @@ export function useRealtimeMessages({
   const channelRef = useRef<RealtimeChannel | null>(null)
   const subscriptionRef = useRef<RealtimeChannel | null>(null)
   const isSubscribedRef = useRef(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
 
   // Subscribe to realtime message updates
   const subscribe = useCallback(() => {
@@ -90,9 +91,11 @@ export function useRealtimeMessages({
         if (status === 'SUBSCRIBED') {
           console.log(`[Realtime] Connected to thread: ${threadKey}`)
           isSubscribedRef.current = true
+          setIsSubscribed(true)
         } else if (status === 'CLOSED') {
           console.log(`[Realtime] Disconnected from thread: ${threadKey}`)
           isSubscribedRef.current = false
+          setIsSubscribed(false)
         }
       })
 
@@ -102,6 +105,7 @@ export function useRealtimeMessages({
       console.error('[Realtime] Failed to setup subscription:', error)
       onError?.(error instanceof Error ? error : new Error('Failed to setup subscription'))
       isSubscribedRef.current = false
+      setIsSubscribed(false)
     }
   }, [threadKey, enabled, onNewMessage, onError])
 
@@ -112,6 +116,7 @@ export function useRealtimeMessages({
       channelRef.current = null
       subscriptionRef.current = null
       isSubscribedRef.current = false
+      setIsSubscribed(false)
       console.log(`[Realtime] Unsubscribed from thread: ${threadKey}`)
     }
   }, [threadKey])
@@ -128,7 +133,7 @@ export function useRealtimeMessages({
   return {
     subscribe,
     unsubscribe,
-    isSubscribed: isSubscribedRef.current,
+    isSubscribed,
   }
 }
 
@@ -156,8 +161,8 @@ function mapChatRecord(record: Record<string, unknown>): ChatMessage {
     message: record.message as string,
     timestamp: record.created_at as string,
     message_type:
-      (record.message_type as any) ??
-      (record.type as any) ??
+      (record.message_type as ChatMessageKind) ??
+      (record.type as ChatMessageKind) ??
       'text',
   }
 }

@@ -23,7 +23,7 @@ if (typeof global !== 'undefined' && !global.localStorage) {
     length: 0,
     key: vi.fn(),
   }
-  global.localStorage = localStorageMock as any
+  global.localStorage = localStorageMock as unknown as Storage
 }
 
 // Mock window.matchMedia

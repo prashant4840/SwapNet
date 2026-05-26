@@ -81,12 +81,12 @@ describe('AuthContext', () => {
       vi.mocked(supabasseMock.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       vi.mocked(supabasseMock.auth.signUp).mockResolvedValueOnce({
         data: { user: null, session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -115,12 +115,12 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -142,12 +142,12 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       vi.mocked(supabase.auth.signOut).mockResolvedValueOnce({
         data: {},
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -170,7 +170,7 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -190,7 +190,7 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -210,7 +210,7 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -229,7 +229,7 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -250,7 +250,7 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -272,7 +272,7 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -293,7 +293,7 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (
@@ -316,12 +316,12 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: { session: null },
         error: null,
-      } as any)
+      } as unknown as const)
 
       vi.mocked(supabase.auth.signUp).mockResolvedValueOnce({
         data: { user: null, session: null },
         error: { message: 'Email already exists' },
-      } as any)
+      } as unknown as const)
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: ({ children }) => (

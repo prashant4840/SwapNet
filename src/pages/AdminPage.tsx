@@ -42,7 +42,7 @@ export function AdminPage() {
     }
 
     loadReports()
-  }, [isAdmin])
+  }, [isAdmin, state.users])
 
   async function loadReports() {
     try {
@@ -100,7 +100,7 @@ export function AdminPage() {
 
       toast.success('Report dismissed')
       setReportedUsers((prev) => prev.filter((r) => r.userId !== userId))
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to dismiss report')
     } finally {
       setActionInProgress(null)

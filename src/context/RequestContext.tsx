@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
-import type { SwapRequest, ConnectionRequest, SwapRequestPayload, ConnectionRequestPayload } from '@/types'
+import type { SwapRequest, ConnectionRequest, SwapRequestPayload, ConnectionRequestPayload, UserProfile } from '@/types'
 import { createId } from '@/utils/app'
 
 interface RequestContextValue {
@@ -21,8 +21,8 @@ interface RequestProviderProps extends PropsWithChildren {
   swapRequests?: SwapRequest[]
   connectionRequests?: ConnectionRequest[]
   currentUserId?: string | null
-  currentUser?: any
-  users?: any[]
+  currentUser?: UserProfile | null
+  users?: UserProfile[]
 }
 
 export function RequestProvider({
@@ -124,10 +124,10 @@ export function RequestProvider({
       // Send email notification (async, fire-and-forget)
       if (receiver.email) {
         const offeredSkill = currentUser.skillsOffered.find(
-          (s: any) => s.id === payload.offeredSkillId
+          (s: { id: string; name: string }) => s.id === payload.offeredSkillId
         )
         const wantedSkill = currentUser.skillsWanted.find(
-          (s: any) => s.id === payload.wantedSkillId
+          (s: { id: string; name: string }) => s.id === payload.wantedSkillId
         )
         void supabase.functions.invoke('notify-swap-request', {
           body: {
@@ -315,7 +315,7 @@ export function RequestProvider({
       setSwapRequests((current) =>
         current.map((s) =>
           s.id === requestId
-            ? { ...s, status: newStatus as any, completedBy, updatedAt: new Date().toISOString() }
+            ? { ...s, status: newStatus as 'Accepted' | 'Declined' | 'Completed', completedBy, updatedAt: new Date().toISOString() }
             : s,
         ),
       )

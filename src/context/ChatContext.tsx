@@ -1,114 +1,9 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
-import type { ChatMessage, ChatMessageKind, MessageThread } from '@/types'
+import type { ChatMessage, ChatMessageKind, MessageThread, SwapRequest, ConnectionRequest } from '@/types'
 import { buildSwapThreadKey, buildConnectionThreadKey, parseThreadKey, createId } from '@/utils/app'
-
-// Helper functions extracted from AppContext
-function mapChatRecord(record: Record<string, unknown>): ChatMessage {
-  return {
-    id: record.id as string,
-    threadId: record.thread_key as string,
-    swapRequestId: (record.swap_id as string | null) ?? undefined,
-    connectionRequestId: (record.connection_request_id as string | null) ?? undefined,
-    senderId: record.sender_id as string,
-    message: record.content as string,
-    timestamp: record.created_at as string,
-    type: (record.kind as ChatMessageKind) ?? 'text',
-  }
-}
-
-async function dbFetchChatMessages(threadId: string): Promise<ChatMessage[]> {
-  if (!supabase) return []
-  const { data } = await supabase.from('messages').select('*').eq('thread_key', threadId)
-  if (!data) return []
-  return data.map((message) => mapChatRecord(message as Record<string, unknown>))
-}
-
-async function dbInsertChatMessage(input: {
-  threadKey: string
-  swapId?: string
-  connectionRequestId?: string
-  senderId: string
-  content: string
-  kind: ChatMessageKind
-}): Promise<ChatMessage> {
-  if (!supabase) throw new Error('Supabase not configured')
-
-  const { data, error } = await supabase
-    .from('messages')
-    .insert({
-      id: createId('message'),
-      thread_key: input.threadKey,
-      swap_id: input.swapId ?? null,
-      connection_request_id: input.connectionRequestId ?? null,
-      sender_id: input.senderId,
-      content: input.content.trim(),
-      kind: input.kind,
-    })
-    .select()
-    .single()
-
-  if (error || !data) {
-    throw new Error('Failed to insert chat message')
-  }
-
-  return mapChatRecord(data as Record<string, unknown>)
-}
-
-function resolveThreadContext(
-  state: { swapRequests: any[]; connectionRequests: any[]; currentUserId?: string | null; users: any[] },
-  currentUserId: string,
-  threadId: string,
-) {
-  const parsedThread = parseThreadKey(threadId)
-
-  if (parsedThread?.kind === 'swap') {
-    const swap = state.swapRequests.find((item) => item.id === parsedThread.sourceId)
-    if (swap) {
-      return {
-        threadKey: buildSwapThreadKey(swap.id),
-        partnerId: swap.senderId === currentUserId ? swap.receiverId : swap.senderId,
-        swapId: swap.id,
-        connectionRequestId: undefined,
-      }
-    }
-  }
-
-  if (parsedThread?.kind === 'connection') {
-    const connection = state.connectionRequests.find((item) => item.id === parsedThread.sourceId)
-    if (connection) {
-      return {
-        threadKey: buildConnectionThreadKey(connection.id),
-        partnerId: connection.senderId === currentUserId ? connection.receiverId : connection.senderId,
-        swapId: undefined,
-        connectionRequestId: connection.id,
-      }
-    }
-  }
-
-  const swap = state.swapRequests.find((item) => item.id === threadId)
-  if (swap) {
-    return {
-      threadKey: buildSwapThreadKey(swap.id),
-      partnerId: swap.senderId === currentUserId ? swap.receiverId : swap.senderId,
-      swapId: swap.id,
-      connectionRequestId: undefined,
-    }
-  }
-
-  const connection = state.connectionRequests.find((item) => item.id === threadId)
-  if (connection) {
-    return {
-      threadKey: buildConnectionThreadKey(connection.id),
-      partnerId: connection.senderId === currentUserId ? connection.receiverId : connection.senderId,
-      swapId: undefined,
-      connectionRequestId: connection.id,
-    }
-  }
-
-  return null
-}
+import { mapChatRecord, dbFetchChatMessages, dbInsertChatMessage, resolveThreadContext } from './chatUtils'
 
 interface ChatContextValue {
   messages: ChatMessage[]
@@ -125,9 +20,9 @@ interface ChatProviderProps extends PropsWithChildren {
   messages?: ChatMessage[]
   messageThreads?: MessageThread[]
   currentUserId?: string | null
-  swapRequests?: any[]
-  connectionRequests?: any[]
-  users?: any[]
+  swapRequests?: SwapRequest[]
+  connectionRequests?: ConnectionRequest[]
+  users?: Array<{ id: string }>
 }
 
 export function ChatProvider({
