@@ -31,16 +31,23 @@ function createFallbackProfile(authUser: User): UserProfile {
     email,
     name: derivedName,
     username: email.split('@')[0] || `user_${authUser.id.slice(0, 6)}`,
-    city: authUser.user_metadata?.city || '',
-    bio: '',
-    avatar: authUser.user_metadata?.avatar_url || '',
+    city: authUser.user_metadata?.city || 'Remote',
+    bio: 'Tell the community what you love teaching and what you want to learn next.',
+    headline: 'New member ready to trade skills',
+    photo: authUser.user_metadata?.avatar_url || `https://api.dicebear.com/9.x/shapes/svg?seed=${authUser.id}`,
     skillsOffered: [],
     skillsWanted: [],
-    availability: 'Flexible',
+    availability: [],
+    mode: 'Online',
     rating: 0,
     reviewCount: 0,
     completedSwaps: 0,
-    createdAt: new Date().toISOString(),
+    swapScore: 0,
+    taughtCount: 0,
+    learnedCount: 0,
+    badges: [],
+    reports: 0,
+    joinedAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
   }
 }
@@ -79,11 +86,36 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
   const isActiveRef = useRef(true)
 
   // Initialize auth session on mount
-useEffect(() => {
-  isActiveRef.current = true
+  useEffect(() => {
+    isActiveRef.current = true
     if (!isSupabaseConfigured || !supabase) {
       setLoading(false)
       return
+    }
+
+    const resolveUserProfile = async (authUser: User) => {
+      let profile: UserProfile | null = null
+      try {
+        const { data, error } = await supabase!
+          .from('users')
+          .select('*, skills_offered(*), skills_wanted(*)')
+          .eq('id', authUser.id)
+          .single()
+
+        if (data && !error) {
+          const { mapDbUser } = await import('./UserDiscoveryContext')
+          profile = mapDbUser(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch authenticated user profile:', err)
+      }
+
+      if (!profile) {
+        profile =
+          findUserProfileByAuthUser(allUsers, authUser) ||
+          createFallbackProfile(authUser)
+      }
+      return profile
     }
 
     const initializeSession = async () => {
@@ -96,10 +128,8 @@ useEffect(() => {
         setUser(authUser)
 
         if (authUser) {
-          const profile =
-            findUserProfileByAuthUser(allUsers, authUser) ||
-            createFallbackProfile(authUser)
-
+          const profile = await resolveUserProfile(authUser)
+          if (!isActiveRef.current) return
           setCurrentUser(profile)
           onUserUpdate?.(profile)
         }
@@ -120,12 +150,11 @@ useEffect(() => {
       setUser(authUser)
 
       if (authUser) {
-        const profile =
-          findUserProfileByAuthUser(allUsers, authUser) ||
-          createFallbackProfile(authUser)
-
-        setCurrentUser(profile)
-        onUserUpdate?.(profile)
+        resolveUserProfile(authUser).then((profile) => {
+          if (!isActiveRef.current) return
+          setCurrentUser(profile)
+          onUserUpdate?.(profile)
+        })
       } else {
         setCurrentUser(null)
         onUserUpdate?.(null)
