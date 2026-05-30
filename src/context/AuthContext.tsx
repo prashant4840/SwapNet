@@ -4,6 +4,9 @@ import type { User } from '@supabase/supabase-js'
 import toast from 'react-hot-toast'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { UserProfile, SignupPayload, ProfilePayload } from '@/types'
+import { sendWelcomeEmail } from '@/services/email'
+import { trackSignup, trackProfileCompleted } from '@/services/analytics'
+import { captureException, setUserContext, clearUserContext } from '@/services/errorTracking'
 
 // Local type definition for auth results
 interface AuthActionResult {
@@ -132,9 +135,11 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
           if (!isActiveRef.current) return
           setCurrentUser(profile)
           onUserUpdate?.(profile)
+          setUserContext(profile.id, profile.email, profile.username)
         }
       } catch (error) {
         console.error('Failed to initialize session:', error)
+        captureException(error, { context: 'initializeSession' })
       } finally {
         setLoading(false)
       }
@@ -154,10 +159,12 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
           if (!isActiveRef.current) return
           setCurrentUser(profile)
           onUserUpdate?.(profile)
+          setUserContext(profile.id, profile.email, profile.username)
         })
       } else {
         setCurrentUser(null)
         onUserUpdate?.(null)
+        clearUserContext()
       }
     })
 
@@ -183,7 +190,16 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
         },
       })
 
-      if (response.error) return { success: false, message: response.error.message }
+      if (response.error) {
+        captureException(response.error, { email, context: 'signUp' })
+        return { success: false, message: response.error.message }
+      }
+
+      const user = response.data.user
+      if (user) {
+        trackSignup(user.id, email)
+        void sendWelcomeEmail(email, name)
+      }
 
       if (response.data.session) {
         toast.success('Account created. Finish your profile to start matching.')
@@ -198,6 +214,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       }
     } catch (error) {
       console.error('Signup error:', error)
+      captureException(error, { payload, context: 'signUp' })
       return { success: false, message: 'Failed to create your account.' }
     }
   }, [])
@@ -213,13 +230,17 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
         password: payload.password,
       })
 
-      if (response.error) return { success: false, message: response.error.message }
+      if (response.error) {
+        captureException(response.error, { email: payload.email, context: 'login' })
+        return { success: false, message: response.error.message }
+      }
 
       const firstName = deriveNameFromAuthUser(response.data.user).split(' ')[0] || 'there'
       toast.success(`Welcome back, ${firstName}.`)
       return { success: true, shouldNavigate: true }
     } catch (error) {
       console.error('Login error:', error)
+      captureException(error, { email: payload.email, context: 'login' })
       return { success: false, message: 'Failed to sign in.' }
     }
   }, [])
@@ -276,8 +297,10 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       await supabase.from('users').upsert(updated, { onConflict: 'id' })
       setCurrentUser(updated)
       onUserUpdate?.(updated)
+      trackProfileCompleted(currentUser.id, updated.username)
     } catch (error) {
       console.error('Failed to update profile:', error)
+      captureException(error, { userId: currentUser.id, context: 'updateProfile' })
       throw error
     }
   }, [currentUser, onUserUpdate])
