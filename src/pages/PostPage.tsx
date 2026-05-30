@@ -10,6 +10,7 @@ import { useApp } from '@/context/AppContext'
 import { skillCategories } from '@/data/skills'
 import type { LearningMode, SkillCategory, LookingForPost, UserProfile } from '@/types'
 import { formatRelativeTime } from '@/utils/app'
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata'
 
 interface PostFormState {
   skillName: string
@@ -19,6 +20,10 @@ interface PostFormState {
 }
 
 export function PostPage() {
+  useDocumentMetadata({
+    title: 'Community Board',
+    description: 'Post skills you want to learn or offers to teach on SwapNet. Connect with local and online community members.',
+  })
   // FIX 7: added `loading` from useApp so the posts panel uses
   // the context's loading flag, not the form's isSubmitting flag.
   const { createPost, currentUser, state, loading } = useApp()

@@ -1,6 +1,7 @@
 import { useEndorsements } from '@/hooks/useEndorsements'
 import { BadgeCheck } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata'
 import { Flag, MapPin, Share2, UserRoundPen, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useParams } from 'react-router-dom'
@@ -62,6 +63,13 @@ export function ProfilePage() {
   const [isLoadingReviews, setIsLoadingReviews] = useState(false)
   const [reviewsWithAuthors, setReviewsWithAuthors] = useState<(Review & { reviewer: { name: string; photo: string } })[]>([])
   const user = getUserByUsername(username)
+  
+  useDocumentMetadata({
+    title: user ? `${user.name} (@${user.username}) - Skill Share Profile` : 'Member Profile',
+    description: user ? `${user.name} offers skill swaps in ${user.skillsOffered.map((s) => s.name).join(', ') || 'various areas'}. Learn and share skills on SwapNet.` : 'View member skills and completed swaps on SwapNet.',
+    ogType: 'profile',
+  })
+
   const { isVerified, getCount } = useEndorsements(user?.id)
   const posts = state.posts.filter((post) => post.userId === user?.id)
   const match = useMemo(

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata'
 import {
   ArrowLeftRight,
   ArrowRight,
@@ -246,6 +247,11 @@ function CountUpStat({
 }
 
 export function LandingPage() {
+  useDocumentMetadata({
+    title: 'SwapNet - Teach what you know, learn what you need',
+    description: 'SwapNet is a peer-to-peer skill-sharing community where developers, creators, and professionals trade skills for free. No money involved.',
+  })
+
   const {
     currentUser,
     newTodayUsers,

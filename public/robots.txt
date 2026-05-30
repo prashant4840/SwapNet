@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /explore
+Allow: /profile/
+Disallow: /dashboard
+Disallow: /messages
+Disallow: /settings
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://skillbridge-mu-green.vercel.app/sitemap.xml

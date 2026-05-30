@@ -1,8 +1,7 @@
 import { EndorseSkillsModal } from '@/components/feed/EndorseSkillsModal'
 import { ProfileCompletionCard } from '@/components/profile/ProfileCompletionCard'
 import type { SwapRequest } from '@/types'
-import { useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
+import { useState, lazy, Suspense } from 'react'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { ButtonLink } from '@/components/common/ButtonLink'
@@ -16,6 +15,8 @@ import { formatRelativeTime, resolveSwapPartner } from '@/utils/app'
 import type { UserProfile } from '@/types'
 
 const chartGridColor = '#cbd5e1'
+
+const SwapStatsChart = lazy(() => import('@/components/dashboard/SwapStatsChart'))
 
 export function DashboardPage() {
   const {
@@ -322,14 +323,9 @@ export function DashboardPage() {
           <div className="mt-6">
             <ChartFrame>
               {({ width, height }) => (
-                <BarChart data={growthChart} height={height} width={width}>
-                  <CartesianGrid stroke={chartGridColor} strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="taught" fill="#4f46e5" radius={[16, 16, 0, 0]} />
-                  <Bar dataKey="learned" fill="#14b8a6" radius={[16, 16, 0, 0]} />
-                </BarChart>
+                <Suspense fallback={<div className="h-full w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl" />}>
+                  <SwapStatsChart data={growthChart} height={height} width={width} chartGridColor={chartGridColor} />
+                </Suspense>
               )}
             </ChartFrame>
           </div>

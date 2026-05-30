@@ -22,6 +22,7 @@ import { skillCategories } from '@/data/skills'
 import type { FeedFilters, UserProfile, SkillEntry, MatchResult } from '@/types'
 import { computeMatchResult, uniqueCities } from '@/utils/app'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useDocumentMetadata } from '@/hooks/useDocumentMetadata'
 
 const initialFilters: FeedFilters = {
   query: '',
@@ -92,6 +93,10 @@ function ToggleButton({
 }
 
 export function ExplorePage() {
+  useDocumentMetadata({
+    title: 'Explore Community',
+    description: 'Find reciprocal skill matches, collaborate, and learn from other users near you or online on SwapNet.',
+  })
   const { currentUser, state, suggestedMatches, loading } = useApp()
   const [filters, setFilters] = useState(initialFilters)
   const [page, setPage] = useState(1)
