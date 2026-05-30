@@ -1,9 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, useRef, useEffect, type PropsWithChildren } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage, ChatMessageKind, MessageThread, SwapRequest, ConnectionRequest } from '@/types'
 import { mapChatRecord, dbFetchChatMessages, dbInsertChatMessage, resolveThreadContext } from './chatUtils'
+import { buildSwapThreadKey, buildConnectionThreadKey } from '@/utils/app'
+import { useUserDiscovery } from './UserDiscoveryContext'
 
 interface ChatContextValue {
   messages: ChatMessage[]
@@ -32,10 +34,79 @@ export function ChatProvider({
   currentUserId,
   swapRequests = [],
   connectionRequests = [],
-  users = [],
+  users: initialUsers = [],
 }: ChatProviderProps) {
+  let discovery = null
+  try {
+    discovery = useUserDiscovery()
+  } catch {
+    // Safe fallback for isolated testing
+  }
+  const users = initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
-  const [messageThreads] = useState<MessageThread[]>(initialThreads)
+
+  const messageThreads = useMemo<MessageThread[]>(() => {
+    if (initialThreads.length > 0) return initialThreads
+    if (!currentUserId) return []
+
+    const threads: MessageThread[] = []
+
+    // 1. Swap requests threads (Accepted or Completed)
+    const activeSwaps = swapRequests.filter(
+      (s) =>
+        (s.senderId === currentUserId || s.receiverId === currentUserId) &&
+        ['Accepted', 'Completed'].includes(s.status)
+    )
+
+    for (const swap of activeSwaps) {
+      const partnerId = swap.senderId === currentUserId ? swap.receiverId : swap.senderId
+      const threadKey = buildSwapThreadKey(swap.id)
+      const threadMessages = messages.filter((m) => m.threadId === threadKey)
+      const latestMsg = threadMessages[threadMessages.length - 1]
+      const preview = latestMsg ? latestMsg.message : swap.message
+
+      threads.push({
+        id: threadKey,
+        kind: 'swap',
+        partnerId,
+        createdAt: swap.createdAt,
+        updatedAt: latestMsg ? latestMsg.timestamp : swap.updatedAt,
+        preview,
+        contextLabel: `Skill Swap (${swap.status})`,
+        status: swap.status === 'Completed' ? 'completed' : 'active',
+        unreadCount: 0,
+      })
+    }
+
+    // 2. Connection requests threads (Accepted)
+    const activeConnections = connectionRequests.filter(
+      (c) =>
+        (c.senderId === currentUserId || c.receiverId === currentUserId) &&
+        c.status === 'Accepted'
+    )
+
+    for (const conn of activeConnections) {
+      const partnerId = conn.senderId === currentUserId ? conn.receiverId : conn.senderId
+      const threadKey = buildConnectionThreadKey(conn.id)
+      const threadMessages = messages.filter((m) => m.threadId === threadKey)
+      const latestMsg = threadMessages[threadMessages.length - 1]
+      const preview = latestMsg ? latestMsg.message : conn.message
+
+      threads.push({
+        id: threadKey,
+        kind: 'connection',
+        partnerId,
+        createdAt: conn.createdAt,
+        updatedAt: latestMsg ? latestMsg.timestamp : conn.updatedAt,
+        preview,
+        contextLabel: 'Direct Connection',
+        status: 'active',
+        unreadCount: 0,
+      })
+    }
+
+    return threads.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  }, [currentUserId, swapRequests, connectionRequests, messages, initialThreads])
   const stateRef = useRef({ messages, swapRequests, connectionRequests, currentUserId, users })
 
   useEffect(() => {

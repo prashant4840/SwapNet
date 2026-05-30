@@ -13,6 +13,9 @@ interface PostContextValue {
 
 const PostContext = createContext<PostContextValue | undefined>(undefined)
 
+import { getSeedState } from '@/data/seed'
+import { useEffect } from 'react'
+
 interface PostProviderProps extends PropsWithChildren {
   posts?: LookingForPost[]
   onPostsUpdate?: (posts: LookingForPost[]) => void
@@ -25,7 +28,65 @@ export function PostProvider({
   onPostsUpdate,
   currentUserId,
 }: PostProviderProps) {
-  const [posts, setPosts] = useState<LookingForPost[]>(initialPosts)
+  const [posts, setPosts] = useState<LookingForPost[]>(() => {
+    if (initialPosts.length > 0) return initialPosts
+    if (!isSupabaseConfigured) {
+      return getSeedState().posts
+    }
+    return []
+  })
+
+  useEffect(() => {
+    if (initialPosts.length > 0) {
+      setPosts(initialPosts)
+      return
+    }
+
+    if (!isSupabaseConfigured || !supabase) return
+
+    const loadPosts = async () => {
+      try {
+        const { data, error } = await supabase!
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        if (data) {
+          const mapped = data.map(
+            (p: {
+              id: string
+              user_id: string
+              skill_name: string
+              category: SkillCategory
+              note: string
+              city: string | null
+              mode: 'Online' | 'In-person' | 'Both'
+              created_at: string
+              responses: number | null
+            }) => ({
+              id: p.id,
+              userId: p.user_id,
+              skillName: p.skill_name,
+              category: p.category,
+              note: p.note,
+              city: p.city || '',
+              mode: p.mode,
+              createdAt: p.created_at,
+              responses: p.responses || 0,
+            })
+          )
+          setPosts(mapped)
+          onPostsUpdate?.(mapped)
+        }
+      } catch (error) {
+        console.error('Failed to load posts from database:', error)
+      }
+    }
+
+    loadPosts()
+  }, [initialPosts, onPostsUpdate])
 
   const createPost = useCallback(
     async (payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>) => {

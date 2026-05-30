@@ -13,6 +13,10 @@ interface ReviewContextValue {
 
 const ReviewContext = createContext<ReviewContextValue | undefined>(undefined)
 
+import { getSeedState } from '@/data/seed'
+import { useEffect } from 'react'
+import { isSupabaseConfigured } from '@/lib/supabase'
+
 interface ReviewProviderProps extends PropsWithChildren {
   reviews?: Review[]
   currentUserId?: string | null
@@ -27,7 +31,61 @@ export function ReviewProvider({
   onReviewsUpdate,
   swapRequests = [],
 }: ReviewProviderProps) {
-  const [reviews, setReviews] = useState<Review[]>(initialReviews)
+  const [reviews, setReviews] = useState<Review[]>(() => {
+    if (initialReviews.length > 0) return initialReviews
+    if (!isSupabaseConfigured) {
+      return getSeedState().reviews
+    }
+    return []
+  })
+
+  useEffect(() => {
+    if (initialReviews.length > 0) {
+      setReviews(initialReviews)
+      return
+    }
+
+    if (!isSupabaseConfigured || !supabase) return
+
+    const loadReviews = async () => {
+      try {
+        const { data, error } = await supabase!
+          .from('reviews')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        if (data) {
+          const mapped = data.map(
+            (r: {
+              id: string
+              reviewer_id: string
+              reviewee_id: string
+              swap_id: string
+              rating: number
+              comment: string
+              created_at: string
+            }) => ({
+              id: r.id,
+              reviewerId: r.reviewer_id,
+              revieweeId: r.reviewee_id,
+              swapRequestId: r.swap_id,
+              rating: r.rating,
+              comment: r.comment,
+              createdAt: r.created_at,
+            })
+          )
+          setReviews(mapped)
+          onReviewsUpdate?.(mapped)
+        }
+      } catch (error) {
+        console.error('Failed to load reviews from database:', error)
+      }
+    }
+
+    loadReviews()
+  }, [initialReviews, onReviewsUpdate])
 
   const addReview = useCallback(
     async (requestId: string, rating: number, comment: string): Promise<boolean> => {

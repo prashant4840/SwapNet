@@ -1,7 +1,93 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useMemo, type PropsWithChildren } from 'react'
-import type { UserProfile, MatchResult } from '@/types'
+import { createContext, useContext, useMemo, useState, useEffect, type PropsWithChildren } from 'react'
+import type { UserProfile, MatchResult, AvailabilitySlot, LearningMode } from '@/types'
 import { computeMatchResult, formatShortDate } from '@/utils/app'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { getSeedState } from '@/data/seed'
+
+interface DbSkillOffered {
+  id: string
+  skill_name: string
+  category: string
+  level: string
+}
+
+interface DbSkillWanted {
+  id: string
+  skill_name: string
+  category: string
+}
+
+interface DbUser {
+  id: string
+  username: string
+  name: string
+  email: string
+  photo?: string | null
+  city: string
+  bio: string
+  age?: number | null
+  headline: string
+  availability?: AvailabilitySlot[] | null
+  mode: string
+  created_at?: string | null
+  joinedAt?: string | null
+  last_active_at?: string | null
+  lastActiveAt?: string | null
+  swap_score?: number | null
+  rating?: number | string | null
+  review_count?: number | null
+  completed_swaps?: number | null
+  taught_count?: number | null
+  learned_count?: number | null
+  badges?: string[] | null
+  skills_offered?: DbSkillOffered[] | null
+  skills_wanted?: DbSkillWanted[] | null
+  reports?: number | null
+}
+
+export function mapDbUser(u: DbUser): UserProfile {
+  const rating = Number(u.rating) || 0
+  const completedSwaps = u.completed_swaps || 0
+  const badges: string[] = []
+  if (rating >= 4.8) badges.push('Top Rated')
+  if (completedSwaps >= 2) badges.push('Active User')
+
+  return {
+    id: u.id,
+    username: u.username,
+    name: u.name,
+    email: u.email,
+    photo: u.photo || `https://api.dicebear.com/9.x/shapes/svg?seed=${u.id}`,
+    city: u.city,
+    bio: u.bio,
+    age: u.age || undefined,
+    headline: u.headline,
+    availability: (u.availability || []) as AvailabilitySlot[],
+    mode: u.mode as LearningMode,
+    joinedAt: u.created_at || u.joinedAt || new Date().toISOString(),
+    lastActiveAt: u.last_active_at || u.lastActiveAt || new Date().toISOString(),
+    swapScore: u.swap_score || 0,
+    rating,
+    reviewCount: u.review_count || 0,
+    completedSwaps,
+    taughtCount: u.taught_count || 0,
+    learnedCount: u.learned_count || 0,
+    badges: u.badges || badges,
+    skillsOffered: (u.skills_offered || []).map((s: DbSkillOffered) => ({
+      id: s.id,
+      name: s.skill_name,
+      category: s.category as import('@/types').SkillCategory,
+      level: s.level as import('@/types').SkillLevel,
+    })),
+    skillsWanted: (u.skills_wanted || []).map((s: DbSkillWanted) => ({
+      id: s.id,
+      name: s.skill_name,
+      category: s.category as import('@/types').SkillCategory,
+    })),
+    reports: u.reports || 0,
+  }
+}
 
 interface UserDiscoveryContextValue {
   users: UserProfile[]
@@ -17,7 +103,41 @@ interface UserDiscoveryProviderProps extends PropsWithChildren {
   currentUser?: UserProfile | null
 }
 
-export function UserDiscoveryProvider({ children, users = [], currentUser }: UserDiscoveryProviderProps) {
+export function UserDiscoveryProvider({ children, users: initialUsers = [], currentUser }: UserDiscoveryProviderProps) {
+  const [users, setUsers] = useState<UserProfile[]>(() => {
+    if (initialUsers.length > 0) return initialUsers
+    if (!isSupabaseConfigured) {
+      return getSeedState().users
+    }
+    return []
+  })
+
+  useEffect(() => {
+    if (initialUsers.length > 0) {
+      setUsers(initialUsers)
+      return
+    }
+
+    if (!isSupabaseConfigured || !supabase) return
+
+    const loadUsers = async () => {
+      try {
+        const { data, error } = await supabase!
+          .from('users')
+          .select('*, skills_offered(*), skills_wanted(*)')
+        if (error) throw error
+
+        if (data) {
+          setUsers((data as unknown as DbUser[]).map(mapDbUser))
+        }
+      } catch (error) {
+        console.error('Failed to load users from database:', error)
+      }
+    }
+
+    loadUsers()
+  }, [initialUsers])
+
   // Compute suggested matches
   const suggestedMatches = useMemo(
     () =>

@@ -26,16 +26,130 @@ interface RequestProviderProps extends PropsWithChildren {
   users?: UserProfile[]
 }
 
+import { getSeedState } from '@/data/seed'
+import { isSupabaseConfigured } from '@/lib/supabase'
+import { useUserDiscovery } from './UserDiscoveryContext'
+
 export function RequestProvider({
   children,
   swapRequests: initialSwaps = [],
   connectionRequests: initialConnections = [],
   currentUserId,
   currentUser,
-  users = [],
+  users: initialUsers = [],
 }: RequestProviderProps) {
-  const [swapRequests, setSwapRequests] = useState<SwapRequest[]>(initialSwaps)
-  const [connectionRequests, setConnectionRequests] = useState<ConnectionRequest[]>(initialConnections)
+  let discovery = null
+  try {
+    discovery = useUserDiscovery()
+  } catch {
+    // Safe fallback for isolated testing
+  }
+  const users = initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
+
+  const [swapRequests, setSwapRequests] = useState<SwapRequest[]>(() => {
+    if (initialSwaps.length > 0) return initialSwaps
+    if (!isSupabaseConfigured) {
+      return getSeedState().swapRequests
+    }
+    return []
+  })
+  const [connectionRequests, setConnectionRequests] = useState<ConnectionRequest[]>(() => {
+    if (initialConnections.length > 0) return initialConnections
+    if (!isSupabaseConfigured) {
+      return getSeedState().connectionRequests
+    }
+    return []
+  })
+
+  useEffect(() => {
+    if (initialSwaps.length > 0) {
+      setSwapRequests(initialSwaps)
+    }
+    if (initialConnections.length > 0) {
+      setConnectionRequests(initialConnections)
+    }
+  }, [initialSwaps, initialConnections])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !currentUserId) return
+
+    const loadRequests = async () => {
+      try {
+        const [swapsRes, connsRes] = await Promise.all([
+          supabase!
+            .from('swap_requests')
+            .select('*')
+            .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`),
+          supabase!
+            .from('connection_requests')
+            .select('*')
+            .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`),
+        ])
+
+        if (swapsRes.error) throw swapsRes.error
+        if (connsRes.error) throw connsRes.error
+
+        if (swapsRes.data) {
+          setSwapRequests(
+            swapsRes.data.map(
+              (s: {
+                id: string
+                sender_id: string
+                receiver_id: string
+                message: string
+                status: SwapRequest['status']
+                created_at: string
+                updated_at: string
+                offered_skill_id: string | null
+                wanted_skill_id: string | null
+                completed_by: string[] | null
+              }) => ({
+                id: s.id,
+                senderId: s.sender_id,
+                receiverId: s.receiver_id,
+                message: s.message,
+                status: s.status,
+                createdAt: s.created_at,
+                updatedAt: s.updated_at,
+                offeredSkillId: s.offered_skill_id || '',
+                wantedSkillId: s.wanted_skill_id || '',
+                completedBy: s.completed_by || [],
+              })
+            )
+          )
+        }
+
+        if (connsRes.data) {
+          setConnectionRequests(
+            connsRes.data.map(
+              (c: {
+                id: string
+                sender_id: string
+                receiver_id: string
+                message: string
+                status: ConnectionRequest['status']
+                created_at: string
+                updated_at: string
+              }) => ({
+                id: c.id,
+                senderId: c.sender_id,
+                receiverId: c.receiver_id,
+                message: c.message,
+                status: c.status,
+                createdAt: c.created_at,
+                updatedAt: c.updated_at,
+              })
+            )
+          )
+        }
+      } catch (error) {
+        console.error('Failed to load requests from database:', error)
+      }
+    }
+
+    loadRequests()
+  }, [currentUserId])
+
   const stateRef = useRef({ swapRequests, connectionRequests, users, currentUserId, currentUser })
 
   useEffect(() => {

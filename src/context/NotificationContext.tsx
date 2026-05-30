@@ -17,17 +17,70 @@ interface NotificationProviderProps extends PropsWithChildren {
   onNotificationsUpdate?: (notifications: NotificationItem[]) => void
 }
 
+import { getSeedState } from '@/data/seed'
+
 export function NotificationProvider({
   children,
   currentUserId,
   onNotificationsUpdate,
 }: NotificationProviderProps) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    if (!isSupabaseConfigured) {
+      // In sandbox mode, filter notifications for the active user if mock user exists,
+      // or just load all notifications as a fallback.
+      return getSeedState().notifications
+    }
+    return []
+  })
   const subscriptionCleanupRef = useRef<(() => void) | null>(null)
 
   // Setup realtime subscription when currentUserId changes
   useEffect(() => {
-    if (!currentUserId || !isSupabaseConfigured || !supabase) return
+    if (!currentUserId) return
+
+    if (!isSupabaseConfigured || !supabase) return
+
+    const loadNotifications = async () => {
+      try {
+        const { data, error } = await supabase!
+          .from('notifications')
+          .select('*')
+          .eq('user_id', currentUserId)
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        if (data) {
+          setNotifications(
+            data.map(
+              (n: {
+                id: string
+                user_id: string
+                type: NotificationItem['type']
+                title: string
+                description: string
+                link: string | null
+                created_at: string
+                read: boolean
+              }) => ({
+                id: n.id,
+                userId: n.user_id,
+                type: n.type,
+                title: n.title,
+                description: n.description,
+                link: n.link || undefined,
+                createdAt: n.created_at,
+                read: n.read,
+              })
+            )
+          )
+        }
+      } catch (error) {
+        console.error('Failed to load notifications from database:', error)
+      }
+    }
+
+    loadNotifications()
 
     const channel = supabase
       .channel(`notifications-realtime-${currentUserId}`)
