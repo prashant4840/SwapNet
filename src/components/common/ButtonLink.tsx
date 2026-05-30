@@ -40,7 +40,7 @@ export function ButtonLink({
   return (
     <Link
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all duration-300',
+        'inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
         variantClasses[variant],
         sizeClasses[size],
         fullWidth && 'w-full',
