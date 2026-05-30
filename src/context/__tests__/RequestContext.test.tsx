@@ -33,6 +33,7 @@ vi.mock('@/lib/supabase', () => ({
       invoke: vi.fn().mockResolvedValue({}),
     },
   },
+  isSupabaseConfigured: true,
 }))
 
 vi.mock('react-hot-toast', () => ({
