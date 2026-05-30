@@ -15,11 +15,20 @@ export function mapChatRecord(record: Record<string, unknown>): ChatMessage {
   }
 }
 
-export async function dbFetchChatMessages(threadId: string): Promise<ChatMessage[]> {
+export async function dbFetchChatMessages(
+  threadId: string,
+  start = 0,
+  end = 29
+): Promise<ChatMessage[]> {
   if (!supabase) return []
-  const { data } = await supabase.from('messages').select('*').eq('thread_key', threadId)
+  const { data } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('thread_key', threadId)
+    .order('created_at', { ascending: false })
+    .range(start, end)
   if (!data) return []
-  return data.map((message) => mapChatRecord(message as Record<string, unknown>))
+  return data.map((message) => mapChatRecord(message as Record<string, unknown>)).reverse()
 }
 
 export async function dbInsertChatMessage(input: {

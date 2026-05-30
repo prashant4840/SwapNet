@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useMemo, useState, useEffect, type PropsWithChildren } from 'react'
+import { createContext, useContext, useMemo, useState, useEffect, useCallback, type PropsWithChildren } from 'react'
 import type { UserProfile, MatchResult, AvailabilitySlot, LearningMode } from '@/types'
 import { computeMatchResult, formatShortDate } from '@/utils/app'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -94,6 +94,9 @@ interface UserDiscoveryContextValue {
   suggestedMatches: Array<UserProfile & { match: MatchResult }>
   newTodayUsers: UserProfile[]
   topRatedUsers: UserProfile[]
+  hasMore: boolean
+  loadingMore: boolean
+  loadMoreUsers: () => Promise<void>
 }
 
 export const UserDiscoveryContext = createContext<UserDiscoveryContextValue | undefined>(undefined)
@@ -111,10 +114,48 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
     }
     return []
   })
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const loadMoreUsers = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const start = users.length
+      const end = start + 11 // 12 users per page
+      const { data, error } = await supabase
+        .from('users')
+        .select('*, skills_offered(*), skills_wanted(*)')
+        .range(start, end)
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        const mapped = (data as unknown as DbUser[]).map(mapDbUser)
+        setUsers((current) => {
+          const existingIds = new Set(current.map((u) => u.id))
+          const filtered = mapped.filter((u) => !existingIds.has(u.id))
+          return [...current, ...filtered]
+        })
+        if (data.length < 12) {
+          setHasMore(false)
+        }
+      } else {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Failed to load more users:', err)
+      const { captureException } = await import('@/services/errorTracking')
+      captureException(err, { context: 'loadMoreUsers' })
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [users.length, hasMore, loadingMore])
 
   useEffect(() => {
     if (initialUsers.length > 0) {
       setUsers(initialUsers)
+      setHasMore(false)
       return
     }
 
@@ -125,13 +166,20 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
         const { data, error } = await supabase!
           .from('users')
           .select('*, skills_offered(*), skills_wanted(*)')
+          .range(0, 11) // Load first page of 12 users
         if (error) throw error
 
         if (data) {
           setUsers((data as unknown as DbUser[]).map(mapDbUser))
+          if (data.length < 12) {
+            setHasMore(false)
+          }
         }
       } catch (error) {
         console.error('Failed to load users from database:', error)
+        void import('@/services/errorTracking').then((m) =>
+          m.captureException(error, { context: 'loadUsersFirstPage' })
+        )
       }
     }
 
@@ -177,6 +225,9 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
         suggestedMatches,
         newTodayUsers,
         topRatedUsers,
+        hasMore,
+        loadingMore,
+        loadMoreUsers,
       }}
     >
       {children}

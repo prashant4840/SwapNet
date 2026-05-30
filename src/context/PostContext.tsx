@@ -6,6 +6,9 @@ import type { LookingForPost, SkillCategory } from '@/types'
 
 interface PostContextValue {
   posts: LookingForPost[]
+  hasMore: boolean
+  loadingMore: boolean
+  loadMorePosts: () => Promise<void>
   createPost: (
     payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>
   ) => Promise<boolean>
@@ -35,10 +38,64 @@ export function PostProvider({
     }
     return []
   })
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const loadMorePosts = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const start = posts.length
+      const end = start + 9 // Load 10 posts per load
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(start, end)
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        const mapped = data.map((p) => ({
+          id: p.id,
+          userId: p.user_id,
+          skillName: p.skill_name,
+          category: p.category as SkillCategory,
+          note: p.note,
+          city: p.city || '',
+          mode: p.mode as 'Online' | 'In-person' | 'Both',
+          createdAt: p.created_at,
+          responses: p.responses || 0,
+        }))
+
+        setPosts((current) => {
+          const existingIds = new Set(current.map((item) => item.id))
+          const filtered = mapped.filter((item) => !existingIds.has(item.id))
+          const updated = [...current, ...filtered]
+          onPostsUpdate?.(updated)
+          return updated
+        })
+
+        if (data.length < 10) {
+          setHasMore(false)
+        }
+      } else {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Failed to load more posts:', err)
+      void import('@/services/errorTracking').then((m) =>
+        m.captureException(err, { context: 'loadMorePosts' })
+      )
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [posts.length, hasMore, loadingMore, onPostsUpdate])
 
   useEffect(() => {
     if (initialPosts.length > 0) {
       setPosts(initialPosts)
+      setHasMore(false)
       return
     }
 
@@ -50,6 +107,7 @@ export function PostProvider({
           .from('posts')
           .select('*')
           .order('created_at', { ascending: false })
+          .range(0, 9) // Load initial 10 posts
 
         if (error) throw error
 
@@ -79,9 +137,15 @@ export function PostProvider({
           )
           setPosts(mapped)
           onPostsUpdate?.(mapped)
+          if (data.length < 10) {
+            setHasMore(false)
+          }
         }
       } catch (error) {
         console.error('Failed to load posts from database:', error)
+        void import('@/services/errorTracking').then((m) =>
+          m.captureException(error, { context: 'loadPostsFirstPage' })
+        )
       }
     }
 
@@ -121,10 +185,10 @@ export function PostProvider({
           skillName: data.skill_name as string,
           category: data.category as SkillCategory,
           note: data.note as string,
-          city: data.city as string,
+          city: (data.city || '') as string,
           mode: data.mode as 'Online' | 'In-person' | 'Both',
           createdAt: data.created_at as string,
-          responses: data.responses as number,
+          responses: (data.responses || 0) as number,
         }
 
         const updatedPosts = [newPost, ...posts]
@@ -135,6 +199,9 @@ export function PostProvider({
         return true
       } catch (error) {
         console.error('Failed to create post:', error)
+        void import('@/services/errorTracking').then((m) =>
+          m.captureException(error, { context: 'createPost' })
+        )
         toast.error('Failed to publish post.')
         return false
       }
@@ -146,6 +213,9 @@ export function PostProvider({
     <PostContext.Provider
       value={{
         posts,
+        hasMore,
+        loadingMore,
+        loadMorePosts,
         createPost,
       }}
     >

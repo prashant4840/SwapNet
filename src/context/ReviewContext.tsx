@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, type PropsWithChildren } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import type { Review, SwapRequest } from '@/types'
@@ -7,6 +7,9 @@ import { createId } from '@/utils/app'
 
 interface ReviewContextValue {
   reviews: Review[]
+  hasMore: boolean
+  loadingMore: boolean
+  loadMoreReviews: () => Promise<void>
   addReview: (requestId: string, rating: number, comment: string) => Promise<boolean>
   getReviewsForUser: (userId: string) => Review[]
 }
@@ -16,6 +19,10 @@ const ReviewContext = createContext<ReviewContextValue | undefined>(undefined)
 import { getSeedState } from '@/data/seed'
 import { useEffect } from 'react'
 import { isSupabaseConfigured } from '@/lib/supabase'
+import { UserDiscoveryContext } from './UserDiscoveryContext'
+import { trackReviewSubmitted } from '@/services/analytics'
+import { sendReviewReceivedEmail } from '@/services/email'
+import { captureException } from '@/services/errorTracking'
 
 interface ReviewProviderProps extends PropsWithChildren {
   reviews?: Review[]
@@ -31,6 +38,9 @@ export function ReviewProvider({
   onReviewsUpdate,
   swapRequests = [],
 }: ReviewProviderProps) {
+  const discovery = useContext(UserDiscoveryContext)
+  const users = useMemo(() => discovery ? discovery.users : [], [discovery])
+
   const [reviews, setReviews] = useState<Review[]>(() => {
     if (initialReviews.length > 0) return initialReviews
     if (!isSupabaseConfigured) {
@@ -38,10 +48,60 @@ export function ReviewProvider({
     }
     return []
   })
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const loadMoreReviews = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const start = reviews.length
+      const end = start + 9 // Load 10 reviews per load
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(start, end)
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        const mapped = data.map((r) => ({
+          id: r.id,
+          reviewerId: r.reviewer_id,
+          revieweeId: r.reviewee_id,
+          swapRequestId: r.swap_id,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt: r.created_at,
+        }))
+
+        setReviews((prev) => {
+          const existingIds = new Set(prev.map((item) => item.id))
+          const filtered = mapped.filter((item) => !existingIds.has(item.id))
+          const updated = [...prev, ...filtered]
+          onReviewsUpdate?.(updated)
+          return updated
+        })
+
+        if (data.length < 10) {
+          setHasMore(false)
+        }
+      } else {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Failed to load more reviews:', err)
+      captureException(err, { context: 'loadMoreReviews' })
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [reviews.length, hasMore, loadingMore, onReviewsUpdate])
 
   useEffect(() => {
     if (initialReviews.length > 0) {
       setReviews(initialReviews)
+      setHasMore(false)
       return
     }
 
@@ -53,6 +113,7 @@ export function ReviewProvider({
           .from('reviews')
           .select('*')
           .order('created_at', { ascending: false })
+          .range(0, 9) // Load initial 10 reviews
 
         if (error) throw error
 
@@ -78,9 +139,13 @@ export function ReviewProvider({
           )
           setReviews(mapped)
           onReviewsUpdate?.(mapped)
+          if (data.length < 10) {
+            setHasMore(false)
+          }
         }
       } catch (error) {
         console.error('Failed to load reviews from database:', error)
+        captureException(error, { context: 'loadReviewsFirstPage' })
       }
     }
 
@@ -117,6 +182,7 @@ export function ReviewProvider({
           .insert({
             id: newReviewId,
             reviewer_id: currentUserId,
+            reported_user_id: undefined, // ensure no collision
             reviewee_id: revieweeId,
             swap_id: requestId,
             rating,
@@ -145,14 +211,32 @@ export function ReviewProvider({
         onReviewsUpdate?.(updatedReviews)
 
         toast.success('Review submitted.')
+
+        // Trigger analytics tracking
+        trackReviewSubmitted(currentUserId, revieweeId, requestId, rating)
+
+        // Trigger Resend email notification
+        const reviewerProfile = users.find((u) => u.id === currentUserId)
+        const revieweeProfile = users.find((u) => u.id === revieweeId)
+        if (revieweeProfile && revieweeProfile.email) {
+          void sendReviewReceivedEmail({
+            receiverEmail: revieweeProfile.email,
+            receiverName: revieweeProfile.name,
+            reviewerName: reviewerProfile?.name || 'A user',
+            rating,
+            comment: comment.trim(),
+          })
+        }
+
         return true
       } catch (error) {
         console.error('Failed to add review:', error)
+        captureException(error, { context: 'addReview', requestId, rating })
         toast.error('Failed to submit review.')
         return false
       }
     },
-    [currentUserId, reviews, swapRequests, onReviewsUpdate]
+    [currentUserId, reviews, swapRequests, onReviewsUpdate, users]
   )
 
   const getReviewsForUser = useCallback(
@@ -168,6 +252,9 @@ export function ReviewProvider({
     <ReviewContext.Provider
       value={{
         reviews,
+        hasMore,
+        loadingMore,
+        loadMoreReviews,
         addReview,
         getReviewsForUser,
       }}

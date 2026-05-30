@@ -14,6 +14,9 @@ interface ChatContextValue {
   subscribeToThreadMessages: (threadId: string) => () => void
   getMessagesForThread: (threadId: string) => ChatMessage[]
   getMessagesForSwap: (swapId: string) => ChatMessage[]
+  hasMoreMessages: boolean
+  loadingMoreMessages: boolean
+  loadMoreMessages: (threadId: string) => Promise<void>
 }
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined)
@@ -24,7 +27,7 @@ interface ChatProviderProps extends PropsWithChildren {
   currentUserId?: string | null
   swapRequests?: SwapRequest[]
   connectionRequests?: ConnectionRequest[]
-  users?: Array<{ id: string }>
+  users?: Array<{ id: string; email?: string; name?: string }>
 }
 
 export function ChatProvider({
@@ -41,6 +44,8 @@ export function ChatProvider({
     return initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
   }, [initialUsers, discovery])
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true)
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false)
 
   const messageThreads = useMemo<MessageThread[]>(() => {
     if (initialThreads.length > 0) return initialThreads
@@ -104,6 +109,7 @@ export function ChatProvider({
 
     return threads.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
   }, [currentUserId, swapRequests, connectionRequests, messages, initialThreads])
+  
   const stateRef = useRef({ messages, swapRequests, connectionRequests, currentUserId, users })
 
   useEffect(() => {
@@ -114,7 +120,7 @@ export function ChatProvider({
     if (!supabase) return
 
     try {
-      const chatMessages = await dbFetchChatMessages(threadId)
+      const chatMessages = await dbFetchChatMessages(threadId, 0, 29)
       setMessages((current) => {
         const existingMessageIds = new Set(current.map(m => m.id))
         const newMessages = chatMessages.filter(m => !existingMessageIds.has(m.id))
@@ -123,10 +129,59 @@ export function ChatProvider({
           (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         )
       })
+      if (chatMessages.length < 30) {
+        setHasMoreMessages(false)
+      } else {
+        setHasMoreMessages(true)
+      }
     } catch (err) {
       console.error('Failed to load chat messages:', err)
+      void import('@/services/errorTracking').then((m) =>
+        m.captureException(err, { context: 'loadChatMessagesFirstPage', threadId })
+      )
     }
   }, [])
+
+  const loadMoreMessages = useCallback(async (threadId: string) => {
+    if (!supabase || loadingMoreMessages || !hasMoreMessages) return
+    setLoadingMoreMessages(true)
+
+    const resolvedThreadKey =
+      resolveThreadContext(
+        stateRef.current,
+        threadId,
+      )?.threadKey ?? threadId
+
+    const currentCount = messages.filter((m) => m.threadId === resolvedThreadKey).length
+
+    try {
+      const start = currentCount
+      const end = start + 29
+      const chatMessages = await dbFetchChatMessages(resolvedThreadKey, start, end)
+
+      if (chatMessages && chatMessages.length > 0) {
+        setMessages((current) => {
+          const existingMessageIds = new Set(current.map((m) => m.id))
+          const newMessages = chatMessages.filter((m) => !existingMessageIds.has(m.id))
+          return [...current, ...newMessages].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          )
+        })
+        if (chatMessages.length < 30) {
+          setHasMoreMessages(false)
+        }
+      } else {
+        setHasMoreMessages(false)
+      }
+    } catch (err) {
+      console.error('Failed to load more messages:', err)
+      void import('@/services/errorTracking').then((m) =>
+        m.captureException(err, { context: 'loadMoreMessages', threadId })
+      )
+    } finally {
+      setLoadingMoreMessages(false)
+    }
+  }, [messages, hasMoreMessages, loadingMoreMessages])
 
   const subscribeToThreadMessages = useCallback((threadId: string) => {
     if (!supabase || !threadId || !currentUserId) {
@@ -192,11 +247,7 @@ export function ChatProvider({
         }
       },
     )
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        // Successfully subscribed
-      }
-    })
+    .subscribe()
 
     return () => {
       void channel.unsubscribe()
@@ -216,6 +267,8 @@ export function ChatProvider({
     const partner = stateRef.current.users.find((u) => u.id === threadContext.partnerId) ?? null
     if (!partner) return
 
+    const senderProfile = stateRef.current.users.find((u) => u.id === currentUserId) ?? null
+
     try {
       const savedMessage = await dbInsertChatMessage({
         threadKey: threadContext.threadKey,
@@ -228,8 +281,31 @@ export function ChatProvider({
 
       setMessages((current) => [...current, savedMessage])
       toast.success('Message sent.')
+
+      // Trigger analytics tracking
+      void import('@/services/analytics').then((m) =>
+        m.trackMessageSent(currentUserId, partner.id, threadContext.threadKey)
+      )
+
+      // Trigger Resend email notification
+      if (partner.email) {
+        const receiverEmail = partner.email
+        const receiverName = partner.name || 'A user'
+        const snippet = messageText.length > 60 ? messageText.slice(0, 57) + '...' : messageText
+        void import('@/services/email').then((m) =>
+          m.sendNewMessageEmail({
+            receiverEmail,
+            receiverName,
+            senderName: senderProfile?.name || 'A user',
+            messageSnippet: snippet,
+          })
+        )
+      }
     } catch (error) {
       console.error('Failed to send message:', error)
+      void import('@/services/errorTracking').then((m) =>
+        m.captureException(error, { context: 'sendChatMessage', threadId })
+      )
       toast.error('Failed to send message.')
     }
   }, [currentUserId])
@@ -260,6 +336,9 @@ export function ChatProvider({
         subscribeToThreadMessages,
         getMessagesForThread,
         getMessagesForSwap,
+        hasMoreMessages,
+        loadingMoreMessages,
+        loadMoreMessages,
       }}
     >
       {children}

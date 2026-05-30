@@ -6,6 +6,9 @@ import type { NotificationItem } from '@/types'
 interface NotificationContextValue {
   notifications: NotificationItem[]
   unreadNotificationCount: number
+  hasMore: boolean
+  loadingMore: boolean
+  loadMoreNotifications: () => Promise<void>
   markNotificationRead: (notificationId: string) => void
   markAllNotificationsRead: () => void
 }
@@ -26,15 +29,67 @@ export function NotificationProvider({
 }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
     if (!isSupabaseConfigured) {
-      // In sandbox mode, filter notifications for the active user if mock user exists,
-      // or just load all notifications as a fallback.
       return getSeedState().notifications
     }
     return []
   })
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const subscriptionCleanupRef = useRef<(() => void) | null>(null)
 
-  // Setup realtime subscription when currentUserId changes
+  const loadMoreNotifications = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase || !currentUserId || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const start = notifications.length
+      const end = start + 9 // Load 10 notifications per load
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', currentUserId)
+        .order('created_at', { ascending: false })
+        .range(start, end)
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        const mapped = data.map((n) => ({
+          id: n.id,
+          userId: n.user_id,
+          type: n.type as NotificationItem['type'],
+          title: n.title,
+          description: n.description,
+          link: n.link || undefined,
+          createdAt: n.created_at,
+          read: n.read,
+        }))
+
+        setNotifications((prev) => {
+          const existingIds = new Set(prev.map((item) => item.id))
+          const filtered = mapped.filter((item) => !existingIds.has(item.id))
+          const updated = [...prev, ...filtered]
+          onNotificationsUpdate?.(updated)
+          return updated
+        })
+
+        if (data.length < 10) {
+          setHasMore(false)
+        }
+      } else {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Failed to load more notifications:', err)
+      void import('@/services/errorTracking').then((m) =>
+        m.captureException(err, { context: 'loadMoreNotifications' })
+      )
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [currentUserId, notifications.length, hasMore, loadingMore, onNotificationsUpdate])
+
+  // Setup realtime subscription and initial load when currentUserId changes
   useEffect(() => {
     if (!currentUserId) return
 
@@ -42,41 +97,59 @@ export function NotificationProvider({
 
     const loadNotifications = async () => {
       try {
+        // Fetch unread count first
+        const { count: unreadCount, error: countErr } = await supabase!
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', currentUserId)
+          .eq('read', false)
+
+        if (!countErr && unreadCount !== null) {
+          setUnreadNotificationCount(unreadCount)
+        }
+
+        // Fetch initial page of 10 notifications
         const { data, error } = await supabase!
           .from('notifications')
           .select('*')
           .eq('user_id', currentUserId)
           .order('created_at', { ascending: false })
+          .range(0, 9)
 
         if (error) throw error
 
         if (data) {
-          setNotifications(
-            data.map(
-              (n: {
-                id: string
-                user_id: string
-                type: NotificationItem['type']
-                title: string
-                description: string
-                link: string | null
-                created_at: string
-                read: boolean
-              }) => ({
-                id: n.id,
-                userId: n.user_id,
-                type: n.type,
-                title: n.title,
-                description: n.description,
-                link: n.link || undefined,
-                createdAt: n.created_at,
-                read: n.read,
-              })
-            )
+          const mapped = data.map(
+            (n: {
+              id: string
+              user_id: string
+              type: NotificationItem['type']
+              title: string
+              description: string
+              link: string | null
+              created_at: string
+              read: boolean
+            }) => ({
+              id: n.id,
+              userId: n.user_id,
+              type: n.type,
+              title: n.title,
+              description: n.description,
+              link: n.link || undefined,
+              createdAt: n.created_at,
+              read: n.read,
+            })
           )
+          setNotifications(mapped)
+          if (data.length < 10) {
+            setHasMore(false)
+          }
         }
       } catch (error) {
         console.error('Failed to load notifications from database:', error)
+        void import('@/services/errorTracking').then((m) =>
+          m.captureException(error, { context: 'loadNotificationsFirstPage' })
+        )
       }
     }
 
@@ -111,6 +184,10 @@ export function NotificationProvider({
               (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             )
           )
+
+          if (!newNotification.read) {
+            setUnreadNotificationCount((prev) => prev + 1)
+          }
         }
       )
       .on(
@@ -123,11 +200,19 @@ export function NotificationProvider({
         },
         (payload) => {
           const n = payload.new as Record<string, unknown>
+          const isRead = n.read as boolean
 
           setNotifications((prev) =>
-            prev.map((notif) =>
-              notif.id === (n.id as string) ? { ...notif, read: n.read as boolean } : notif
-            )
+            prev.map((notif) => {
+              if (notif.id === (n.id as string)) {
+                // If read state changed, adjust unread count
+                if (notif.read !== isRead) {
+                  setUnreadNotificationCount((prev) => (isRead ? Math.max(0, prev - 1) : prev + 1))
+                }
+                return { ...notif, read: isRead }
+              }
+              return notif
+            })
           )
         }
       )
@@ -146,7 +231,13 @@ export function NotificationProvider({
   const markNotificationRead = useCallback(
     (notificationId: string) => {
       setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+        prev.map((n) => {
+          if (n.id === notificationId && !n.read) {
+            setUnreadNotificationCount((count) => Math.max(0, count - 1))
+            return { ...n, read: true }
+          }
+          return n
+        })
       )
 
       // Persist to Supabase
@@ -163,6 +254,7 @@ export function NotificationProvider({
     if (!currentUserId) return
 
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    setUnreadNotificationCount(0)
 
     // Persist to Supabase
     if (isSupabaseConfigured && supabase) {
@@ -176,13 +268,14 @@ export function NotificationProvider({
     onNotificationsUpdate?.(notifications)
   }, [currentUserId, notifications, onNotificationsUpdate])
 
-  const unreadNotificationCount = notifications.filter((n) => !n.read).length
-
   return (
     <NotificationContext.Provider
       value={{
         notifications,
         unreadNotificationCount,
+        hasMore,
+        loadingMore,
+        loadMoreNotifications,
         markNotificationRead,
         markAllNotificationsRead,
       }}
