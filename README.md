@@ -1,4 +1,4 @@
-# SwapNet 🚀
+# SwapNet 
 
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -9,10 +9,11 @@
 SwapNet is a production-ready, peer-to-peer skill-sharing SaaS platform that connects ambitious individuals to trade skills directly—**completely free and without money**.
 
 🔗 **Live Demo**: [skillbridge-mu-green.vercel.app](https://skillbridge-mu-green.vercel.app)  
-📂 **GitHub Repository**: [github.com/prashant4840/SwapNet](https://github.com/prashant4840/SwapNet)
+
+<!-- 📂 **GitHub Repository**: [github.com/prashant4840/SwapNet](https://github.com/prashant4840/SwapNet)
 
 ---
-
+-->
 ## 1. Project Overview
 
 ### What SwapNet Is
@@ -83,7 +84,9 @@ Below are E2E browser verification screenshots showing the platform layout:
 | **Direct Messaging** <br> *Websocket chat threads* | ![Chat Window](public/screenshots/chat.png) |
 | **Admin Console** <br> *Log tracers and queue analytics* | ![Diagnostics Dashboard](public/screenshots/dashboard.png) |
 | **Member Profile** <br> *Public resume and reviews list* | ![Member Profile](public/screenshots/profile.png) |
-| **Mobile Adaptability** <br> *Fully responsive viewport* | ![Mobile Feed](public/screenshots/mobile-explore.png) |
+
+<!-- | **Mobile Adaptability** <br> *Fully responsive viewport* | ![Mobile Feed](public/screenshots/mobile-explore.png) |
+-->
 
 ---
 
@@ -149,3 +152,9 @@ SwapNet includes features that elevate it from a simple MVP to a secure, enterpr
 ## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+
+**Developed by Prashant Sharma**
+
+## Contact
+
+For inquiries: `prashantsharma4849@gmail.com`
