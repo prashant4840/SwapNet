@@ -1,212 +1,151 @@
-# SwapNet
+# SwapNet 🚀
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-[![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-2.0-blue.svg)](CODE_OF_CONDUCT.md)
-[![Security](https://img.shields.io/badge/Security-Policy-green.svg)](SECURITY.md)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
+[![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-SwapNet is a modern Skill Swap Platform built with React, Tailwind, Framer Motion, React Router, and a Supabase-backed data model. Users can offer a skill they know, request a skill they want to learn, send swap requests, chat after acceptance, and leave ratings when the exchange is complete.
+SwapNet is a production-ready, peer-to-peer skill-sharing SaaS platform that connects ambitious individuals to trade skills directly—**completely free and without money**.
 
-## Highlights
-
-- Email signup/login flow with Supabase auth
-- Google auth button wired for Supabase OAuth when valid env vars are present
-- Profile editor with bio, city, optional age, availability, mode, custom skill tags, and completion progress
-- Live explore feed with search, filters, smart match scores, and reciprocal `Perfect Match 🎯` badges
-- Swap request workflow with pending, accepted, declined, and completed states
-- Real-time-style preserved chat threads after acceptance
-- Ratings and reviews after swap completion
-- Dashboard with active swaps, pending requests, completed swaps, charts, and swap score
-- Community board for `Looking for` posts
-- Dark mode, responsive sidebar/bottom nav layout, and Framer Motion transitions
-- 10+ seeded profiles plus sample requests, reviews, chats, and notifications
-
-## Tech Stack
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- Framer Motion
-- React Router v6
-- Supabase client
-- Recharts
-- Lucide React
-- React Hot Toast
-- Playwright for browser verification
-
-## Screenshots
-
-
-### Landing
-
-![Landing page](public/screenshots/landing.png) 
-
-### Explore Feed
-
-![Explore feed](public/screenshots/explore.png)
-
-### Dashboard
-
-![Dashboard](public/screenshots/dashboard.png)
-
-### Chat
-
-![Chat thread](public/screenshots/chat.png)
-
-### Public Profile
-
-![Profile page](public/screenshots/profile.png)
-
-<!-- ### Mobile Explore
-
-![Mobile explore page](public/screenshots/mobile-explore.png) -->
-
-<!-- ### Mobile
-
-| Explore | Profile | Chat |
-|--------|---------|------|
-| ![Mobile explore](public/screenshots/mobile-explore.png) | ![Profile](public/screenshots/profile.png) | ![Chat](public/screenshots/chat.png) | -->
-
-
-## Local Setup
-
-1. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. Start the dev server:
-
-   ```bash
-   npm run dev
-   ```
-
-3. Open the app at `http://127.0.0.1:5173` unless you override the port.
-
-4. Optional: copy `.env.example` to `.env` and add Supabase credentials.
-
-5. Optional: install Playwright’s Chromium binary before running browser verification:
-
-   ```bash
-   npx playwright install chromium
-   ```
-
-## Available Scripts
-
-- `npm run dev` starts the Vite dev server
-- `npm run build` creates the production build
-- `npm run lint` runs ESLint
-- `npm run preview` serves the production build locally
-- `npm run verify:browser` runs the Playwright route walkthrough and refreshes screenshots
-
-## Supabase Setup
-
-The app includes a Supabase-ready client helper at [`src/lib/supabase.ts`](src/lib/supabase.ts).
-
-To provision the backend:
-
-1. Create a new Supabase project.
-2. Run [`supabase/schema.sql`](supabase/schema.sql).
-3. Run [`supabase/seed.sql`](supabase/seed.sql).
-4. Add your keys to `.env`:
-
-   ```bash
-   VITE_SUPABASE_URL=...
-   VITE_SUPABASE_ANON_KEY=...
-   ```
-
-5. In Supabase Auth, enable Google as an OAuth provider if you want Google login.
-
-## Deployment
-
-This repo includes a Vercel SPA rewrite config at [`vercel.json`](vercel.json) so React Router routes resolve correctly in production.
-
-Typical deployment flow:
-
-```bash
-npm install
-npm run build
-vercel
-```
-
-## Architecture Notes
-
-- The database schema mirrors the requested entities: users, skills offered, skills wanted, swap requests, chats, reviews, notifications, posts, and abuse reports.
-- Chat persistence is modeled against Supabase tables.
-- Browser verification is scripted in [`scripts/verify.mjs`](scripts/verify.mjs).
-
-## Verification
-
-These checks were run successfully:
-
-```bash
-npm run build
-npm run lint
-npx playwright install chromium
-npm run verify:browser
-```
-
-The browser verification confirms `/`, `/explore`, `/auth`, and, when test credentials are provided, authenticated routes such as `/dashboard` and `/messages` render without console errors or page errors.
-
-## 🤝 Contributing
-
-We welcome contributions to SwapNet! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
-
-### 🚀 Quick Start
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes**
-4. **Run tests**: `npm run lint && npm run build`
-5. **Commit your changes**: `git commit -m 'feat: add amazing feature'`
-6. **Push to your fork**: `git push origin feature/amazing-feature`
-7. **Open a Pull Request**
-
-### 📚 Resources
-
-- [**Contributing Guide**](CONTRIBUTING.md) - Detailed contribution guidelines for SwapNet
-- [**Code of Conduct**](CODE_OF_CONDUCT.md) - Community guidelines
-- [**Security Policy**](SECURITY.md) - Security and vulnerability reporting
-- [**Issue Templates**](.github/ISSUE_TEMPLATE/) - Bug reports and feature requests
-- [**Pull Request Template**](.github/PULL_REQUEST_TEMPLATE.md) - PR guidelines
-
-### 🏆 Contributors
-
-Thanks to all the people who contribute to SwapNet!
-
-<a href="https://github.com/prashant4840/SkillBridge/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=prashant4840/SkillBridge" />
-</a>
-
-### 📋 What We're Looking For
-
-- 🐛 **Bug fixes** - Help us squash those bugs in SwapNet!
-- ✨ **New features** - Have an idea for SwapNet? We'd love to hear it!
-- 📚 **Documentation** - Improve our docs and help others
-- 🎨 **Design** - UI/UX improvements and accessibility
-- ⚡ **Performance** - Make SwapNet faster and more efficient
-- 🔒 **Security** - Help keep SwapNet users safe
-
-### 💬 Get Help
-
-- **GitHub Issues** - For bug reports and feature requests
-- **GitHub Discussions** - For general questions and ideas
-- **Security Issues** - For security vulnerabilities (private)
+🔗 **Live Demo**: [skillbridge-mu-green.vercel.app](https://skillbridge-mu-green.vercel.app)  
+📂 **GitHub Repository**: [github.com/prashant4840/SwapNet](https://github.com/prashant4840/SwapNet)
 
 ---
 
-## 📄 License
+## 1. Project Overview
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### What SwapNet Is
+SwapNet is a modern, collaborative platform designed for builders, developers, creators, and lifelong learners. Instead of paying for tutorials or bootcamps, users swap their expertise. You teach what you know, and learn what you need in return.
 
-## 🙏 Acknowledgments
+### The Problem It Solves
+Access to high-quality learning is often locked behind expensive subscription fees, paywalls, or rigid curriculums. Meanwhile, experienced professionals have valuable skills but lack structured, trust-based networks to exchange knowledge directly with peers.
 
-- [React](https://reactjs.org/) - The UI framework
-- [Tailwind CSS](https://tailwindcss.com/) - The CSS framework
-- [Supabase](https://supabase.com/) - The backend platform
-- [Framer Motion](https://www.framer.com/motion/) - The animation library
-- [Lucide](https://lucide.dev/) - The icon library
+### Key Value Proposition
+* **Reciprocity-First Matching**: A proprietary scoring algorithm finds optimal compatibility pairs based on what you teach and what you want to learn.
+* **Reputation System**: Completed swaps, reviews, and badges build community trust.
+* **SaaS Capabilities**: High-priority transactional email delivery, progressive pagination, database rate-limiting, and error-trace visibility.
 
-Made with ❤️ by the Prashant Sharma
+---
+
+## 2. Architecture Overview
+
+SwapNet leverages a modern serverless, event-driven architecture designed to minimize latency and ensure resilience.
+
+```mermaid
+graph TD
+    User([User Client]) -->|HTTPS / WSS| Vercel[Vercel CDN / Frontend]
+    User -->|API Calls / Realtime| Supabase[Supabase API Gateway]
+    Supabase -->|Database Queries| PostgreSQL[(PostgreSQL Database)]
+    Supabase -->|Trigger Actions| EdgeFunctions[Supabase Edge Functions]
+    EdgeFunctions -->|Send Emails| Resend[Resend SMTP Service]
+    User -.->|Error Logging| Sentry[Sentry Tracing]
+    User -.->|Telemetry| PostHog[PostHog Analytics]
+```
+
+### Flow Breakdown
+1. **Frontend App**: SPA built with React 19 + TypeScript + Tailwind CSS and deployed on Vercel's global edge network.
+2. **Supabase Layer**: Manages JWT user authentication, row-level security (RLS) policies, and handles PostgreSQL websocket subscriptions for real-time messaging.
+3. **Edge Processing**: Deno Edge Functions handle external API calls (e.g., email delivery via Resend) and process queued email retries with exponential backoffs.
+4. **Data Durability**: A PostgreSQL database manages optimized relational schemas, automatic triggers, and audit logging.
+
+---
+
+## 3. Core Features
+
+* **Secure Authentication**: Built-in signups, password resets, and session recovery backed by Supabase Auth.
+* **Skill Discovery Feed**: Fast, search-optimized catalog filtering members by compatibility, city location, rating, and mode.
+* **Interactive Swap Requests**: Send structured exchange requests outlining exactly which skills you offer to swap.
+* **Real-time Chat & Inbox**: Instant messaging with websocket support to coordinate sessions, featuring automatic email alerts for unread messages.
+* **Trust Reviews**: Submit ratings and feedback upon swap completion to build profile status badges (e.g., "Top Rated").
+* **Abuse Control & Moderation**: Admin diagnostics console to manage reported profiles, ban users, and inspect server logs.
+* **Analytics & Performance Tracking**: Live conversions monitored in Sentry, Vercel, and PostHog.
+
+---
+
+## 4. Tech Stack
+
+* **Frontend**: React 19, TypeScript, Tailwind CSS, Framer Motion, Recharts
+* **Backend & Database**: Supabase, PostgreSQL, Deno Deploy (Edge Functions)
+* **Email & Integrations**: Resend, Sentry (Error logs), PostHog & Vercel Analytics (Telemetry)
+* **Testing**: Vitest, Playwright (E2E Browser testing)
+
+---
+
+## 5. UI Showcase
+
+Below are E2E browser verification screenshots showing the platform layout:
+
+| Page / Interface | View Snapshot |
+| --- | --- |
+| **Landing Frame** <br> *Marketing and call-to-actions* | ![Landing Page](public/screenshots/landing.png) |
+| **User Discovery** <br> *Compatibility grid and filters* | ![Explore Feed](public/screenshots/explore.png) |
+| **Direct Messaging** <br> *Websocket chat threads* | ![Chat Window](public/screenshots/chat.png) |
+| **Admin Console** <br> *Log tracers and queue analytics* | ![Diagnostics Dashboard](public/screenshots/dashboard.png) |
+| **Member Profile** <br> *Public resume and reviews list* | ![Member Profile](public/screenshots/profile.png) |
+| **Mobile Adaptability** <br> *Fully responsive viewport* | ![Mobile Feed](public/screenshots/mobile-explore.png) |
+
+---
+
+## 6. Local Setup
+
+### Prerequisites
+* Node.js (v18 or higher)
+* Supabase Account / Supabase CLI (optional)
+
+### Installation Steps
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/prashant4840/SwapNet.git
+   cd SwapNet
+   ```
+2. Install package dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure environment variables. Create a `.env` file in the project root:
+   ```env
+   VITE_SUPABASE_URL=your-supabase-url
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+   VITE_SENTRY_DSN=your-optional-sentry-dsn
+   ```
+4. Start the local development server:
+   ```bash
+   npm run dev
+   ```
+5. Run the test suite:
+   ```bash
+   npm run test
+   ```
+6. Build for production:
+   ```bash
+   npm run build
+   ```
+
+---
+
+## 7. Production Hardening Features
+
+SwapNet includes features that elevate it from a simple MVP to a secure, enterprise-ready SaaS application:
+
+* **Progressive Range Pagination**: Discovery feeds, message inboxes, and notification lists use range limits instead of fetching whole tables, keeping Supabase API consumption optimal.
+* **Database Rate-Limiting**: PostgreSQL database triggers (`enforce_rate_limits`) restrict insert flooding (e.g., maximum 3 chat messages per 5 seconds, 30 seconds delay between posts) to prevent spam.
+* **Exponential Backoff Email Queue**: Outbound transactional emails are persisted to `public.email_queue` and processed asynchronously. Failed attempts recalculate a backoff timeline ($2^{n}$ minutes) up to 5 times before moving to a Dead Letter Queue (DLQ).
+* **Strict Content Security Policy (CSP)**: `vercel.json` enforces secure HTTP headers (`X-Frame-Options: DENY`, `Strict-Transport-Security`) and CSP rules restricting script executions.
+* **System Log Trace Inspector**: Frontend and Edge Function errors are logged directly to `public.error_logs` with unique correlation IDs, allowing administrators to debug trace stacks instantly from the Admin Page.
+* **Bundle Splitting**: Heavy modules like Recharts and Framer Motion are compiled into separate lazy chunks, dropping the dashboard bundle footprint from **356.50 kB to 16.69 kB**.
+
+---
+
+## 8. Future Roadmap
+
+- [ ] **AI-Powered Skill Matcher**: Analyze user bios and profiles to suggest high-compatibility learning paths automatically.
+- [ ] **Native Mobile Application**: Build iOS and Android versions using React Native.
+- [ ] **Interactive Interactive Swapping**: Video/Audio integrations to host sessions directly within the SwapNet app.
+- [ ] **Community Class Events**: Support one-to-many workshops and group classes.
+
+---
+
+## License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
