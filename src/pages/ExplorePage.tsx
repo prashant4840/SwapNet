@@ -167,17 +167,6 @@ export function ExplorePage() {
         return false
       }
 
-      if (deferredFilters.query) {
-        const searchLower = deferredFilters.query.toLowerCase()
-        return (
-          user.name.toLowerCase().includes(searchLower) ||
-          user.headline.toLowerCase().includes(searchLower) ||
-          user.bio.toLowerCase().includes(searchLower) ||
-          user.skillsOffered.some((skill) => skill.name.toLowerCase().includes(searchLower)) ||
-          user.skillsWanted.some((skill) => skill.name.toLowerCase().includes(searchLower))
-        )
-      }
-
       return true
     })
   }, [state.users, currentUser, deferredFilters, query])
@@ -273,9 +262,9 @@ export function ExplorePage() {
                     Refresh
                   </Button>
                 </div>
-                <p className="text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                  Explore reciprocal skill matches sorted by compatibility, availability,
-                  proximity, and trust signals. The strongest swaps rise to the top by default.
+                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base">
+                  Find people whose skills complement yours. Results are sorted by
+                  compatibility, availability, and proximity.
                 </p>
               </div>
 
@@ -476,10 +465,10 @@ export function ExplorePage() {
         {currentUser && suggestedMatches.length ? (
           <section className="space-y-4">
             <SectionTitle
-              description="Daily recommendations explain exactly why each profile is relevant to you."
-              eyebrow="Recommended Matches"
+              description="Profiles ranked by compatibility, location, and shared availability."
+              eyebrow="Recommended"
             >
-              Best next people to reach out to
+              Suggested matches
             </SectionTitle>
             <div className="grid gap-4 xl:grid-cols-3">
               {suggestedMatches.slice(0, 3).map((entry) => (
@@ -544,10 +533,10 @@ export function ExplorePage() {
 
         <section className="space-y-4">
           <SectionTitle
-            description={`${sortedResults.length} members match your current filters.`}
-            eyebrow="Explore Community"
+            description={`${sortedResults.length} members match your filters.`}
+            eyebrow="Community"
           >
-            Browse profiles ranked for relevance
+            Browse all members
           </SectionTitle>
 
           {isInitialLoad ? (

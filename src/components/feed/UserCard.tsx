@@ -132,7 +132,7 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
                 onClick={() => {
                   void sendConnectionRequest({
                     receiverId: user.id,
-                    message: `Hi ${user.name.split(' ')[0]}, your profile looks like a strong fit for a SkillBridge connection.`,
+                    message: `Hi ${user.name.split(' ')[0]}, your profile looks like a strong fit for a SwapNet connection.`,
                   })
                 }}
                 className="h-11"

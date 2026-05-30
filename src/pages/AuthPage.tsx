@@ -160,7 +160,7 @@ export function AuthPage() {
           <div className="mt-8 space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-950 dark:text-white">
-                {tab === 'signup' ? 'Create your SkillBridge account' : 'Welcome back'}
+                {tab === 'signup' ? 'Create your SwapNet account' : 'Welcome back'}
               </h2>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 {tab === 'signup'

@@ -52,10 +52,10 @@ export function PostPage() {
         {/* ── Left: post creation form ── */}
         <section className="glass-panel p-6">
           <SectionTitle
-            description="Create a lightweight post when you want help with one specific skill outside a direct reciprocal match."
+            description="Post a request when you need help with a specific skill."
             eyebrow="Community Board"
           >
-            Looking for post
+            New post
           </SectionTitle>
 
           {currentUser ? (
@@ -182,10 +182,10 @@ export function PostPage() {
         {/* ── Right: live posts list ── */}
         <section className="space-y-4">
           <SectionTitle
-            description="A running notice board of members looking for focused help."
+            description="Members looking for focused skill help right now."
             eyebrow="Live Board"
           >
-            Current requests
+            Recent requests
           </SectionTitle>
 
           {/* FIX 7: use `loading` (from useApp) here, NOT isSubmitting */}

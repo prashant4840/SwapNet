@@ -66,7 +66,7 @@ export function DashboardPage() {
 
   return (
     <PageTransition>
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr_1fr] h-[calc(100vh-8rem)]">
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr_1fr]">
         {/* Left Column - Profile Completion + Pending Requests */}
         <div className="space-y-6">
           <ProfileCompletionCard profile={currentUser} />
@@ -236,46 +236,42 @@ export function DashboardPage() {
                   })}
 
                   {/* Completed swaps — show endorse button */}
-                     {swaps
+                    {swaps
                     .filter((swap) => swap.status === 'Completed')
                     .map((swap) => {
-                 const partner = resolveSwapPartner(swap, currentUser.id, state.users)
-
-              return (
-        <div
-        className="rounded-[1.75rem] border border-slate-200/80 bg-white/80 p-4 shadow-soft dark:border-slate-700/80 dark:bg-slate-900/80"
-        key={swap.id}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <img
-              alt={partner?.name}
-              className="size-12 rounded-2xl object-cover"
-              src={partner?.photo}
-            />
-
-            <div>
-              <p className="font-semibold text-slate-950 dark:text-white">
-                {partner?.name}
-              </p>
-
-              <p className="text-sm text-slate-500 dark:text-slate-300">
-                Completed swap
-              </p>
-            </div>
-          </div>
-
-          <Button
-            onClick={() => setEndorseSwap(swap)}
-            size="sm"
-            variant="outline"
-          >
-            ✓ Endorse skills
-          </Button>
-        </div>
-      </div>
-    )
-  })}
+                      const partner = resolveSwapPartner(swap, currentUser.id, state.users)
+                      return (
+                        <div
+                          className="rounded-[1.75rem] border border-slate-200/80 bg-white/80 p-4 shadow-soft dark:border-slate-700/80 dark:bg-slate-900/80"
+                          key={swap.id}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <img
+                                alt={partner?.name}
+                                className="size-12 rounded-2xl object-cover"
+                                src={partner?.photo}
+                              />
+                              <div>
+                                <p className="font-semibold text-slate-950 dark:text-white">
+                                  {partner?.name}
+                                </p>
+                                <p className="text-sm text-slate-500 dark:text-slate-300">
+                                  Completed swap
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => setEndorseSwap(swap)}
+                              size="sm"
+                              variant="outline"
+                            >
+                              Endorse skills
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
 
                   {acceptedConnections.map((connection) => {
                     const partner = state.users.find(
@@ -456,18 +452,18 @@ export function DashboardPage() {
         user={selectedUser}
       />
       {endorseSwap ? (
-  <EndorseSkillsModal
-    isOpen={Boolean(endorseSwap)}
-    onClose={() => setEndorseSwap(null)}
-    swap={endorseSwap}
-    partner={
-      resolveSwapPartner(endorseSwap, currentUser.id, state.users) ??
-      state.users[0]
-    }
-    currentUserId={currentUser.id}
-    onEndorsed={() => setEndorseSwap(null)}
-  />
-) : null}
+        <EndorseSkillsModal
+          isOpen={Boolean(endorseSwap)}
+          onClose={() => setEndorseSwap(null)}
+          swap={endorseSwap}
+          partner={
+            resolveSwapPartner(endorseSwap, currentUser.id, state.users) ??
+            state.users[0]
+          }
+          currentUserId={currentUser.id}
+          onEndorsed={() => setEndorseSwap(null)}
+        />
+      ) : null}
     </PageTransition>
   )
 }

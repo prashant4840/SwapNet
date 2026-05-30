@@ -8,7 +8,7 @@ export function NotFoundPage() {
       <div className="page-shell">
         <EmptyState
           title="Page not found"
-          description="The route you tried to open does not exist in this SkillBridge build."
+          description="The route you tried to open does not exist in this SwapNet build."
           action={
             <ButtonLink to="/" variant="outline">
               Back home

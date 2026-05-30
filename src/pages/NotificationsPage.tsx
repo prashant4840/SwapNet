@@ -138,10 +138,10 @@ export function NotificationsPage() {
                 </Button>
               ) : null
             }
-            description="Daily match suggestions, requests, chat updates, and review reminders all land here."
+            description="Requests, messages, and activity updates."
             eyebrow="Notifications"
           >
-            Your update center
+            Updates
           </SectionTitle>
         </section>
 

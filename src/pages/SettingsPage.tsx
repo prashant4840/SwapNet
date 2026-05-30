@@ -200,10 +200,10 @@ export function SettingsPage() {
       <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
         <section className="glass-panel p-6">
           <SectionTitle
-            description="Fill in your basics, add tags for what you offer and want, and choose how you prefer to swap."
+            description="Add your details, skills, and availability preferences."
             eyebrow="Profile Editor"
           >
-            Shape your public profile
+            Edit your profile
           </SectionTitle>
 
           <div className="mt-6 space-y-6">
@@ -324,19 +324,19 @@ export function SettingsPage() {
             </label>
 
             <div className="space-y-3">
-       <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-         Availability
-          </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-              Mark when you are generally free each week so swap partners know when to reach out.
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Availability
               </p>
-         <AvailabilityCalendar
-         value={form.availability}
-           onChange={(slots) =>
-            setForm((current) => ({ ...current, availability: slots }))
-              }
-          />
-           </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Mark when you are generally free each week.
+              </p>
+              <AvailabilityCalendar
+                value={form.availability}
+                onChange={(slots) =>
+                  setForm((current) => ({ ...current, availability: slots }))
+                }
+              />
+            </div>
 
             <div className="space-y-3">
               <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Mode</p>
@@ -580,7 +580,7 @@ export function SettingsPage() {
 
             <div className="mt-6 rounded-3xl border border-dashed border-brand-300 bg-brand-50/70 px-4 py-4 text-sm text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-200">
               <Sparkles className="mr-2 inline-flex size-4" />
-              Members with full profiles receive stronger match scores and better daily suggestions.
+              Complete profiles get better match scores and recommendations.
             </div>
           </div>
         </section>

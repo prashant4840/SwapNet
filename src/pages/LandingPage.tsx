@@ -431,6 +431,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 28 }}
             transition={revealTransition}
           >
+            <div className="pointer-events-none absolute inset-0 dot-grid opacity-40" />
             <div className="absolute inset-y-0 right-0 hidden w-1/2 lg:block">
               <div className="absolute right-10 top-10 h-28 w-28 animate-float rounded-[2rem] bg-white/60 blur-sm dark:bg-brand-500/20" />
               <div className="absolute bottom-16 right-20 h-48 w-48 animate-float rounded-full bg-teal-300/35 blur-3xl dark:bg-tealish-500/18" />
@@ -469,10 +470,10 @@ export function LandingPage() {
                   <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-6xl">
                     Teach what you know. Learn what you need. No money involved.
                   </h1>
-                  <p className="max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300 sm:text-lg">
-                    SwapNet matches people who can teach each other. Post your offers,
-                    browse live community listings, request a swap, chat, schedule sessions,
-                    and review the experience once you both finish.
+                  <p className="max-w-2xl text-base leading-relaxed text-slate-600 dark:text-slate-300 sm:text-lg">
+                    SwapNet connects people who can teach each other. Post your skills,
+                    find reciprocal matches, coordinate via chat, and build trust
+                    through completed exchanges.
                   </p>
                 </div>
 
@@ -651,7 +652,7 @@ export function LandingPage() {
                   See all listings
                 </ButtonLink>
               }
-              description="Meet members already trading music, tech, languages, wellness, and more."
+              description="Members trading skills across tech, languages, music, design, and more."
               eyebrow="Featured Profiles"
             >
               Top rated skill swappers
@@ -745,7 +746,7 @@ export function LandingPage() {
               <div>
                 <Badge tone="teal">Trusted reputation loop</Badge>
                 <h3 className="mt-4 text-2xl font-bold text-slate-950 dark:text-white">
-                  A reputation system built around generosity and follow-through.
+                  A reputation system built on reliability.
                 </h3>
               </div>
               <div className="grid gap-4">
@@ -838,7 +839,7 @@ export function LandingPage() {
                 </div>
 
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-300">
-                  100% open source. No ads. No paywalls. Just skills.
+                  Open source · No ads · No paywalls
                 </p>
 
                 <div className="flex flex-col gap-4 border-t border-amber-300/40 pt-6 dark:border-amber-300/15 sm:flex-row sm:items-center sm:justify-between">
@@ -939,7 +940,7 @@ export function LandingPage() {
             </div>
 
             <div className="mt-10 flex flex-col gap-3 border-t border-brand-500/15 pt-6 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-              <p>© 2025 SwapNet</p>
+              <p>© {new Date().getFullYear()} SwapNet</p>
               <p>Made with ☕ and React by Prashant</p>
             </div>
           </div>
