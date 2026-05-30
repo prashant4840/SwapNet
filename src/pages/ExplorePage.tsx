@@ -99,17 +99,19 @@ const CITIES_LIST = [
   'Delhi',
   'Mumbai',
   'Bangalore',
+  'Chennai',
   'Hyderabad',
   'Pune',
-  'Chennai',
   'Kolkata',
-  'Ahmedabad',
-  'Jaipur',
-  'Lucknow',
   'Noida',
   'Gurugram',
-  'Chandigarh',
   'Aligarh',
+  'Agra',
+  'Mathura',
+  'Lucknow',
+  'Jaipur',
+  'Chandigarh',
+  'Ahmedabad',
 ]
 
 interface SearchableCitySelectProps {
@@ -133,11 +135,64 @@ function SearchableCitySelect({ cities, selectedCity, onChange }: SearchableCity
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const mergedCities = useMemo(() => {
+    const unique = new Set<string>()
+    const result: string[] = []
+
+    cities.forEach((c) => {
+      const lower = c.trim().toLowerCase()
+      if (lower && lower !== 'all' && !unique.has(lower)) {
+        unique.add(lower)
+        result.push(c.trim())
+      }
+    })
+
+    const selLower = (selectedCity || '').trim().toLowerCase()
+    if (
+      selLower &&
+      selLower !== 'all' &&
+      selLower !== 'remote' &&
+      !unique.has(selLower)
+    ) {
+      unique.add(selLower)
+      result.push(selectedCity.trim())
+    }
+
+    return result.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+  }, [cities, selectedCity])
+
   const filteredCities = useMemo(() => {
-    return cities.filter((city) =>
-      city.toLowerCase().includes(search.trim().toLowerCase())
+    const query = search.trim().toLowerCase()
+    if (!query) return mergedCities
+    return mergedCities.filter((city) =>
+      city.toLowerCase().includes(query)
     )
-  }, [cities, search])
+  }, [mergedCities, search])
+
+  const hasExactMatch = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return true
+    return mergedCities.some((city) => city.toLowerCase() === query)
+  }, [mergedCities, search])
+
+  const handleSelect = (city: string) => {
+    const exactMatch = mergedCities.find(
+      (c) => c.toLowerCase() === city.toLowerCase()
+    )
+    onChange(exactMatch || city)
+    setIsOpen(false)
+    setSearch('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const query = search.trim()
+      if (query) {
+        handleSelect(query)
+      }
+    }
+  }
 
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -164,35 +219,46 @@ function SearchableCitySelect({ cities, selectedCity, onChange }: SearchableCity
               placeholder="Search cities..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
               autoFocus
             />
           </div>
           <div className="max-h-60 overflow-y-auto space-y-0.5 scrollbar-thin">
-            <button
-              type="button"
-              onClick={() => {
-                onChange('All')
-                setIsOpen(false)
-                setSearch('')
-              }}
-              className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
-                selectedCity === 'All'
-                  ? 'bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
-                  : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-              }`}
-            >
-              All cities
-            </button>
+            {(!search.trim() || 'all cities'.includes(search.trim().toLowerCase())) && (
+              <button
+                type="button"
+                onClick={() => {
+                  onChange('All')
+                  setIsOpen(false)
+                  setSearch('')
+                }}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-200 ${
+                  selectedCity === 'All'
+                    ? 'bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                All cities
+              </button>
+            )}
+
+            {!hasExactMatch && search.trim() && (
+              <button
+                type="button"
+                onClick={() => handleSelect(search.trim())}
+                className="w-full text-left px-3 py-2 text-xs font-semibold rounded-xl text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 dark:hover:bg-brand-500/20 transition-all duration-200 flex items-center justify-between border border-dashed border-brand-300/50 dark:border-brand-500/30"
+              >
+                <span>Use "{search.trim()}"</span>
+                <span className="text-[9px] text-slate-400 font-normal uppercase tracking-wider">Press Enter</span>
+              </button>
+            )}
+
             {filteredCities.map((city) => (
               <button
                 key={city}
                 type="button"
-                onClick={() => {
-                  onChange(city)
-                  setIsOpen(false)
-                  setSearch('')
-                }}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
+                onClick={() => handleSelect(city)}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-200 ${
                   selectedCity === city
                     ? 'bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -201,8 +267,9 @@ function SearchableCitySelect({ cities, selectedCity, onChange }: SearchableCity
                 {city}
               </button>
             ))}
+
             {filteredCities.length === 0 && (
-              <p className="text-[11px] text-slate-400 p-2 text-center">No cities found</p>
+              <p className="text-[11px] text-slate-400 p-2 text-center">No city found</p>
             )}
           </div>
         </div>
@@ -271,7 +338,7 @@ export function ExplorePage() {
         if (!matchesCategory) return false
       }
 
-      if (deferredFilters.city !== 'All' && user.city !== deferredFilters.city) {
+      if (deferredFilters.city !== 'All' && (user.city || '').toLowerCase() !== deferredFilters.city.toLowerCase()) {
         return false
       }
 

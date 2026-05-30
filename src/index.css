@@ -74,11 +74,7 @@ body {
   }
 }
 
-@layer utilities {
-  .page-shell {
-    @apply mx-auto w-full max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10;
-  }
-
+@layer components {
   .glass-panel {
     @apply rounded-[1.75rem] border border-white/40 bg-white/80 shadow-soft backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/80;
   }
@@ -89,6 +85,12 @@ body {
 
   .premium-input {
     @apply w-full rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-brand-300 focus:ring-4 focus:ring-brand-500/10 dark:border-slate-700/80 dark:bg-slate-950/70 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-400;
+  }
+}
+
+@layer utilities {
+  .page-shell {
+    @apply mx-auto w-full max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10;
   }
 
   .dot-grid {
