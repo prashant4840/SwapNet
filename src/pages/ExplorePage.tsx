@@ -105,8 +105,6 @@ export function ExplorePage() {
   const deferredFilters = useDeferredValue(filters)
 
   const memoizedResults = useMemo(() => {
-    if (!currentUser) return []
-    
     const deferredResults = currentUser
       ? state.users
           .filter((user) => user.id !== currentUser.id)
@@ -114,7 +112,20 @@ export function ExplorePage() {
             user,
             match: computeMatchResult(currentUser, user),
           }))
-      : []
+      : state.users.map((user) => ({
+          user,
+          match: {
+            score: 0,
+            matchType: 'partial' as const,
+            isPerfect: false,
+            matchesOffering: [],
+            matchesLearning: [],
+            reasons: ['Sign in to see match reasons.'],
+            sharedAvailability: [],
+            locationBonus: false,
+            ratingBoost: false,
+          },
+        }))
 
     return deferredResults.filter(({ user, match }: { user: UserProfile; match: MatchResult }) => {
       // Query filtering
