@@ -4,6 +4,9 @@ import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import type { SwapRequest, ConnectionRequest, SwapRequestPayload, ConnectionRequestPayload, UserProfile } from '@/types'
 import { createId } from '@/utils/app'
+import { trackSwapRequest, trackSwapAccepted } from '@/services/analytics'
+import { sendSwapRequestReceivedEmail, sendSwapRequestAcceptedEmail } from '@/services/email'
+import { captureException } from '@/services/errorTracking'
 
 interface RequestContextValue {
   swapRequests: SwapRequest[]
@@ -241,20 +244,27 @@ export function RequestProvider({
         const wantedSkill = currentUser.skillsWanted.find(
           (s: { id: string; name: string }) => s.id === payload.wantedSkillId
         )
-        void supabase.functions.invoke('notify-swap-request', {
-          body: {
-            receiverEmail: receiver.email,
-            receiverName: receiver.name,
-            senderName: currentUser.name,
-            skillOffered: offeredSkill?.name ?? 'a skill',
-            skillWanted: wantedSkill?.name ?? 'a skill',
-          },
+        void sendSwapRequestReceivedEmail({
+          receiverEmail: receiver.email,
+          receiverName: receiver.name,
+          senderName: currentUser.name,
+          skillOffered: offeredSkill?.name ?? 'a skill',
+          skillWanted: wantedSkill?.name ?? 'a skill',
         })
       }
+
+      // Trigger analytics tracking
+      trackSwapRequest(
+        currentUser.id,
+        receiver.id,
+        currentUser.skillsOffered.find((s: { id: string; name: string }) => s.id === payload.offeredSkillId)?.name ?? 'a skill',
+        currentUser.skillsWanted.find((s: { id: string; name: string }) => s.id === payload.wantedSkillId)?.name ?? 'a skill'
+      )
 
       return true
     } catch (error) {
       console.error('Failed to send swap request:', error)
+      captureException(error, { context: 'sendSwapRequest', payload })
       toast.error('Failed to send request. Try again.')
       return false
     }
@@ -352,9 +362,22 @@ export function RequestProvider({
         return false
       }
 
+      const swap = stateRef.current.swapRequests.find((s) => s.id === requestId)
+      if (swap && status === 'Accepted') {
+        const partner = (stateRef.current.users as UserProfile[]).find((u) => u.id === swap.senderId)
+        if (partner && partner.email) {
+          void sendSwapRequestAcceptedEmail({
+            receiverEmail: partner.email,
+            receiverName: partner.name,
+            senderName: currentUser?.name || 'A user',
+          })
+        }
+        trackSwapAccepted(requestId, swap.senderId, swap.receiverId)
+      }
+
       setSwapRequests((current) =>
-        current.map((swap) =>
-          swap.id === requestId ? { ...swap, status, updatedAt: new Date().toISOString() } : swap,
+        current.map((s) =>
+          s.id === requestId ? { ...s, status, updatedAt: new Date().toISOString() } : s,
         ),
       )
 
@@ -362,10 +385,11 @@ export function RequestProvider({
       return true
     } catch (error) {
       console.error('Failed to respond to swap request:', error)
+      captureException(error, { context: 'respondToSwapRequest', requestId, status })
       toast.error('Failed to respond to request.')
       return false
     }
-  }, [])
+  }, [currentUser])
 
   const respondToConnectionRequest = useCallback(async (requestId: string, status: 'Accepted' | 'Declined'): Promise<boolean> => {
     if (!supabase) return false

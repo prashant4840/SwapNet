@@ -457,3 +457,78 @@ using (
 alter table public.abuse_reports 
 add column if not exists status text not null default 'pending'
 check (status in ('pending', 'dismissed', 'banned'));
+
+-- ── Rate Limiting Triggers ───────────────────────────────────
+
+create or replace function public.enforce_rate_limits()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  recent_count integer;
+begin
+  -- Bypass checking if not from a postgrest authenticated transaction
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  if tg_table_name = 'posts' then
+    select count(*) into recent_count from public.posts
+    where user_id = auth.uid() and created_at > now() - interval '30 seconds';
+    if recent_count > 0 then
+      raise exception 'Rate limit exceeded. Please wait 30 seconds between posts.';
+    end if;
+  elsif tg_table_name = 'swap_requests' then
+    select count(*) into recent_count from public.swap_requests
+    where sender_id = auth.uid() and created_at > now() - interval '10 seconds';
+    if recent_count > 0 then
+      raise exception 'Rate limit exceeded. Please wait 10 seconds between swap requests.';
+    end if;
+  elsif tg_table_name = 'connection_requests' then
+    select count(*) into recent_count from public.connection_requests
+    where sender_id = auth.uid() and created_at > now() - interval '10 seconds';
+    if recent_count > 0 then
+      raise exception 'Rate limit exceeded. Please wait 10 seconds between connection requests.';
+    end if;
+  elsif tg_table_name = 'reviews' then
+    select count(*) into recent_count from public.reviews
+    where reviewer_id = auth.uid() and created_at > now() - interval '10 seconds';
+    if recent_count > 0 then
+      raise exception 'Rate limit exceeded. Please wait 10 seconds between writing reviews.';
+    end if;
+  elsif tg_table_name = 'messages' then
+    select count(*) into recent_count from public.messages
+    where sender_id = auth.uid() and created_at > now() - interval '5 seconds';
+    if recent_count >= 3 then
+      raise exception 'Rate limit exceeded. Max 3 messages per 5 seconds.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists check_posts_rate_limit on public.posts;
+create trigger check_posts_rate_limit
+before insert on public.posts
+for each row execute function public.enforce_rate_limits();
+
+drop trigger if exists check_swap_requests_rate_limit on public.swap_requests;
+create trigger check_swap_requests_rate_limit
+before insert on public.swap_requests
+for each row execute function public.enforce_rate_limits();
+
+drop trigger if exists check_connection_requests_rate_limit on public.connection_requests;
+create trigger check_connection_requests_rate_limit
+before insert on public.connection_requests
+for each row execute function public.enforce_rate_limits();
+
+drop trigger if exists check_reviews_rate_limit on public.reviews;
+create trigger check_reviews_rate_limit
+before insert on public.reviews
+for each row execute function public.enforce_rate_limits();
+
+drop trigger if exists check_messages_rate_limit on public.messages;
+create trigger check_messages_rate_limit
+before insert on public.messages
+for each row execute function public.enforce_rate_limits();
