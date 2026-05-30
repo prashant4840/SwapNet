@@ -15,21 +15,53 @@ async function triggerEmailEdgeFunction(payload: EmailPayload): Promise<boolean>
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke('send-email', {
-      body: payload,
-    })
+    // 1. Insert into database email_queue to ensure durability and retry-ability
+    const { data: queueData, error: queueError } = await supabase
+      .from('email_queue')
+      .insert({
+        to_email: payload.toEmail,
+        to_name: payload.toName,
+        type: payload.type,
+        payload: payload,
+        status: 'pending',
+      })
+      .select('id')
+      .single()
 
-    if (error) {
-      throw error
+    if (queueError) {
+      throw queueError
     }
 
-    console.log('[Email Service] Email successfully triggered:', payload.type, data)
+    const queueId = queueData?.id
+
+    if (queueId) {
+      // 2. Dispatch background request to process this queue entry immediately
+      void supabase.functions.invoke('send-email', {
+        body: { queueId },
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('[Email Service] Async trigger error for queueId:', queueId, error)
+        } else {
+          console.log('[Email Service] Async trigger success for queueId:', queueId, data)
+        }
+      })
+    }
+
     return true
   } catch (err) {
-    captureException(err, { service: 'email-trigger', type: payload.type })
+    console.error('[Email Service] Queue insertion failed, falling back to direct invocation:', err)
+    captureException(err, { service: 'email-trigger-fallback', type: payload.type })
+    
+    // Direct legacy invocation fallback to protect core transaction
+    void supabase.functions.invoke('send-email', {
+      body: payload,
+    }).catch((fallbackErr) => {
+      console.error('[Email Service] Direct fallback invocation failed:', fallbackErr)
+    })
     return false
   }
 }
+
 
 export async function sendWelcomeEmail(email: string, name: string): Promise<boolean> {
   return triggerEmailEdgeFunction({
