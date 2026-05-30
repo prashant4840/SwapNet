@@ -62,19 +62,21 @@ export function resolveThreadContext(
   if (parsedThread?.kind === 'swap') {
     const swap = state.swapRequests.find((item) => item.id === parsedThread.sourceId)
     if (swap) {
+      const partnerId = swap.senderId === state.currentUserId ? swap.receiverId : swap.senderId
       return {
         threadKey: buildSwapThreadKey(swap.id),
         swapId: swap.id,
-        partnerId: swap.receiverId,
+        partnerId,
       }
     }
   } else if (parsedThread?.kind === 'connection') {
     const connection = state.connectionRequests.find((item) => item.id === parsedThread.sourceId)
     if (connection) {
+      const partnerId = connection.senderId === state.currentUserId ? connection.receiverId : connection.senderId
       return {
         threadKey: buildConnectionThreadKey(connection.id),
         connectionRequestId: connection.id,
-        partnerId: connection.receiverId,
+        partnerId,
       }
     }
   }
