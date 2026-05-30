@@ -41,7 +41,7 @@ export function AppShell() {
                 return (
                   <NavLink
                     className={cn(
-                      'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition',
+                      'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                       active
                         ? 'bg-indigo-600 text-white shadow-soft'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white',
@@ -57,7 +57,7 @@ export function AppShell() {
               <NavLink
                 className={({ isActive }) =>
                   cn(
-                    'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition',
+                    'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                     isActive
                       ? 'bg-indigo-600 text-white shadow-soft'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white',
@@ -86,7 +86,8 @@ export function AppShell() {
             />
 
             <NavLink
-              className="relative inline-flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white/70 text-slate-700 shadow-soft transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-indigo-400 dark:hover:text-indigo-200"
+              aria-label="Notifications"
+              className="relative inline-flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white/70 text-slate-700 shadow-soft transition hover:border-indigo-300 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-indigo-400 dark:hover:text-indigo-200"
               to="/notifications"
             >
               <Bell className="size-5" />
@@ -99,7 +100,7 @@ export function AppShell() {
 
             {currentUser ? (
               <details className="group relative">
-                <summary className="flex list-none cursor-pointer items-center gap-3 rounded-full border border-slate-200 bg-white/75 px-2 py-2 text-left shadow-soft transition hover:border-brand-300 dark:border-slate-700 dark:bg-slate-900/75">
+                <summary className="flex list-none cursor-pointer items-center gap-3 rounded-full border border-slate-200 bg-white/75 px-2 py-2 text-left shadow-soft transition hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-slate-700 dark:bg-slate-900/75">
                   <img
                     alt={currentUser.name}
                     className="size-10 rounded-full object-cover"
@@ -120,7 +121,7 @@ export function AppShell() {
                   <NavLink
                     className={({ isActive }) =>
                       cn(
-                        'flex flex-col items-center gap-1 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition',
+                        'flex flex-col items-center gap-1 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                         isActive
                           ? 'bg-indigo-600 text-white shadow-soft'
                           : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
@@ -134,7 +135,7 @@ export function AppShell() {
                   <NavLink
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition',
+                        'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                         isActive
                           ? 'bg-indigo-600 text-white shadow-soft'
                           : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
@@ -148,7 +149,7 @@ export function AppShell() {
                   <NavLink
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition',
+                        'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                         isActive
                           ? 'bg-indigo-600 text-white shadow-soft'
                           : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
@@ -160,7 +161,7 @@ export function AppShell() {
                     Settings
                   </NavLink>
                   <button
-                    className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                    className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:text-rose-300 dark:hover:bg-rose-500/10"
                     onClick={() => {
                       void logout()
                     }}
@@ -193,7 +194,7 @@ export function AppShell() {
             return (
               <NavLink
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-2xl py-2 text-[11px] font-semibold transition',
+                  'flex flex-col items-center gap-1 rounded-2xl py-2 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                   active
                     ? 'bg-slate-900 text-white shadow-soft dark:bg-white dark:text-slate-950'
                     : 'text-slate-500 dark:text-slate-300',
