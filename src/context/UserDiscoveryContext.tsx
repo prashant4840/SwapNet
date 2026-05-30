@@ -96,7 +96,7 @@ interface UserDiscoveryContextValue {
   topRatedUsers: UserProfile[]
 }
 
-const UserDiscoveryContext = createContext<UserDiscoveryContextValue | undefined>(undefined)
+export const UserDiscoveryContext = createContext<UserDiscoveryContextValue | undefined>(undefined)
 
 interface UserDiscoveryProviderProps extends PropsWithChildren {
   users?: UserProfile[]

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, useRef, useEffect, type PropsWithChildren } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import type { SwapRequest, ConnectionRequest, SwapRequestPayload, ConnectionRequestPayload, UserProfile } from '@/types'
@@ -28,7 +28,7 @@ interface RequestProviderProps extends PropsWithChildren {
 
 import { getSeedState } from '@/data/seed'
 import { isSupabaseConfigured } from '@/lib/supabase'
-import { useUserDiscovery } from './UserDiscoveryContext'
+import { UserDiscoveryContext } from './UserDiscoveryContext'
 
 export function RequestProvider({
   children,
@@ -38,13 +38,10 @@ export function RequestProvider({
   currentUser,
   users: initialUsers = [],
 }: RequestProviderProps) {
-  let discovery = null
-  try {
-    discovery = useUserDiscovery()
-  } catch {
-    // Safe fallback for isolated testing
-  }
-  const users = initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
+  const discovery = useContext(UserDiscoveryContext)
+  const users = useMemo(() => {
+    return initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
+  }, [initialUsers, discovery])
 
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>(() => {
     if (initialSwaps.length > 0) return initialSwaps

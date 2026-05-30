@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import type { ChatMessage, ChatMessageKind, MessageThread, SwapRequest, ConnectionRequest } from '@/types'
 import { mapChatRecord, dbFetchChatMessages, dbInsertChatMessage, resolveThreadContext } from './chatUtils'
 import { buildSwapThreadKey, buildConnectionThreadKey } from '@/utils/app'
-import { useUserDiscovery } from './UserDiscoveryContext'
+import { UserDiscoveryContext } from './UserDiscoveryContext'
 
 interface ChatContextValue {
   messages: ChatMessage[]
@@ -36,13 +36,10 @@ export function ChatProvider({
   connectionRequests = [],
   users: initialUsers = [],
 }: ChatProviderProps) {
-  let discovery = null
-  try {
-    discovery = useUserDiscovery()
-  } catch {
-    // Safe fallback for isolated testing
-  }
-  const users = initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
+  const discovery = useContext(UserDiscoveryContext)
+  const users = useMemo(() => {
+    return initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
+  }, [initialUsers, discovery])
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
 
   const messageThreads = useMemo<MessageThread[]>(() => {
