@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { ButtonLink } from '@/components/common/ButtonLink'
@@ -178,7 +179,15 @@ export function PostPage() {
               <EmptyState
                 title="Sign in to publish a post"
                 description="The board is public, but creating a request requires a profile."
-                action={<ButtonLink to="/auth">Join SwapNet</ButtonLink>}
+                action={
+                  <ButtonLink
+                    to="/auth"
+                    className="rounded-full px-8 py-3.5 shadow-glow hover:shadow-brand-500/30 dark:hover:shadow-brand-500/20 active:scale-95 transition-all duration-300 group inline-flex items-center gap-2"
+                  >
+                    Join the Community
+                    <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+                  </ButtonLink>
+                }
               />
             </div>
           )}

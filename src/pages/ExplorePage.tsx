@@ -1,6 +1,7 @@
-import { useDeferredValue, useState, useEffect, startTransition, type ReactNode, useMemo } from 'react'
+import { useDeferredValue, useState, useEffect, startTransition, type ReactNode, useMemo, useRef } from 'react'
 import {
   ArrowUpDown,
+  ChevronDown,
   MapPin,
   RefreshCw,
   Search,
@@ -92,6 +93,123 @@ function ToggleButton({
   )
 }
 
+const CITIES_LIST = [
+  'Remote',
+  'Delhi',
+  'Mumbai',
+  'Bangalore',
+  'Hyderabad',
+  'Pune',
+  'Chennai',
+  'Kolkata',
+  'Ahmedabad',
+  'Jaipur',
+  'Lucknow',
+  'Noida',
+  'Gurugram',
+  'Chandigarh',
+  'Aligarh',
+]
+
+interface SearchableCitySelectProps {
+  cities: string[]
+  selectedCity: string
+  onChange: (city: string) => void
+}
+
+function SearchableCitySelect({ cities, selectedCity, onChange }: SearchableCitySelectProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const filteredCities = useMemo(() => {
+    return cities.filter((city) =>
+      city.toLowerCase().includes(search.trim().toLowerCase())
+    )
+  }, [cities, search])
+
+  return (
+    <div className="relative w-full" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="premium-input w-full rounded-[1.5rem] px-4 py-3 text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-brand-500/60"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className="truncate">
+          {selectedCity === 'All' ? 'All cities' : selectedCity}
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-slate-400" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 mt-2 z-50 rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              className="premium-input w-full rounded-xl py-1.5 pl-9 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/60"
+              placeholder="Search cities..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="max-h-60 overflow-y-auto space-y-0.5 scrollbar-thin">
+            <button
+              type="button"
+              onClick={() => {
+                onChange('All')
+                setIsOpen(false)
+                setSearch('')
+              }}
+              className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
+                selectedCity === 'All'
+                  ? 'bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              All cities
+            </button>
+            {filteredCities.map((city) => (
+              <button
+                key={city}
+                type="button"
+                onClick={() => {
+                  onChange(city)
+                  setIsOpen(false)
+                  setSearch('')
+                }}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
+                  selectedCity === city
+                    ? 'bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                {city}
+              </button>
+            ))}
+            {filteredCities.length === 0 && (
+              <p className="text-[11px] text-slate-400 p-2 text-center">No cities found</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function ExplorePage() {
   useDocumentMetadata({
     title: 'Explore Community',
@@ -108,6 +226,11 @@ export function ExplorePage() {
   const query = debouncedQuery.trim().toLowerCase()
 
   const deferredFilters = useDeferredValue(filters)
+
+  const cities = useMemo(() => {
+    const dbCities = uniqueCities(state.users)
+    return Array.from(new Set([...CITIES_LIST, ...dbCities])).sort()
+  }, [state.users])
 
   const memoizedResults = useMemo(() => {
     const deferredResults = currentUser
@@ -255,7 +378,7 @@ export function ExplorePage() {
                 <Badge tone="brand">Smart Match Feed</Badge>
                 <div className="flex items-center gap-4">
                   <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
-                    Discover people you can actually learn with.
+                    Find the right people to learn from and teach.
                   </h1>
                   <Button
                     disabled={isRefreshing || loading}
@@ -268,8 +391,7 @@ export function ExplorePage() {
                   </Button>
                 </div>
                 <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base">
-                  Find people whose skills complement yours. Results are sorted by
-                  compatibility, availability, and proximity.
+                  Connect with learners and mentors based on skills, interests, availability, and location.
                 </p>
               </div>
 
@@ -338,21 +460,14 @@ export function ExplorePage() {
                 ))}
               </select>
 
-              <select
-                className="premium-input rounded-[1.5rem] px-4 py-3"
-                onChange={(event) => {
+              <SearchableCitySelect
+                cities={cities}
+                selectedCity={filters.city}
+                onChange={(city) => {
                   setPage(1)
-                  setFilters((current) => ({ ...current, city: event.target.value }))
+                  setFilters((current) => ({ ...current, city }))
                 }}
-                value={filters.city}
-              >
-                <option value="All">All cities</option>
-                {uniqueCities(state.users).map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
-              </select>
+              />
 
               <select
                 className="premium-input rounded-[1.5rem] px-4 py-3"

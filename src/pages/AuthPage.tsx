@@ -113,15 +113,19 @@ export function AuthPage() {
 
             <div className="mt-10 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
               <div className="rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/70">
-                1,200+ active learners
+                Skill-based matching
               </div>
 
               <div className="rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/70">
-                40+ skill categories
+                Peer-to-peer learning
               </div>
 
               <div className="rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/70">
-                Real peer-to-peer learning
+                Real skill exchanges
+              </div>
+
+              <div className="rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/70">
+                Community-driven growth
               </div>
             </div>
           </div>
