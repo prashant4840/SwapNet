@@ -177,7 +177,7 @@ export function ProfilePage() {
           <div className="bg-gradient-to-r from-brand-600 via-brand-500 to-tealish-500 px-6 py-10 text-white sm:px-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <img alt={user.name} className="size-28 rounded-[2rem] object-cover ring-4 ring-white/30" src={user.photo} />
+                <img alt={user.name} className="size-28 rounded-[2rem] object-cover ring-4 ring-white/30" src={user.photo} decoding="async" loading="eager" />
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-3xl font-black tracking-tight">{user.name}</h1>
@@ -310,6 +310,8 @@ export function ProfilePage() {
                               alt={review.reviewer.name}
                               className="size-10 rounded-2xl object-cover"
                               src={review.reviewer.photo}
+                              loading="lazy"
+                              decoding="async"
                             />
                             <div>
                               <p className="font-semibold text-slate-950 dark:text-white">

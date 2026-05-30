@@ -24,6 +24,8 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
             alt={user.name}
             className="size-16 rounded-3xl object-cover ring-4 ring-white/70 dark:ring-slate-800/80"
             src={user.photo}
+            loading="lazy"
+            decoding="async"
           />
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
