@@ -595,3 +595,18 @@ create policy admin_all_logs on public.error_logs
 create trigger set_email_queue_updated_at
 before update on public.email_queue
 for each row execute function public.set_updated_at();
+
+-- ── Platform Metrics View ────────────────────────────────────
+
+create or replace view public.platform_metrics as
+select
+  coalesce((select round(avg(rating)::numeric, 1) from public.reviews), 0.0) as average_rating,
+  (select count(*)::integer from public.swap_requests where status = 'Completed') as completed_swaps,
+  (select count(distinct lower(trim(skill_name)))::integer from (
+     select skill_name from public.skills_offered
+     union all
+     select skill_name from public.skills_wanted
+   ) as s
+  ) as tracked_skills;
+
+grant select on public.platform_metrics to anon, authenticated;

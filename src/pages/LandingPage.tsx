@@ -26,6 +26,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { useApp } from '@/context/AppContext'
 import { cn } from '@/utils/cn'
 import { computeMatchResult, formatRelativeTime } from '@/utils/app'
+import { fetchPlatformMetrics, subscribeToMetricsChanges, type PlatformMetrics } from '@/services/platformMetrics'
 
 type LandingLink = {
   kind: 'anchor' | 'route'
@@ -263,6 +264,105 @@ export function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [statsRef, statsVisible] = useEnteredViewport<HTMLDivElement>(0.35)
+
+  const [metrics, setMetrics] = useState<PlatformMetrics | null>(null)
+  const [metricsLoading, setMetricsLoading] = useState(true)
+  const [metricsError, setMetricsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadMetrics() {
+      try {
+        const data = await fetchPlatformMetrics()
+        if (active) {
+          setMetrics(data)
+          setMetricsError(null)
+          setMetricsLoading(false)
+        }
+      } catch (err) {
+        if (active) {
+          const message = err instanceof Error ? err.message : 'Failed to fetch metrics'
+          setMetricsError(message)
+          setMetricsLoading(false)
+        }
+      }
+    }
+
+    loadMetrics()
+
+    const unsubscribe = subscribeToMetricsChanges((updatedMetrics) => {
+      if (active) {
+        setMetrics(updatedMetrics)
+        setMetricsError(null)
+      }
+    })
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  const metricsData = useMemo(() => {
+    if (metricsLoading) {
+      return [
+        {
+          label: 'Loading rating...',
+          value: '...',
+          icon: Star,
+        },
+        {
+          label: 'Loading completed swaps...',
+          value: '...',
+          icon: MessageCircleMore,
+        },
+        {
+          label: 'Loading skills...',
+          value: '...',
+          icon: BriefcaseBusiness,
+        },
+      ]
+    }
+
+    if (metricsError || !metrics) {
+      return [
+        {
+          label: 'Data unavailable',
+          value: '—',
+          icon: Star,
+        },
+        {
+          label: 'Data unavailable',
+          value: '—',
+          icon: MessageCircleMore,
+        },
+        {
+          label: 'Data unavailable',
+          value: '—',
+          icon: BriefcaseBusiness,
+        },
+      ]
+    }
+
+    return [
+      {
+        label: metrics.averageRating === 0.0 ? 'No ratings yet' : 'Average community rating',
+        value: metrics.averageRating === 0.0 ? '0.0' : metrics.averageRating.toFixed(1),
+        icon: Star,
+      },
+      {
+        label: 'Completed swap sessions',
+        value: String(metrics.completedSwaps),
+        icon: MessageCircleMore,
+      },
+      {
+        label: 'Skills tracked across the platform',
+        value: String(metrics.trackedSkills),
+        icon: BriefcaseBusiness,
+      },
+    ]
+  }, [metrics, metricsLoading, metricsError])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -756,23 +856,7 @@ export function LandingPage() {
                 </h3>
               </div>
               <div className="grid gap-4">
-                {[
-                  {
-                    label: 'Average community rating',
-                    value: '4.8',
-                    icon: Star,
-                  },
-                  {
-                    label: 'Completed swap sessions',
-                    value: '240+',
-                    icon: MessageCircleMore,
-                  },
-                  {
-                    label: 'Skills tracked across the board',
-                    value: '120+',
-                    icon: BriefcaseBusiness,
-                  },
-                ].map((metric, index) => {
+                {metricsData.map((metric, index) => {
                   const Icon = metric.icon
                   return (
                     <motion.div
