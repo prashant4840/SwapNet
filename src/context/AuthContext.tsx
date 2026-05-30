@@ -7,6 +7,7 @@ import type { UserProfile, SignupPayload, ProfilePayload } from '@/types'
 import { sendWelcomeEmail } from '@/services/email'
 import { trackSignup, trackProfileCompleted } from '@/services/analytics'
 import { captureException, setUserContext, clearUserContext } from '@/services/errorTracking'
+import { monitoring } from '@/services/monitoring'
 
 // Local type definition for auth results
 interface AuthActionResult {
@@ -136,6 +137,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
           setCurrentUser(profile)
           onUserUpdate?.(profile)
           setUserContext(profile.id, profile.email, profile.username)
+          monitoring.setUser(profile.id, profile.email)
         }
       } catch (error) {
         console.error('Failed to initialize session:', error)
@@ -160,11 +162,13 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
           setCurrentUser(profile)
           onUserUpdate?.(profile)
           setUserContext(profile.id, profile.email, profile.username)
+          monitoring.setUser(profile.id, profile.email)
         })
       } else {
         setCurrentUser(null)
         onUserUpdate?.(null)
         clearUserContext()
+        monitoring.clearUser()
       }
     })
 
