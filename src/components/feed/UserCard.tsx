@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowUpRight, MapPin, MonitorPlay, ShieldCheck, Sparkles, Star, Zap } from 'lucide-react'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
+import { Avatar } from '@/components/common/Avatar'
 import { SkillChip } from '@/components/common/SkillChip'
 import { useApp } from '@/context/AppContext'
 import type { MatchResult, UserProfile } from '@/types'
@@ -20,12 +21,11 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
     <article className="group glass-panel flex h-full flex-col gap-5 p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(79,70,229,0.16)] dark:hover:shadow-[0_28px_70px_rgba(79,70,229,0.22)]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <img
-            alt={user.name}
-            className="size-16 rounded-3xl object-cover ring-4 ring-white/70 dark:ring-slate-800/80"
-            src={user.photo}
-            loading="lazy"
-            decoding="async"
+          <Avatar
+            fullName={user.name}
+            avatarUrl={user.photo}
+            size="size-16 rounded-3xl"
+            className="ring-4 ring-white/70 dark:ring-slate-800/80"
           />
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">

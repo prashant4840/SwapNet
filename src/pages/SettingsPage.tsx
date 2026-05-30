@@ -7,6 +7,7 @@ import { Button } from '@/components/common/Button'
 import { PageTransition } from '@/components/common/PageTransition'
 import { SectionTitle } from '@/components/common/SectionTitle'
 import { SkillChip } from '@/components/common/SkillChip'
+import { Avatar } from '@/components/common/Avatar'
 import { useApp } from '@/context/AppContext'
 import { skillCategories } from '@/data/skills'
 import type { AvailabilitySlot, LearningMode, SkillCategory, SkillEntry } from '@/types'
@@ -260,10 +261,11 @@ export function SettingsPage() {
                       onClick={handleAvatarClick}
                       type="button"
                     >
-                      <img
-                        alt={form.name}
-                        className="size-20 rounded-2xl object-cover ring-4 ring-slate-200 dark:ring-slate-700"
-                        src={form.photo}
+                      <Avatar
+                        avatarUrl={form.photo}
+                        fullName={form.name}
+                        size="size-20 rounded-2xl"
+                        className="ring-4 ring-slate-200 dark:ring-slate-700"
                       />
                       {isUploadingAvatar && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl">
@@ -538,7 +540,12 @@ export function SettingsPage() {
 
             <div className="mt-6 rounded-[2rem] bg-gradient-to-br from-brand-600 via-brand-500 to-tealish-500 p-6 text-white">
               <div className="flex items-center gap-4">
-                <img alt={form.name} className="size-20 rounded-[2rem] object-cover ring-4 ring-white/20" src={form.photo} />
+                <Avatar
+                  avatarUrl={form.photo}
+                  fullName={form.name}
+                  size="xl"
+                  className="ring-4 ring-white/20"
+                />
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-bold">{form.name}</h2>

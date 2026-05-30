@@ -3,6 +3,7 @@ import { CheckCircle2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/common/Button'
 import { SkillChip } from '@/components/common/SkillChip'
+import { Avatar } from '@/components/common/Avatar'
 import { supabase } from '@/lib/supabase'
 import type { SkillEntry, SwapRequest, UserProfile } from '@/types'
 
@@ -94,10 +95,10 @@ export function EndorseSkillsModal({
        <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <img
-                alt={partner.name}
-                className="size-12 rounded-2xl object-cover"
-                src={partner.photo}
+              <Avatar
+                fullName={partner.name}
+                avatarUrl={partner.photo}
+                size="size-12 rounded-2xl"
               />
               <div>
                 <h2 className="text-lg font-bold text-slate-950 dark:text-white">

@@ -16,6 +16,7 @@ import { ButtonLink } from '@/components/common/ButtonLink'
 import { EmptyState } from '@/components/common/EmptyState'
 import { PageTransition } from '@/components/common/PageTransition'
 import { SectionTitle } from '@/components/common/SectionTitle'
+import { Avatar } from '@/components/common/Avatar'
 import { SwapRequestModal } from '@/components/feed/SwapRequestModal'
 import { UserCard } from '@/components/feed/UserCard'
 import { useApp } from '@/context/AppContext'
@@ -598,10 +599,10 @@ export function ExplorePage() {
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <img
-                        alt={entry.name}
-                        className="size-14 rounded-3xl object-cover"
-                        src={entry.photo}
+                      <Avatar
+                        avatarUrl={entry.photo}
+                        fullName={entry.name}
+                        size="size-14 rounded-3xl"
                       />
                       <div>
                         <p className="font-semibold text-slate-950 dark:text-white">

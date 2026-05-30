@@ -13,6 +13,7 @@ import { PageTransition } from '@/components/common/PageTransition'
 import { RatingStars } from '@/components/common/RatingStars'
 import { SectionTitle } from '@/components/common/SectionTitle'
 import { SkillChip } from '@/components/common/SkillChip'
+import { Avatar } from '@/components/common/Avatar'
 import { SwapRequestModal } from '@/components/feed/SwapRequestModal'
 import { useApp, useShareProfile } from '@/context/AppContext'
 import { buildShareUrl, computeMatchResult, formatRelativeTime } from '@/utils/app'
@@ -177,7 +178,13 @@ export function ProfilePage() {
           <div className="bg-gradient-to-r from-brand-600 via-brand-500 to-tealish-500 px-6 py-10 text-white sm:px-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <img alt={user.name} className="size-28 rounded-[2rem] object-cover ring-4 ring-white/30" src={user.photo} decoding="async" loading="eager" />
+                <Avatar
+                  avatarUrl={user.photo}
+                  fullName={user.name}
+                  size="2xl"
+                  loading="eager"
+                  className="ring-4 ring-white/30"
+                />
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-3xl font-black tracking-tight">{user.name}</h1>
@@ -306,12 +313,10 @@ export function ProfilePage() {
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <img
-                              alt={review.reviewer.name}
-                              className="size-10 rounded-2xl object-cover"
-                              src={review.reviewer.photo}
-                              loading="lazy"
-                              decoding="async"
+                            <Avatar
+                              avatarUrl={review.reviewer.photo}
+                              fullName={review.reviewer.name}
+                              size="size-10 rounded-2xl"
                             />
                             <div>
                               <p className="font-semibold text-slate-950 dark:text-white">

@@ -24,6 +24,7 @@ import { ButtonLink } from '@/components/common/ButtonLink'
 import { EmptyState } from '@/components/common/EmptyState'
 import { PageTransition } from '@/components/common/PageTransition'
 import { SkillChip } from '@/components/common/SkillChip'
+import { Avatar } from '@/components/common/Avatar'
 import { useApp } from '@/context/AppContext'
 import { buildSwapThreadKey, formatRelativeTime, isRecentlyActive, parseThreadKey } from '@/utils/app'
 import { cn } from '@/utils/cn'
@@ -257,12 +258,11 @@ export function ChatPage() {
                     to={`/messages/${thread.id}`}
                   >
                     <div className="relative shrink-0">
-                      <img
-                        alt={threadPartner?.name}
-                        className="size-11 rounded-2xl object-cover ring-2 ring-white dark:ring-slate-800"
-                        src={threadPartner?.photo}
-                        loading="lazy"
-                        decoding="async"
+                      <Avatar
+                        avatarUrl={threadPartner?.photo}
+                        fullName={threadPartner?.name || 'Swap Partner'}
+                        size="size-11 rounded-2xl"
+                        className="ring-2 ring-white dark:ring-slate-800"
                       />
                       {isOnline ? (
                         <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900 animate-pulse" />
@@ -315,11 +315,10 @@ export function ChatPage() {
                   </button>
 
                   <div className="relative shrink-0">
-                    <img
-                      alt={partner.name}
-                      className="size-11 rounded-2xl object-cover"
-                      src={partner.photo}
-                      decoding="async"
+                    <Avatar
+                      avatarUrl={partner.photo}
+                      fullName={partner.name}
+                      size="size-11 rounded-2xl"
                     />
                     {isRecentlyActive(partner.lastActiveAt) ? (
                       <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
@@ -635,11 +634,11 @@ export function ChatPage() {
             {/* Profile Summary Card */}
             <div className="glass-panel p-6 border border-slate-200/60 dark:border-slate-800 space-y-4">
               <div className="flex items-center gap-3">
-                <img
-                  alt={partner.name}
-                  className="size-14 rounded-2xl object-cover ring-2 ring-brand-500/20"
-                  src={partner.photo}
-                  decoding="async"
+                <Avatar
+                  avatarUrl={partner.photo}
+                  fullName={partner.name}
+                  size="size-14 rounded-2xl"
+                  className="ring-2 ring-brand-500/20"
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-slate-900 dark:text-white truncate">{partner.name}</p>

@@ -4,6 +4,7 @@ import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { PageTransition } from '@/components/common/PageTransition'
 import { SectionTitle } from '@/components/common/SectionTitle'
+import { Avatar } from '@/components/common/Avatar'
 import { useApp } from '@/context/AppContext'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import toast from 'react-hot-toast'
@@ -308,19 +309,12 @@ export function AdminPage() {
                 >
                   <div className="flex items-start justify-between gap-6 mb-4">
                     <div className="flex items-start gap-4 flex-1 min-w-0">
-                      {reported.user?.photo ? (
-                        <img
-                          src={reported.user.photo}
-                          alt={reported.user.name}
-                          className="size-12 rounded-lg object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="size-12 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold">
-                            {reported.user?.name?.[0] || '?'}
-                          </span>
-                        </div>
-                      )}
+                      <Avatar
+                        avatarUrl={reported.user?.photo}
+                        fullName={reported.user?.name || 'Unknown User'}
+                        size="size-12 rounded-lg"
+                        className="flex-shrink-0"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-slate-950 dark:text-white truncate">

@@ -7,6 +7,7 @@ import { ButtonLink } from '@/components/common/ButtonLink'
 import { EmptyState } from '@/components/common/EmptyState'
 import { PageTransition } from '@/components/common/PageTransition'
 import { SectionTitle } from '@/components/common/SectionTitle'
+import { Avatar } from '@/components/common/Avatar'
 import { useApp } from '@/context/AppContext'
 import { skillCategories } from '@/data/skills'
 import type { LearningMode, SkillCategory, LookingForPost, UserProfile } from '@/types'
@@ -217,10 +218,10 @@ export function PostPage() {
                 <div className="glass-panel p-5" key={post.id}>
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-center gap-3">
-                      <img
-                        alt={author.name}
-                        className="size-12 rounded-3xl object-cover"
-                        src={author.photo}
+                      <Avatar
+                        avatarUrl={author.photo}
+                        fullName={author.name}
+                        size="size-12 rounded-3xl"
                       />
                       <div>
                         <p className="font-semibold text-slate-950 dark:text-white">

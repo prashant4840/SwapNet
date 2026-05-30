@@ -13,6 +13,7 @@ import {
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AppLogo } from '@/components/common/AppLogo'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
+import { Avatar } from '@/components/common/Avatar'
 import { useApp } from '@/context/AppContext'
 import { cn } from '@/utils/cn'
 
@@ -65,15 +66,12 @@ export function AppShell() {
                 }
                 to={profileRoute}
               >
-                {currentUser?.photo ? (
-                  <img
-                    src={currentUser.photo}
-                    alt={currentUser.name}
-                    className="size-7 rounded-xl object-cover ring-2 ring-white/20"
-                  />
-                ) : (
-                  <UserRound className="size-4" />
-                )}
+                <Avatar
+                  avatarUrl={currentUser?.photo}
+                  fullName={currentUser?.name || 'Profile'}
+                  size="size-7 rounded-xl"
+                  className="ring-2 ring-white/20"
+                />
                 <span>{currentUser?.name?.split(' ')[0] ?? 'Profile'}</span>
               </NavLink>
             </nav>
@@ -101,10 +99,10 @@ export function AppShell() {
             {currentUser ? (
               <details className="group relative">
                 <summary className="flex list-none cursor-pointer items-center gap-3 rounded-full border border-slate-200 bg-white/75 px-2 py-2 text-left shadow-soft transition hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-slate-700 dark:bg-slate-900/75">
-                  <img
-                    alt={currentUser.name}
-                    className="size-10 rounded-full object-cover"
-                    src={currentUser.photo}
+                  <Avatar
+                    avatarUrl={currentUser.photo}
+                    fullName={currentUser.name}
+                    size="size-10 rounded-full"
                   />
                   <div className="hidden pr-1 md:block">
                     <p className="text-sm font-semibold text-slate-950 dark:text-white">

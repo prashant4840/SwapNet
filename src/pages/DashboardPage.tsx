@@ -9,6 +9,7 @@ import { ChartFrame } from '@/components/dashboard/ChartFrame'
 import { EmptyState } from '@/components/common/EmptyState'
 import { PageTransition } from '@/components/common/PageTransition'
 import { SectionTitle } from '@/components/common/SectionTitle'
+import { Avatar } from '@/components/common/Avatar'
 import { SwapRequestModal } from '@/components/feed/SwapRequestModal'
 import { useApp } from '@/context/AppContext'
 import { formatRelativeTime, resolveSwapPartner } from '@/utils/app'
@@ -90,10 +91,10 @@ export function DashboardPage() {
                       >
                         <div className="flex flex-col gap-4">
                           <div className="flex items-center gap-3">
-                            <img
-                              alt={sender?.name}
-                              className="size-12 rounded-2xl object-cover"
-                              src={sender?.photo}
+                            <Avatar
+                              avatarUrl={sender?.photo}
+                              fullName={sender?.name || 'Sender'}
+                              size="size-12 rounded-2xl"
                             />
                             <div>
                               <p className="font-semibold text-slate-950 dark:text-white">
@@ -139,10 +140,10 @@ export function DashboardPage() {
                       >
                         <div className="flex flex-col gap-4">
                           <div className="flex items-center gap-3">
-                            <img
-                              alt={sender?.name}
-                              className="size-12 rounded-2xl object-cover"
-                              src={sender?.photo}
+                            <Avatar
+                              avatarUrl={sender?.photo}
+                              fullName={sender?.name || 'Sender'}
+                              size="size-12 rounded-2xl"
                             />
                             <div>
                               <div className="flex items-center gap-2">
@@ -211,10 +212,10 @@ export function DashboardPage() {
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <img
-                              alt={partner?.name}
-                              className="size-12 rounded-2xl object-cover"
-                              src={partner?.photo}
+                            <Avatar
+                              avatarUrl={partner?.photo}
+                              fullName={partner?.name || 'Partner'}
+                              size="size-12 rounded-2xl"
                             />
                             <div>
                               <p className="font-semibold text-slate-950 dark:text-white">
@@ -248,10 +249,10 @@ export function DashboardPage() {
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
-                              <img
-                                alt={partner?.name}
-                                className="size-12 rounded-2xl object-cover"
-                                src={partner?.photo}
+                              <Avatar
+                                avatarUrl={partner?.photo}
+                                fullName={partner?.name || 'Partner'}
+                                size="size-12 rounded-2xl"
                               />
                               <div>
                                 <p className="font-semibold text-slate-950 dark:text-white">
@@ -284,10 +285,10 @@ export function DashboardPage() {
                         key={connection.id}
                       >
                         <div className="flex items-center gap-3">
-                          <img
-                            alt={partner?.name}
-                            className="size-12 rounded-2xl object-cover"
-                            src={partner?.photo}
+                          <Avatar
+                            avatarUrl={partner?.photo}
+                            fullName={partner?.name || 'Partner'}
+                            size="size-12 rounded-2xl"
                           />
                           <div>
                             <p className="font-semibold text-slate-950 dark:text-white">
@@ -349,10 +350,10 @@ export function DashboardPage() {
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <img
-                          alt={match.name}
-                          className="size-12 rounded-2xl object-cover"
-                          src={match.photo}
+                        <Avatar
+                          avatarUrl={match.photo}
+                          fullName={match.name}
+                          size="size-12 rounded-2xl"
                         />
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -405,10 +406,11 @@ export function DashboardPage() {
           {/* User Profile Summary */}
           <div className="glass-panel p-6">
             <div className="flex items-center gap-4 mb-6">
-              <img
-                src={currentUser.photo}
-                alt={currentUser.name}
-                className="size-16 rounded-2xl object-cover ring-2 ring-white/20"
+              <Avatar
+                avatarUrl={currentUser.photo}
+                fullName={currentUser.name}
+                size="size-16 rounded-2xl"
+                className="ring-2 ring-white/20"
               />
               <div>
                 <p className="text-lg font-bold text-slate-950 dark:text-white">

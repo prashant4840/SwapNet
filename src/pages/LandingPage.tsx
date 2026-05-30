@@ -23,6 +23,7 @@ import { PageTransition } from '@/components/common/PageTransition'
 import { SectionTitle } from '@/components/common/SectionTitle'
 import { SkillChip } from '@/components/common/SkillChip'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
+import { Avatar } from '@/components/common/Avatar'
 import { useApp } from '@/context/AppContext'
 import { cn } from '@/utils/cn'
 import { computeMatchResult, formatRelativeTime } from '@/utils/app'
@@ -624,10 +625,10 @@ export function LandingPage() {
                     transition={{ duration: 7, ease: 'easeInOut', repeat: Infinity }}
                   >
                     <div className="flex items-center gap-3">
-                      <img
-                        alt={user.name}
-                        className="size-14 rounded-3xl object-cover"
-                        src={user.photo}
+                      <Avatar
+                        avatarUrl={user.photo}
+                        fullName={user.name}
+                        size="size-14 rounded-3xl"
                       />
                       <div>
                         <p className="font-semibold text-slate-950 dark:text-white">
@@ -675,10 +676,10 @@ export function LandingPage() {
                         key={user.id}
                       >
                         <div className="flex items-center gap-3">
-                          <img
-                            alt={user.name}
-                            className="size-11 rounded-2xl object-cover"
-                            src={user.photo}
+                          <Avatar
+                            avatarUrl={user.photo}
+                            fullName={user.name}
+                            size="size-11 rounded-2xl"
                           />
                           <div>
                             <p className="font-semibold text-slate-950 dark:text-white">
@@ -774,7 +775,11 @@ export function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                 >
                   <div className="flex items-center gap-3">
-                    <img alt={user.name} className="size-14 rounded-3xl object-cover" src={user.photo} />
+                    <Avatar
+                      avatarUrl={user.photo}
+                      fullName={user.name}
+                      size="size-14 rounded-3xl"
+                    />
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-slate-950 dark:text-white">{user.name}</h3>
@@ -823,10 +828,10 @@ export function LandingPage() {
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          <img
-                            alt={author?.name ?? 'Member'}
-                            className="size-10 rounded-2xl object-cover"
-                            src={author?.photo}
+                          <Avatar
+                            avatarUrl={author?.photo}
+                            fullName={author?.name ?? 'Member'}
+                            size="size-10 rounded-2xl"
                           />
                           <div>
                             <p className="font-semibold text-slate-950 dark:text-white">
@@ -934,10 +939,11 @@ export function LandingPage() {
 
                 <div className="flex flex-col gap-4 border-t border-amber-300/40 pt-6 dark:border-amber-300/15 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
-                    <img
-                      alt="Prashant Sharma"
-                      className="size-11 rounded-full border border-white/70 object-cover shadow-soft dark:border-slate-700"
-                      src={profileAvatarUrl}
+                    <Avatar
+                      avatarUrl={profileAvatarUrl}
+                      fullName="Prashant Sharma"
+                      size="size-11 rounded-full"
+                      className="border border-white/70 shadow-soft dark:border-slate-700"
                     />
                     <p className="text-sm text-slate-700 dark:text-slate-200">
                       Built by <span className="font-semibold text-slate-950 dark:text-white">Prashant Sharma</span>
