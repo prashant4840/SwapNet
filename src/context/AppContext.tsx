@@ -108,32 +108,60 @@ export function AppProvider({
   return (
     <AuthProvider allUsers={initialUsers}>
       <ThemeProvider>
-        <NotificationProvider currentUserId="">
-          <UserDiscoveryProvider users={initialUsers}>
-            <PostProvider posts={initialPosts}>
-              <ReviewProvider reviews={initialReviews}>
-                <ChatProvider
-                  messages={initialMessages}
-                  swapRequests={initialSwapRequests}
-                  connectionRequests={initialConnectionRequests}
-                  users={initialUsers}
-                >
-                  <RequestProvider
-                    swapRequests={initialSwapRequests}
-                    connectionRequests={initialConnectionRequests}
-                    users={initialUsers}
-                  >
-                    <AppContextProvider>
-                      {children}
-                    </AppContextProvider>
-                  </RequestProvider>
-                </ChatProvider>
-              </ReviewProvider>
-            </PostProvider>
-          </UserDiscoveryProvider>
-        </NotificationProvider>
+        <AppProvidersInner
+          initialUsers={initialUsers}
+          initialPosts={initialPosts}
+          initialReviews={initialReviews}
+          initialMessages={initialMessages}
+          initialSwapRequests={initialSwapRequests}
+          initialConnectionRequests={initialConnectionRequests}
+        >
+          {children}
+        </AppProvidersInner>
       </ThemeProvider>
     </AuthProvider>
+  )
+}
+
+function AppProvidersInner({
+  children,
+  initialUsers = [],
+  initialPosts = [],
+  initialReviews = [],
+  initialMessages = [],
+  initialSwapRequests = [],
+  initialConnectionRequests = [],
+}: AppProviderProps) {
+  const { currentUserId, currentUser } = useAuth()
+
+  return (
+    <NotificationProvider currentUserId={currentUserId}>
+      <UserDiscoveryProvider users={initialUsers} currentUser={currentUser}>
+        <PostProvider posts={initialPosts} currentUserId={currentUserId}>
+          <ReviewProvider reviews={initialReviews} currentUserId={currentUserId} swapRequests={initialSwapRequests}>
+            <ChatProvider
+              messages={initialMessages}
+              swapRequests={initialSwapRequests}
+              connectionRequests={initialConnectionRequests}
+              users={initialUsers}
+              currentUserId={currentUserId}
+            >
+              <RequestProvider
+                swapRequests={initialSwapRequests}
+                connectionRequests={initialConnectionRequests}
+                users={initialUsers}
+                currentUserId={currentUserId}
+                currentUser={currentUser}
+              >
+                <AppContextProvider>
+                  {children}
+                </AppContextProvider>
+              </RequestProvider>
+            </ChatProvider>
+          </ReviewProvider>
+        </PostProvider>
+      </UserDiscoveryProvider>
+    </NotificationProvider>
   )
 }
 
@@ -161,8 +189,14 @@ function AppContextProvider({ children }: PropsWithChildren) {
     loginWithGoogle: auth.loginWithGoogle,
     logout: auth.logout,
     updateProfile: auth.updateProfile,
-    getUserById: auth.getUserById,
-    getUserByUsername: auth.getUserByUsername,
+    getUserById: (userId: string) => {
+      if (auth.currentUser?.id === userId) return auth.currentUser
+      return discovery.users.find((u) => u.id === userId) ?? auth.getUserById(userId)
+    },
+    getUserByUsername: (username: string) => {
+      if (auth.currentUser?.username === username) return auth.currentUser
+      return discovery.users.find((u) => u.username === username) ?? auth.getUserByUsername(username)
+    },
     reportUser: auth.reportUser,
 
     // Notifications
