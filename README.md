@@ -151,10 +151,16 @@ SwapNet includes features that elevate it from a simple MVP to a secure, enterpr
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-**Developed by Prashant Sharma**
+## Maintainer
+
+Prashant Sharma
+
+Developer of SwapNet, a peer-to-peer skill exchange platform that connects learners and mentors through collaborative knowledge sharing.
 
 ## Contact
 
-For inquiries: `prashantsharma4849@gmail.com`
+For questions, feedback, or collaboration opportunities:
+
+- Email: prashantsharma4840@outlook.com
