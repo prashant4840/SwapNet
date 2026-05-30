@@ -39,6 +39,7 @@ export default {
       boxShadow: {
         glow: '0 20px 70px rgba(79, 70, 229, 0.18)',
         soft: '0 10px 30px rgba(15, 23, 42, 0.08)',
+        'glow-brand': '0 0 20px rgba(99, 102, 241, 0.25)',
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -54,9 +55,14 @@ export default {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-8px)' },
         },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
       },
       animation: {
         float: 'float 6s ease-in-out infinite',
+        shimmer: 'shimmer 1.5s ease-in-out infinite',
       },
     },
   },

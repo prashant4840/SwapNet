@@ -90,4 +90,23 @@ body {
   .premium-input {
     @apply w-full rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-brand-300 focus:ring-4 focus:ring-brand-500/10 dark:border-slate-700/80 dark:bg-slate-950/70 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-400;
   }
+
+  .dot-grid {
+    background-image: radial-gradient(rgba(99, 102, 241, 0.12) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .dark .dot-grid {
+    background-image: radial-gradient(rgba(165, 180, 252, 0.08) 1px, transparent 1px);
+  }
+
+  .hover-glow {
+    transition: box-shadow 0.3s ease;
+  }
+  .hover-glow:hover {
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.2);
+  }
+  .dark .hover-glow:hover {
+    box-shadow: 0 0 24px rgba(129, 140, 248, 0.18);
+  }
 }
