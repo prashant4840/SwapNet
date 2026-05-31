@@ -317,7 +317,7 @@ export function ChatPage() {
                   {/* Mobile Back Trigger */}
                   <button
                     onClick={() => navigate('/messages')}
-                    className="lg:hidden p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+                    className="lg:hidden p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
                     aria-label="Back to conversation list"
                   >
                     <ChevronLeft className="size-5" />
@@ -381,14 +381,14 @@ export function ChatPage() {
                       href={videoRoomUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white rounded-xl hover:bg-brand-700 transition"
+                      className="inline-flex items-center gap-1.5 bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white rounded-xl hover:bg-brand-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
                     >
                       <ExternalLink className="size-3.5" />
                       Join Room
                     </a>
                     <button
                       onClick={handleShareVideoLink}
-                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200 dark:border-slate-800 dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200 dark:border-slate-800 dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
                       type="button"
                     >
                       <SendHorizonal className="size-3.5 text-brand-500" />
@@ -396,7 +396,7 @@ export function ChatPage() {
                     </button>
                     <button
                       onClick={handleCopyVideoLink}
-                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200 dark:border-slate-800 dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200 dark:border-slate-800 dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
                       type="button"
                     >
                       <Copy className="size-3.5 text-slate-500" />
@@ -589,7 +589,7 @@ export function ChatPage() {
 
                 <div className="flex flex-1 items-end gap-2.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-900/60">
                   <button
-                    className="inline-flex size-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition"
+                    className="inline-flex size-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
                     onClick={() => setShowEmojiPicker((v) => !v)}
                     type="button"
                     title="Insert emoji"
@@ -597,7 +597,7 @@ export function ChatPage() {
                     <SmilePlus className="size-5" />
                   </button>
                   <button
-                    className="inline-flex size-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition"
+                    className="inline-flex size-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
                     onClick={() => fileInputRef.current?.click()}
                     type="button"
                     title="Attach file"

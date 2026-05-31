@@ -265,7 +265,7 @@ export function AdminPage() {
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto">
             <button
               onClick={() => setActiveTab('reports')}
-              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
                 activeTab === 'reports'
                   ? 'bg-white text-slate-900 shadow dark:bg-slate-700 dark:text-white'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
@@ -275,7 +275,7 @@ export function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab('emails')}
-              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
                 activeTab === 'emails'
                   ? 'bg-white text-slate-900 shadow dark:bg-slate-700 dark:text-white'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
@@ -285,7 +285,7 @@ export function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab('errors')}
-              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${
                 activeTab === 'errors'
                   ? 'bg-white text-slate-900 shadow dark:bg-slate-700 dark:text-white'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'

@@ -82,11 +82,9 @@ Below are E2E browser verification screenshots showing the platform layout:
 | **Landing Frame** <br> *Marketing and call-to-actions* | ![Landing Page](public/screenshots/landing.png) |
 | **User Discovery** <br> *Compatibility grid and filters* | ![Explore Feed](public/screenshots/explore.png) |
 | **Direct Messaging** <br> *Websocket chat threads* | ![Chat Window](public/screenshots/chat.png) |
-| **Admin Console** <br> *Log tracers and queue analytics* | ![Diagnostics Dashboard](public/screenshots/dashboard.png) |
+| **User Dashboard** <br> *Exchange progress tracking, charts, and requests* | ![User Dashboard](public/screenshots/dashboard.png) |
 | **Member Profile** <br> *Public resume and reviews list* | ![Member Profile](public/screenshots/profile.png) |
-
-<!-- | **Mobile Adaptability** <br> *Fully responsive viewport* | ![Mobile Feed](public/screenshots/mobile-explore.png) |
--->
+| **Mobile Adaptability** <br> *Fully responsive viewport* | ![Mobile Feed](public/screenshots/mobile-explore.png) |
 
 ---
 

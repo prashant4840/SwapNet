@@ -487,7 +487,7 @@ export function LandingPage() {
             <button
               aria-expanded={isMobileMenuOpen}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-              className="inline-flex size-11 items-center justify-center rounded-2xl border border-slate-200/70 bg-white/75 text-slate-700 shadow-soft transition-all duration-300 hover:scale-105 hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-brand-400 md:hidden"
+              className="inline-flex size-11 items-center justify-center rounded-2xl border border-slate-200/70 bg-white/75 text-slate-700 shadow-soft transition-all duration-300 hover:scale-105 hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 md:hidden"
               onClick={() => setIsMobileMenuOpen((current) => !current)}
               type="button"
             >
