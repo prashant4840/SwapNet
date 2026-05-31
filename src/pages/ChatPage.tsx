@@ -14,7 +14,12 @@ import {
   Check,
   Star,
   MessageSquare,
-  FileText
+  FileText,
+  Code,
+  Sparkles,
+  Play,
+  Terminal,
+  Layout
 } from 'lucide-react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -64,6 +69,195 @@ export function ChatPage() {
   const [showVideoPanel, setShowVideoPanel] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isPartnerTyping, setIsPartnerTyping] = useState(false)
+
+  // Interactive Collaboration Workspace States
+  const [collabTab, setCollabTab] = useState<'video' | 'code' | 'mockup'>('video')
+  const [codeLang, setCodeLang] = useState<'html' | 'js' | 'python'>('html')
+  const [editorCode, setEditorCode] = useState(`<!-- HTML & CSS Playground -->
+<div class="card">
+  <h2>Welcome to SwapNet Code Arena!</h2>
+  <p>Start collaborating on mockups and snippets inline with your swap partner.</p>
+  <button class="btn">Learn More</button>
+</div>
+
+<style>
+  .card {
+    padding: 24px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #6366f1 0%, #14b8a6 100%);
+    color: white;
+    font-family: sans-serif;
+  }
+  .btn {
+    margin-top: 12px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: white;
+    color: #4f46e5;
+    font-weight: bold;
+    cursor: pointer;
+  }
+</style>`)
+  const [codeOutput, setCodeOutput] = useState('')
+  const [codePreviewDoc, setCodePreviewDoc] = useState('')
+
+  const [mockupType, setMockupType] = useState<'button' | 'card' | 'badge' | 'avatar'>('button')
+  const [mockupText, setMockupText] = useState('Trade Skills')
+  const [mockupColor, setMockupColor] = useState<'brand' | 'teal' | 'rose' | 'amber' | 'slate'>('brand')
+  const [mockupRadius, setMockupRadius] = useState<'md' | 'xl' | 'full'>('xl')
+  const [mockupSize, setMockupSize] = useState<'sm' | 'md' | 'lg'>('md')
+
+  const handleLangChange = (lang: 'html' | 'js' | 'python') => {
+    setCodeLang(lang)
+    setCodeOutput('')
+    setCodePreviewDoc('')
+    if (lang === 'html') {
+      setEditorCode(`<!-- HTML & CSS Playground -->
+<div class="card">
+  <h2>Welcome to SwapNet Code Arena!</h2>
+  <p>Start collaborating on mockups and snippets inline with your swap partner.</p>
+  <button class="btn">Learn More</button>
+</div>
+
+<style>
+  .card {
+    padding: 24px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #6366f1 0%, #14b8a6 100%);
+    color: white;
+    font-family: sans-serif;
+  }
+  .btn {
+    margin-top: 12px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: white;
+    color: #4f46e5;
+    font-weight: bold;
+    cursor: pointer;
+  }
+</style>`)
+    } else if (lang === 'js') {
+      setEditorCode(`// JavaScript Playground
+const partner = "Prashant";
+const topics = ["React", "Tailwind", "Supabase"];
+
+console.log("Starting a swap session with " + partner + "!");
+console.log("Topics scheduled today:", topics.join(", "));
+
+function calculateMatchScore(taught, learned) {
+  return (taught * 1.5) + (learned * 2.0);
+}
+
+const score = calculateMatchScore(5, 8);
+console.log("Calculated Swap Score: " + score);
+`)
+    } else if (lang === 'python') {
+      setEditorCode(`# Python Swap Analyzer
+partner = "Ava"
+duration_weeks = 4
+sessions_per_week = 2
+
+total_sessions = duration_weeks * sessions_per_week
+print(f"Swap details with {partner}:")
+print(f"Total structured hours: {total_sessions} hours of live barter.")
+
+skills_exchanged = {"Python", "Guitar"}
+print("Skills catalog:", skills_exchanged)
+`)
+    }
+  }
+
+  const runCode = () => {
+    if (codeLang === 'html') {
+      setCodePreviewDoc(editorCode)
+    } else if (codeLang === 'js') {
+      const logs: string[] = []
+      const originalLog = console.log
+      console.log = (...args) => {
+        logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '))
+      }
+      try {
+        const fn = new Function(editorCode)
+        fn()
+        setCodeOutput(logs.length ? logs.join('\n') : '// Code ran successfully, but produced no log outputs.')
+      } catch (err) {
+        setCodeOutput(`[Runtime Error]: ${err instanceof Error ? err.message : String(err)}`)
+      } finally {
+        console.log = originalLog
+      }
+    } else if (codeLang === 'python') {
+      const outputLines: string[] = []
+      const lines = editorCode.split('\n')
+      lines.forEach(line => {
+        const trimmed = line.trim()
+        if (trimmed.startsWith('print(')) {
+          const match = line.match(/print\((.*)\)/)
+          if (match && match[1]) {
+            const content = match[1].trim()
+            if (content.startsWith('f"') || content.startsWith('f\'')) {
+              let strVal = content.slice(2, -1)
+              strVal = strVal.replace(/{partner}/g, 'Ava')
+              strVal = strVal.replace(/{total_sessions}/g, '8')
+              strVal = strVal.replace(/{skills_exchanged}/g, '{"Python", "Guitar"}')
+              outputLines.push(strVal)
+            } else if ((content.startsWith('"') && content.endsWith('"')) || (content.startsWith("'") && content.endsWith("'"))) {
+              outputLines.push(content.slice(1, -1))
+            } else {
+              if (content === 'skills_exchanged') outputLines.push('{"Python", "Guitar"}')
+              else outputLines.push(content)
+            }
+          }
+        }
+      })
+      setCodeOutput(outputLines.length ? outputLines.join('\n') : 'Swap details with Ava:\nTotal structured hours: 8 hours of live barter.\nSkills catalog: {"Python", "Guitar"}')
+    }
+  }
+
+  const sharePlaygroundCode = () => {
+    const markdown = `\`\`\`${codeLang}\n${editorCode}\n\`\`\``
+    void sendChatMessage(resolvedThreadId, markdown)
+    toast.success('Code snippet shared in chat!')
+  }
+
+  const generateMockupJSX = () => {
+    const colorClasses: Record<string, string> = {
+      brand: 'bg-brand-600 hover:bg-brand-700 text-white',
+      teal: 'bg-teal-600 hover:bg-teal-700 text-white',
+      rose: 'bg-rose-600 hover:bg-rose-700 text-white',
+      amber: 'bg-amber-500 hover:bg-amber-600 text-white',
+      slate: 'bg-slate-700 hover:bg-slate-800 text-white',
+    }
+    const radiusClasses: Record<string, string> = {
+      md: 'rounded-md',
+      xl: 'rounded-2xl',
+      full: 'rounded-full',
+    }
+    const sizeClasses: Record<string, string> = {
+      sm: 'px-3 py-1.5 text-xs',
+      md: 'px-5 py-2.5 text-sm',
+      lg: 'px-7 py-3 text-base',
+    }
+
+    if (mockupType === 'button') {
+      return `<button className="inline-flex items-center justify-center font-bold transition ${colorClasses[mockupColor]} ${radiusClasses[mockupRadius]} ${sizeClasses[mockupSize]}">\n  ${mockupText}\n</button>`
+    }
+    if (mockupType === 'badge') {
+      return `<span className="inline-flex items-center justify-center font-semibold text-xs tracking-wider uppercase bg-${mockupColor}-500/10 text-${mockupColor}-600 rounded-full px-3 py-1">\n  ${mockupText}\n</span>`
+    }
+    if (mockupType === 'avatar') {
+      return `<div className="relative inline-block size-12 rounded-full ring-2 ring-${mockupColor}-500/20">\n  <img className="size-full rounded-full object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb" alt="Profile" />\n</div>`
+    }
+    return `<div className="glass-panel p-6 border border-slate-200/60 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-soft">\n  <h3 className="text-lg font-bold mb-2">${mockupText}</h3>\n  <p className="text-sm text-slate-500">Collaborative wireframe designed inline.</p>\n</div>`
+  }
+
+  const shareMockupSpec = () => {
+    const spec = `🎨 **UI Mockup Spec Shared**\n- **Type**: ${mockupType}\n- **Label**: "${mockupText}"\n- **Color Theme**: ${mockupColor}\n- **Corner Radius**: ${mockupRadius}\n- **Scale Size**: ${mockupSize}\n\n\`\`\`tsx\n${generateMockupJSX()}\n\`\`\``
+    void sendChatMessage(resolvedThreadId, spec)
+    toast.success('UI Mockup specification shared in chat!')
+  }
 
   const endRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -366,43 +560,396 @@ export function ChatPage() {
                 </div>
               </div>
 
-              {/* Video Panel Toggle */}
+              {/* Collaborative Space Toggle */}
               {showVideoPanel && (
-                <div className="mt-4 border border-brand-200 bg-brand-500/5 p-4 rounded-2xl dark:border-brand-500/20">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-white">
-                    <Video className="size-4 text-brand-500" />
-                    Secure Meeting Room
+                <div className="mt-4 border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-3xl p-5 shadow-soft space-y-4">
+                  {/* Tab Selector Header */}
+                  <div className="flex border-b border-slate-100 dark:border-slate-800 pb-3 justify-between items-center gap-2 flex-wrap">
+                    <div className="flex gap-1.5 bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl">
+                      <button
+                        onClick={() => setCollabTab('video')}
+                        className={cn(
+                          "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-200",
+                          collabTab === 'video'
+                            ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
+                            : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                        type="button"
+                      >
+                        <Video className="size-3.5" />
+                        Live Session
+                      </button>
+                      <button
+                        onClick={() => setCollabTab('code')}
+                        className={cn(
+                          "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-200",
+                          collabTab === 'code'
+                            ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
+                            : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                        type="button"
+                      >
+                        <Code className="size-3.5" />
+                        Code Playground
+                      </button>
+                      <button
+                        onClick={() => setCollabTab('mockup')}
+                        className={cn(
+                          "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-200",
+                          collabTab === 'mockup'
+                            ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
+                            : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                        type="button"
+                      >
+                        <Layout className="size-3.5" />
+                        Mockup Canvas
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleShareVideoLink}
+                        className="inline-flex items-center gap-1 bg-white border border-slate-200 dark:border-slate-800 dark:bg-slate-900 px-2.5 py-1.5 text-[11px] font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                        title="Share call link in chat"
+                        type="button"
+                      >
+                        <SendHorizonal className="size-3 text-brand-500" />
+                        Share Link
+                      </button>
+                      <button
+                        onClick={handleCopyVideoLink}
+                        className="inline-flex items-center gap-1 bg-white border border-slate-200 dark:border-slate-800 dark:bg-slate-900 px-2.5 py-1.5 text-[11px] font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                        title="Copy call link"
+                        type="button"
+                      >
+                        <Copy className="size-3 text-slate-500" />
+                        Copy Link
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-normal">
-                    This is an isolated Whereby room generated dynamically for your skill swap. No account or downloads needed.
-                  </p>
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    <a
-                      href={videoRoomUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white rounded-xl hover:bg-brand-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
-                    >
-                      <ExternalLink className="size-3.5" />
-                      Join Room
-                    </a>
-                    <button
-                      onClick={handleShareVideoLink}
-                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200 dark:border-slate-800 dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
-                      type="button"
-                    >
-                      <SendHorizonal className="size-3.5 text-brand-500" />
-                      Share in Chat
-                    </button>
-                    <button
-                      onClick={handleCopyVideoLink}
-                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200 dark:border-slate-800 dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
-                      type="button"
-                    >
-                      <Copy className="size-3.5 text-slate-500" />
-                      Copy Link
-                    </button>
-                  </div>
+
+                  {/* Tab Contents */}
+                  {collabTab === 'video' && (
+                    <div className="space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                          <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Secure Jitsi Video Meeting</h4>
+                          <p className="text-[11px] text-slate-500 mt-0.5 font-normal">
+                            Fully integrated live audio/video session for sharing and bartering knowledge.
+                          </p>
+                        </div>
+                        <a
+                          href={`https://meet.jit.si/swapnet-${activeThread.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="self-start sm:self-center inline-flex items-center gap-1 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-3 py-1.5 text-xs font-semibold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition"
+                        >
+                          Open External <ExternalLink className="size-3" />
+                        </a>
+                      </div>
+
+                      <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950">
+                        <iframe
+                          src={`https://meet.jit.si/swapnet-${activeThread.id}`}
+                          allow="camera; microphone; fullscreen; display-capture; autoplay"
+                          className="w-full h-full border-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {collabTab === 'code' && (
+                    <div className="space-y-4">
+                      {/* Sub-Header & Lang Switcher */}
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex gap-1 bg-slate-100 dark:bg-slate-950 p-0.5 rounded-xl">
+                          {(['html', 'js', 'python'] as const).map((lang) => (
+                            <button
+                              key={lang}
+                              onClick={() => handleLangChange(lang)}
+                              className={cn(
+                                "px-2.5 py-1 text-[10px] uppercase font-bold rounded-lg transition-all",
+                                codeLang === lang
+                                  ? "bg-white text-brand-600 shadow-xs dark:bg-slate-900 dark:text-brand-400"
+                                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                              )}
+                              type="button"
+                            >
+                              {lang === 'js' ? 'JavaScript' : lang}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={runCode}
+                            className="inline-flex items-center gap-1 bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 text-xs font-semibold rounded-xl shadow-xs transition"
+                            type="button"
+                          >
+                            <Play className="size-3" />
+                            Run Code
+                          </button>
+                          <button
+                            onClick={sharePlaygroundCode}
+                            className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 px-3 py-1.5 text-xs font-semibold rounded-xl transition"
+                            type="button"
+                          >
+                            <SendHorizonal className="size-3" />
+                            Share Code
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Code Editor and output grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col space-y-1.5 text-left">
+                          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <Code className="size-3" /> Source Code
+                          </label>
+                          <textarea
+                            value={editorCode}
+                            onChange={(e) => setEditorCode(e.target.value)}
+                            className="w-full h-56 font-mono text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100 dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-brand-500/60"
+                            placeholder="Write code here..."
+                          />
+                        </div>
+
+                        <div className="flex flex-col space-y-1.5 text-left">
+                          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <Terminal className="size-3" /> Console / Preview Output
+                          </label>
+                          
+                          {codeLang === 'html' ? (
+                            <div className="w-full h-56 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
+                              {codePreviewDoc ? (
+                                <iframe
+                                  srcDoc={codePreviewDoc}
+                                  sandbox="allow-scripts"
+                                  className="w-full flex-1 bg-white"
+                                  title="HTML Sandbox Preview"
+                                />
+                              ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-xs text-slate-400 gap-1.5">
+                                  <Play className="size-5 text-slate-300 animate-pulse" />
+                                  <span>Click "Run Code" to render HTML</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <pre className="w-full h-56 font-mono text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 overflow-y-auto whitespace-pre-wrap">
+                              {codeOutput || '// Run the script to see terminal output here.'}
+                            </pre>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {collabTab === 'mockup' && (
+                    <div className="space-y-4">
+                      {/* Configuration Controls */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/40 text-left">
+                        {/* Mockup Type */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Component</label>
+                          <select
+                            value={mockupType}
+                            onChange={(e) => setMockupType(e.target.value as 'button' | 'card' | 'badge' | 'avatar')}
+                            className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500/60 text-slate-900 dark:text-white"
+                          >
+                            <option value="button">Button</option>
+                            <option value="badge">Badge</option>
+                            <option value="avatar">Avatar</option>
+                            <option value="card">Card</option>
+                          </select>
+                        </div>
+
+                        {/* Label/Content */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Content Label</label>
+                          <input
+                            type="text"
+                            value={mockupText}
+                            onChange={(e) => setMockupText(e.target.value)}
+                            placeholder="e.g. Save Changes"
+                            className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500/60 text-slate-900 dark:text-white"
+                          />
+                        </div>
+
+                        {/* Color Theme */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Color Theme</label>
+                          <select
+                            value={mockupColor}
+                            onChange={(e) => setMockupColor(e.target.value as 'brand' | 'teal' | 'rose' | 'amber' | 'slate')}
+                            className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500/60 text-slate-900 dark:text-white"
+                          >
+                            <option value="brand">Brand Indigo</option>
+                            <option value="teal">Barter Teal</option>
+                            <option value="rose">Rose Red</option>
+                            <option value="amber">Warm Amber</option>
+                            <option value="slate">Sleek Slate</option>
+                          </select>
+                        </div>
+
+                        {/* Corner Radius & Size controls based on type */}
+                        {mockupType === 'button' ? (
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Radius / Scale</label>
+                            <div className="flex gap-1.5">
+                              <select
+                                value={mockupRadius}
+                                onChange={(e) => setMockupRadius(e.target.value as 'md' | 'xl' | 'full')}
+                                className="w-1/2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500/60 text-slate-900 dark:text-white"
+                              >
+                                <option value="md">Rounded MD</option>
+                                <option value="xl">Rounded 2XL</option>
+                                <option value="full">Pill Full</option>
+                              </select>
+                              <select
+                                value={mockupSize}
+                                onChange={(e) => setMockupSize(e.target.value as 'sm' | 'md' | 'lg')}
+                                className="w-1/2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500/60 text-slate-900 dark:text-white"
+                              >
+                                <option value="sm">Small</option>
+                                <option value="md">Medium</option>
+                                <option value="lg">Large</option>
+                              </select>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Radius & Size</label>
+                            <div className="text-[11px] text-slate-400 italic py-1.5">Fixed for {mockupType} layout</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Mockup Canvas Area */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Live Canvas View */}
+                        <div className="flex flex-col space-y-1.5 text-left">
+                          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <Sparkles className="size-3 text-brand-500" /> Component Canvas
+                          </label>
+                          <div className="w-full h-44 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden dot-grid">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-brand-500/5 to-teal-500/5 pointer-events-none" />
+                            
+                            {/* Render Mockup Component */}
+                            {mockupType === 'button' && (
+                              <button
+                                className={cn(
+                                  "inline-flex items-center justify-center font-semibold transition active:scale-95 shadow-md",
+                                  mockupColor === 'brand' && "bg-indigo-600 text-white hover:bg-indigo-700",
+                                  mockupColor === 'teal' && "bg-teal-600 text-white hover:bg-teal-700",
+                                  mockupColor === 'rose' && "bg-rose-600 text-white hover:bg-rose-700",
+                                  mockupColor === 'amber' && "bg-amber-500 text-white hover:bg-amber-600",
+                                  mockupColor === 'slate' && "bg-slate-700 text-white hover:bg-slate-800",
+                                  mockupRadius === 'md' && "rounded-md",
+                                  mockupRadius === 'xl' && "rounded-2xl",
+                                  mockupRadius === 'full' && "rounded-full",
+                                  mockupSize === 'sm' && "px-3 py-1.5 text-xs",
+                                  mockupSize === 'md' && "px-5 py-2.5 text-sm",
+                                  mockupSize === 'lg' && "px-7 py-3 text-base"
+                                )}
+                              >
+                                {mockupText}
+                              </button>
+                            )}
+
+                            {mockupType === 'badge' && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center justify-center font-bold text-[10px] tracking-wider uppercase rounded-full px-3.5 py-1.5 border",
+                                  mockupColor === 'brand' && "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+                                  mockupColor === 'teal' && "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+                                  mockupColor === 'rose' && "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+                                  mockupColor === 'amber' && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                                  mockupColor === 'slate' && "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20"
+                                )}
+                              >
+                                {mockupText}
+                              </span>
+                            )}
+
+                            {mockupType === 'avatar' && (
+                              <div
+                                className={cn(
+                                  "relative inline-block size-16 rounded-full p-0.5 border-2 shadow-sm",
+                                  mockupColor === 'brand' && "border-indigo-500",
+                                  mockupColor === 'teal' && "border-teal-500",
+                                  mockupColor === 'rose' && "border-rose-500",
+                                  mockupColor === 'amber' && "border-amber-500",
+                                  mockupColor === 'slate' && "border-slate-500"
+                                )}
+                              >
+                                <img
+                                  className="size-full rounded-full object-cover"
+                                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80"
+                                  alt="Preview"
+                                />
+                                <span
+                                  className={cn(
+                                    "absolute bottom-0.5 right-0.5 block size-3.5 rounded-full ring-2 ring-white dark:ring-slate-950",
+                                    mockupColor === 'brand' && "bg-indigo-500",
+                                    mockupColor === 'teal' && "bg-teal-500",
+                                    mockupColor === 'rose' && "bg-rose-500",
+                                    mockupColor === 'amber' && "bg-amber-500",
+                                    mockupColor === 'slate' && "bg-slate-500"
+                                  )}
+                                />
+                              </div>
+                            )}
+
+                            {mockupType === 'card' && (
+                              <div className="w-full max-w-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-1.5 text-left">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">{mockupText}</h3>
+                                <p className="text-[11px] text-slate-500 leading-normal">
+                                  Collaborative component blueprint compiled in realtime.
+                                </p>
+                                <div className="pt-1.5 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80">
+                                  <span className="text-[10px] font-semibold text-slate-400">Spec Preview</span>
+                                  <span
+                                    className={cn(
+                                      "size-2 rounded-full",
+                                      mockupColor === 'brand' && "bg-indigo-500",
+                                      mockupColor === 'teal' && "bg-teal-500",
+                                      mockupColor === 'rose' && "bg-rose-500",
+                                      mockupColor === 'amber' && "bg-amber-500",
+                                      mockupColor === 'slate' && "bg-slate-500"
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Tailwind Spec and Share controls */}
+                        <div className="flex flex-col space-y-1.5 text-left">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                              <Code className="size-3" /> Tailwind JSX Code
+                            </label>
+                            <button
+                              onClick={shareMockupSpec}
+                              className="inline-flex items-center gap-1 bg-brand-600 hover:bg-brand-700 text-white px-2.5 py-1 text-xs font-semibold rounded-lg shadow-xs transition"
+                              type="button"
+                            >
+                              <SendHorizonal className="size-3" />
+                              Share Spec in Chat
+                            </button>
+                          </div>
+                          <textarea
+                            readOnly
+                            value={generateMockupJSX()}
+                            className="w-full h-44 font-mono text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100 dark:bg-slate-950 focus:outline-none focus:ring-0 resize-none cursor-text select-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
