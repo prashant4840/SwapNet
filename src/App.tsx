@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import {
   BrowserRouter,
@@ -11,6 +11,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { AppProvider, useApp } from '@/context/AppContext'
+import toast, { useToasterStore } from 'react-hot-toast'
 
 const LandingPage = lazy(async () =>
   import('@/pages/LandingPage').then((module) => ({ default: module.LandingPage })),
@@ -131,6 +132,20 @@ function AnimatedRoutes() {
   )
 }
 
+function ToastLimitTracker() {
+  const { toasts } = useToasterStore()
+
+  useEffect(() => {
+    const activeToasts = toasts.filter((t) => t.visible)
+    if (activeToasts.length > 3) {
+      const oldestToast = activeToasts[0]
+      toast.dismiss(oldestToast.id)
+    }
+  }, [toasts])
+
+  return null
+}
+
 function App() {
   return (
     <BrowserRouter
@@ -140,6 +155,7 @@ function App() {
       }}
     >
       <AppProvider>
+        <ToastLimitTracker />
         <AnimatedRoutes />
       </AppProvider>
     </BrowserRouter>

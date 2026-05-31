@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { ChatMessage, ChatMessageKind, SwapRequest, ConnectionRequest } from '@/types'
-import { buildSwapThreadKey, buildConnectionThreadKey, parseThreadKey, createId } from '@/utils/app'
+import { buildSwapThreadKey, buildConnectionThreadKey, parseThreadKey, createId, cleanId } from '@/utils/app'
 
 export function mapChatRecord(record: Record<string, unknown>): ChatMessage {
   return {
@@ -44,7 +44,7 @@ export async function dbInsertChatMessage(input: {
   const { data, error } = await supabase
     .from('messages')
     .insert({
-      id: createId('message'),
+      id: cleanId(createId('message')),
       thread_key: input.threadKey,
       swap_id: input.swapId ?? null,
       connection_request_id: input.connectionRequestId ?? null,

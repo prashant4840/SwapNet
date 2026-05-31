@@ -368,7 +368,7 @@ export function SettingsPage() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <select
-                    className="w-full sm:w-56 shrink-0 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                    className="premium-input h-12 w-full sm:w-56 shrink-0 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_1rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat pr-10"
                     onChange={(event) =>
                       setDraftOffered((current) => ({
                         ...current,
@@ -383,19 +383,21 @@ export function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                  <div className="flex-1 flex gap-2">
-                    <input
-                      className="flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
-                      onChange={(event) =>
-                        setDraftOffered((current) => ({ ...current, name: event.target.value }))
-                      }
-                      placeholder="Guitar"
-                      value={draftOffered.name}
-                    />
-                    <Button onClick={() => addSkill('skillsOffered', draftOffered)} type="button">
-                      Add
-                    </Button>
-                  </div>
+                  <input
+                    className="premium-input h-12 flex-1 min-w-0"
+                    onChange={(event) =>
+                      setDraftOffered((current) => ({ ...current, name: event.target.value }))
+                    }
+                    placeholder="Guitar"
+                    value={draftOffered.name}
+                  />
+                  <Button
+                    className="h-12 shrink-0 px-6"
+                    onClick={() => addSkill('skillsOffered', draftOffered)}
+                    type="button"
+                  >
+                    Add
+                  </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {form.skillsOffered.map((skill) => (
@@ -425,7 +427,7 @@ export function SettingsPage() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <select
-                    className="w-full sm:w-56 shrink-0 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                    className="premium-input h-12 w-full sm:w-56 shrink-0 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_1rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat pr-10"
                     onChange={(event) =>
                       setDraftWanted((current) => ({
                         ...current,
@@ -440,19 +442,21 @@ export function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                  <div className="flex-1 flex gap-2">
-                    <input
-                      className="flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
-                      onChange={(event) =>
-                        setDraftWanted((current) => ({ ...current, name: event.target.value }))
-                      }
-                      placeholder="Python"
-                      value={draftWanted.name}
-                    />
-                    <Button onClick={() => addSkill('skillsWanted', draftWanted)} type="button">
-                      Add
-                    </Button>
-                  </div>
+                  <input
+                    className="premium-input h-12 flex-1 min-w-0"
+                    onChange={(event) =>
+                      setDraftWanted((current) => ({ ...current, name: event.target.value }))
+                    }
+                    placeholder="Python"
+                    value={draftWanted.name}
+                  />
+                  <Button
+                    className="h-12 shrink-0 px-6"
+                    onClick={() => addSkill('skillsWanted', draftWanted)}
+                    type="button"
+                  >
+                    Add
+                  </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {form.skillsWanted.map((skill) => (

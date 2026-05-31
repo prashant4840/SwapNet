@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback, useRef, useEffect, us
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import type { SwapRequest, ConnectionRequest, SwapRequestPayload, ConnectionRequestPayload, UserProfile } from '@/types'
-import { createId } from '@/utils/app'
+import { createId, cleanId } from '@/utils/app'
 import { trackSwapRequest, trackSwapAccepted } from '@/services/analytics'
 import { sendSwapRequestReceivedEmail, sendSwapRequestAcceptedEmail } from '@/services/email'
 import { captureException } from '@/services/errorTracking'
@@ -202,7 +202,7 @@ export function RequestProvider({
       const { data, error } = await supabase
         .from('swap_requests')
         .insert({
-          id: newSwap.id,
+          id: cleanId(newSwap.id),
           sender_id: newSwap.senderId,
           receiver_id: newSwap.receiverId,
           message: newSwap.message,
@@ -313,7 +313,7 @@ export function RequestProvider({
       const { data, error } = await supabase
         .from('connection_requests')
         .insert({
-          id: newConnection.id,
+          id: cleanId(newConnection.id),
           sender_id: newConnection.senderId,
           receiver_id: newConnection.receiverId,
           message: newConnection.message,

@@ -28,6 +28,7 @@ vi.mock('@/utils/app', () => ({
     return null
   }),
   createId: vi.fn((prefix) => `${prefix}-123`),
+  cleanId: vi.fn((id) => id),
 }))
 
 const mockMessage: ChatMessage = {

@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback, useMemo, type PropsWi
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 import type { Review, SwapRequest } from '@/types'
-import { createId } from '@/utils/app'
+import { createId, cleanId } from '@/utils/app'
 
 interface ReviewContextValue {
   reviews: Review[]
@@ -180,7 +180,7 @@ export function ReviewProvider({
         const { data, error } = await supabase
           .from('reviews')
           .insert({
-            id: newReviewId,
+            id: cleanId(newReviewId),
             reviewer_id: currentUserId,
             reported_user_id: undefined, // ensure no collision
             reviewee_id: revieweeId,

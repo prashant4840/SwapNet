@@ -18,6 +18,15 @@ export function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`
 }
 
+export function cleanId(id: string): string {
+  const stripped = id.replace(/^(swap|connection|review|message)-/, '')
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (uuidRegex.test(stripped)) {
+    return stripped
+  }
+  return id
+}
+
 export function buildSwapThreadKey(swapId: string) {
   return `${SWAP_THREAD_PREFIX}${swapId}`
 }

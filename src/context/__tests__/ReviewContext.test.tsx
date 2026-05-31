@@ -39,6 +39,7 @@ vi.mock('react-hot-toast', () => ({
 // Mock utils
 vi.mock('@/utils/app', () => ({
   createId: vi.fn((prefix) => `${prefix}-123`),
+  cleanId: vi.fn((id) => id),
 }))
 
 const mockReview: Review = {
