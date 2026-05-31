@@ -1,5 +1,5 @@
 import { AvailabilityCalendar } from '@/components/common/AvailabilityCalendar'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Save, Sparkles, Trash2, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Badge } from '@/components/common/Badge'
@@ -12,6 +12,7 @@ import { useApp } from '@/context/AppContext'
 import { skillCategories } from '@/data/skills'
 import type { AvailabilitySlot, LearningMode, SkillCategory, SkillEntry } from '@/types'
 import { createId, profileCompletion } from '@/utils/app'
+import { UnifiedSelect } from '@/components/common/UnifiedSelect'
 
 const modeOptions: LearningMode[] = ['Online', 'In-person', 'Both']
 
@@ -77,6 +78,15 @@ export function SettingsPage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const categoryOptions = useMemo(
+    () =>
+      skillCategories.map((item) => ({
+        label: item.category,
+        value: item.category,
+      })),
+    []
+  )
 
   useEffect(() => {
     setForm(buildFormState(currentUser))
@@ -366,33 +376,30 @@ export function SettingsPage() {
                     Add any teachable skill, category first.
                   </p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <select
-                    className="premium-input h-12 w-full sm:w-56 shrink-0 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_1rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat pr-10"
-                    onChange={(event) =>
-                      setDraftOffered((current) => ({
-                        ...current,
-                        category: event.target.value as SkillCategory,
-                      }))
-                    }
-                    value={draftOffered.category}
-                  >
-                    {skillCategories.map((item) => (
-                      <option key={item.category} value={item.category}>
-                        {item.category}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                  <div className="w-full sm:w-48 shrink-0">
+                    <UnifiedSelect
+                      options={categoryOptions}
+                      value={draftOffered.category}
+                      placeholder="Category"
+                      onChange={(val) =>
+                        setDraftOffered((current) => ({
+                          ...current,
+                          category: val as SkillCategory,
+                        }))
+                      }
+                    />
+                  </div>
                   <input
-                    className="premium-input h-12 flex-1 min-w-0"
+                    className="premium-input h-10 !rounded-xl !py-2 flex-1 min-w-0"
                     onChange={(event) =>
                       setDraftOffered((current) => ({ ...current, name: event.target.value }))
                     }
-                    placeholder="Guitar"
+                    placeholder="Guitar, Web Design, Cooking..."
                     value={draftOffered.name}
                   />
                   <Button
-                    className="h-12 shrink-0 px-6"
+                    className="h-10 shrink-0 px-6 rounded-xl text-sm"
                     onClick={() => addSkill('skillsOffered', draftOffered)}
                     type="button"
                   >
@@ -425,33 +432,30 @@ export function SettingsPage() {
                     Add the next things you want to learn.
                   </p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <select
-                    className="premium-input h-12 w-full sm:w-56 shrink-0 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_1rem_center] bg-[size:1.25rem_1.25rem] bg-no-repeat pr-10"
-                    onChange={(event) =>
-                      setDraftWanted((current) => ({
-                        ...current,
-                        category: event.target.value as SkillCategory,
-                      }))
-                    }
-                    value={draftWanted.category}
-                  >
-                    {skillCategories.map((item) => (
-                      <option key={item.category} value={item.category}>
-                        {item.category}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                  <div className="w-full sm:w-48 shrink-0">
+                    <UnifiedSelect
+                      options={categoryOptions}
+                      value={draftWanted.category}
+                      placeholder="Category"
+                      onChange={(val) =>
+                        setDraftWanted((current) => ({
+                          ...current,
+                          category: val as SkillCategory,
+                        }))
+                      }
+                    />
+                  </div>
                   <input
-                    className="premium-input h-12 flex-1 min-w-0"
+                    className="premium-input h-10 !rounded-xl !py-2 flex-1 min-w-0"
                     onChange={(event) =>
                       setDraftWanted((current) => ({ ...current, name: event.target.value }))
                     }
-                    placeholder="Python"
+                    placeholder="Python, Public Speaking..."
                     value={draftWanted.name}
                   />
                   <Button
-                    className="h-12 shrink-0 px-6"
+                    className="h-10 shrink-0 px-6 rounded-xl text-sm"
                     onClick={() => addSkill('skillsWanted', draftWanted)}
                     type="button"
                   >

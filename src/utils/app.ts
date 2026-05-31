@@ -61,12 +61,18 @@ export function slugify(value: string) {
     .replace(/(^-|-$)/g, '')
 }
 
-export function formatRelativeTime(value: string) {
-  return formatDistanceToNowStrict(new Date(value), { addSuffix: true })
+export function formatRelativeTime(value: string | undefined | null) {
+  if (!value) return 'some time ago'
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return 'some time ago'
+  return formatDistanceToNowStrict(date, { addSuffix: true })
 }
 
-export function formatShortDate(value: string) {
-  return format(new Date(value), 'MMM d')
+export function formatShortDate(value: string | undefined | null) {
+  if (!value) return 'N/A'
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return 'N/A'
+  return format(date, 'MMM d')
 }
 
 export function normalizeSkillName(name: string) {

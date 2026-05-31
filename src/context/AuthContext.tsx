@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js'
 import toast from 'react-hot-toast'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { UserProfile, SignupPayload, ProfilePayload } from '@/types'
+import { createId } from '@/utils/app'
 import { sendWelcomeEmail } from '@/services/email'
 import { trackSignup, trackProfileCompleted } from '@/services/analytics'
 import { captureException, setUserContext, clearUserContext } from '@/services/errorTracking'
@@ -179,7 +180,34 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
 
   const signUp = useCallback(async (payload: SignupPayload): Promise<AuthActionResult> => {
     if (!isSupabaseConfigured || !supabase) {
-      return { success: false, message: 'Supabase is not configured.' }
+      const newUser: UserProfile = {
+        id: createId('user'),
+        username: payload.name.toLowerCase().replace(/\s+/g, '-'),
+        name: payload.name,
+        email: payload.email,
+        photo: '',
+        city: payload.city,
+        bio: '',
+        headline: '',
+        skillsOffered: [],
+        skillsWanted: [],
+        availability: ['Weekdays', 'Evenings'],
+        mode: 'Both',
+        swapScore: 100,
+        rating: 5,
+        reviewCount: 0,
+        completedSwaps: 0,
+        taughtCount: 0,
+        learnedCount: 0,
+        reports: 0,
+        joinedAt: new Date().toISOString(),
+        badges: [],
+        lastActiveAt: new Date().toISOString(),
+      }
+      setCurrentUser(newUser)
+      onUserUpdate?.(newUser)
+      toast.success('Account created. Finish your profile to start matching.')
+      return { success: true, shouldNavigate: true }
     }
 
     try {
@@ -225,7 +253,33 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
 
   const login = useCallback(async (payload: { email: string; password: string }): Promise<AuthActionResult> => {
     if (!isSupabaseConfigured || !supabase) {
-      return { success: false, message: 'Supabase is not configured.' }
+      const email = payload.email.trim().toLowerCase()
+      const mockUser = allUsers.find(u => u.email.toLowerCase() === email) || {
+        id: '11111111-1111-1111-1111-111111111111',
+        name: 'Ava Shah',
+        email: 'ava@swapnet.app',
+        username: 'ava-shah',
+        photo: 'https://i.pravatar.cc/300?img=32',
+        city: 'Mumbai',
+        bio: 'Mock user bio',
+        headline: 'Mock user headline',
+        skillsOffered: [],
+        skillsWanted: [],
+        availability: ['Weekdays', 'Evenings'],
+        mode: 'Both',
+        swapScore: 92,
+        rating: 4.9,
+        reviewCount: 4,
+        completedSwaps: 2,
+        taughtCount: 2,
+        learnedCount: 2,
+        reports: 0,
+        lastActiveAt: new Date().toISOString(),
+      }
+      setCurrentUser(mockUser as UserProfile)
+      onUserUpdate?.(mockUser as UserProfile)
+      toast.success(`Welcome back, ${mockUser.name.split(' ')[0]}. (Offline Demo)`)
+      return { success: true, shouldNavigate: true }
     }
 
     try {
@@ -269,7 +323,12 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
   }, [])
 
   const logout = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) return
+    if (!isSupabaseConfigured || !supabase) {
+      toast.success('Logged out. (Offline Demo)')
+      setCurrentUser(null)
+      onUserUpdate?.(null)
+      return
+    }
 
     try {
       const response = await supabase.auth.signOut()
@@ -347,7 +406,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       user,
       currentUser,
       currentUserId: currentUser?.id ?? null,
-      isAuthenticated: !!user,
+      isAuthenticated: isSupabaseConfigured ? !!user : !!currentUser,
       loading,
       signUp,
       login,

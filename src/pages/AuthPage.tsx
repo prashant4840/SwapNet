@@ -133,10 +133,8 @@ export function AuthPage() {
 
         <section className="glass-panel p-6 sm:p-8">
           {!isSupabaseConfigured ? (
-            <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-100">
-              Supabase auth is not configured. Add <code>VITE_SUPABASE_URL</code> and{' '}
-              <code>VITE_SUPABASE_ANON_KEY</code> in <code>.env</code> to enable sign-up and
-              sign-in.
+            <p className="rounded-2xl bg-brand-50 px-4 py-3 text-sm text-brand-800 dark:bg-brand-500/10 dark:text-brand-200">
+              ⚡ Running in offline <strong>Sandbox Demo Mode</strong>. You can sign up or log in with any email and password instantly to explore the full dashboard!
             </p>
           ) : null}
 

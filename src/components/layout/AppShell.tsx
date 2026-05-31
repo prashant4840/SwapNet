@@ -119,7 +119,7 @@ export function AppShell() {
                   <NavLink
                     className={({ isActive }) =>
                       cn(
-                        'flex flex-col items-center gap-1 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
+                        'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                         isActive
                           ? 'bg-indigo-600 text-white shadow-soft'
                           : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',

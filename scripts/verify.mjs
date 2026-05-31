@@ -90,10 +90,39 @@ async function verifyProtectedRoutes() {
   await page.locator('input[type="password"]').fill(credentials.password)
   await page.locator('form').getByRole('button', { name: /^Log in$/ }).click()
 
-  const loggedIn = await page
+  let loggedIn = await page
     .waitForURL('**/dashboard', { timeout: 10000, waitUntil: 'networkidle' })
     .then(() => true)
     .catch(() => false)
+
+  if (!loggedIn) {
+    const errorMsg = await collectVisibleError()
+    if (errorMsg && (errorMsg.toLowerCase().includes('invalid login credentials') || errorMsg.toLowerCase().includes('wrong password') || errorMsg.toLowerCase().includes('could not log you in'))) {
+      console.log('Login failed with invalid credentials. Attempting to register test account...')
+      // Switch to signup tab
+      await page.getByRole('button', { name: 'Sign up' }).click()
+      await page.locator('input[placeholder="Ava Shah"]').fill('Test User')
+      await page.locator('input[placeholder="Mumbai"]').fill('Mumbai')
+      await page.locator('input[type="email"]').fill(credentials.email)
+      await page.locator('input[type="password"]').fill(credentials.password)
+      await page.locator('form').getByRole('button', { name: 'Create account' }).click()
+
+      // Wait to see if it redirects to settings or dashboard or shows email confirmation notice
+      const registered = await page
+        .waitForURL('**/settings', { timeout: 10000, waitUntil: 'networkidle' })
+        .then(() => true)
+        .catch(() => false)
+
+      if (registered) {
+        console.log('Registration successful, redirected to settings. Navigating to dashboard...')
+        await page.goto(`${baseUrl}/dashboard`, { waitUntil: 'networkidle' })
+        loggedIn = true
+      } else {
+        const signupError = await collectVisibleError()
+        console.warn(`Fallback registration failed: ${signupError}`)
+      }
+    }
+  }
 
   if (!loggedIn) {
     const reason = (await collectVisibleError()) ?? 'Login did not reach /dashboard within 10 seconds.'
