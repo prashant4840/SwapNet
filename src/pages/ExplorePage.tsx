@@ -1,7 +1,6 @@
-import { useDeferredValue, useState, useEffect, startTransition, type ReactNode, useMemo, useRef } from 'react'
+import { useDeferredValue, useState, useEffect, startTransition, type ReactNode, useMemo } from 'react'
 import {
   ArrowUpDown,
-  ChevronDown,
   MapPin,
   RefreshCw,
   Search,
@@ -25,6 +24,8 @@ import type { FeedFilters, UserProfile, SkillEntry, MatchResult } from '@/types'
 import { computeMatchResult, uniqueCities } from '@/utils/app'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useDocumentMetadata } from '@/hooks/useDocumentMetadata'
+import { cn } from '@/utils/cn'
+import { UnifiedSelect } from '@/components/common/UnifiedSelect'
 
 const initialFilters: FeedFilters = {
   query: '',
@@ -114,169 +115,6 @@ const CITIES_LIST = [
   'Ahmedabad',
 ]
 
-interface SearchableCitySelectProps {
-  cities: string[]
-  selectedCity: string
-  onChange: (city: string) => void
-}
-
-function SearchableCitySelect({ cities, selectedCity, onChange }: SearchableCitySelectProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const mergedCities = useMemo(() => {
-    const unique = new Set<string>()
-    const result: string[] = []
-
-    cities.forEach((c) => {
-      const lower = c.trim().toLowerCase()
-      if (lower && lower !== 'all' && !unique.has(lower)) {
-        unique.add(lower)
-        result.push(c.trim())
-      }
-    })
-
-    const selLower = (selectedCity || '').trim().toLowerCase()
-    if (
-      selLower &&
-      selLower !== 'all' &&
-      selLower !== 'remote' &&
-      !unique.has(selLower)
-    ) {
-      unique.add(selLower)
-      result.push(selectedCity.trim())
-    }
-
-    return result.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-  }, [cities, selectedCity])
-
-  const filteredCities = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (!query) return mergedCities
-    return mergedCities.filter((city) =>
-      city.toLowerCase().includes(query)
-    )
-  }, [mergedCities, search])
-
-  const hasExactMatch = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (!query) return true
-    return mergedCities.some((city) => city.toLowerCase() === query)
-  }, [mergedCities, search])
-
-  const handleSelect = (city: string) => {
-    const exactMatch = mergedCities.find(
-      (c) => c.toLowerCase() === city.toLowerCase()
-    )
-    onChange(exactMatch || city)
-    setIsOpen(false)
-    setSearch('')
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const query = search.trim()
-      if (query) {
-        handleSelect(query)
-      }
-    }
-  }
-
-  return (
-    <div className="relative w-full" ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="premium-input w-full rounded-xl px-3 py-2 text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-brand-500/60 text-sm h-10"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
-        <span className="truncate">
-          {selectedCity === 'All' ? 'All cities' : selectedCity}
-        </span>
-        <ChevronDown className="size-4 shrink-0 text-slate-400" />
-      </button>
-
-      {isOpen && (
-        <div className="absolute left-0 right-0 mt-1 z-[99] rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col gap-1.5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              className="premium-input w-full rounded-xl py-1.5 pl-9 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/60"
-              placeholder="Search cities..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-            />
-          </div>
-          <div className="max-h-60 overflow-y-auto space-y-0.5 scrollbar-thin">
-            {(!search.trim() || 'all cities'.includes(search.trim().toLowerCase())) && (
-              <button
-                type="button"
-                onClick={() => {
-                  onChange('All')
-                  setIsOpen(false)
-                  setSearch('')
-                }}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-200 ${
-                  selectedCity === 'All'
-                    ? 'bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                All cities
-              </button>
-            )}
-
-            {!hasExactMatch && search.trim() && (
-              <button
-                type="button"
-                onClick={() => handleSelect(search.trim())}
-                className="w-full text-left px-3 py-2 text-xs font-semibold rounded-xl text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 dark:hover:bg-brand-500/20 transition-all duration-200 flex items-center justify-between border border-dashed border-brand-300/50 dark:border-brand-500/30"
-              >
-                <span>Use "{search.trim()}"</span>
-                <span className="text-[9px] text-slate-400 font-normal uppercase tracking-wider">Press Enter</span>
-              </button>
-            )}
-
-            {filteredCities.map((city) => (
-              <button
-                key={city}
-                type="button"
-                onClick={() => handleSelect(city)}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-200 ${
-                  selectedCity === city
-                    ? 'bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                {city}
-              </button>
-            ))}
-
-            {filteredCities.length === 0 && (
-              <p className="text-[11px] text-slate-400 p-2 text-center">No city found</p>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 export function ExplorePage() {
   useDocumentMetadata({
@@ -299,6 +137,49 @@ export function ExplorePage() {
     const dbCities = uniqueCities(state.users)
     return Array.from(new Set([...CITIES_LIST, ...dbCities])).sort()
   }, [state.users])
+
+  const cityOptions = useMemo(() => {
+    const unique = new Set<string>()
+    const result = [{ label: 'All cities', value: 'All' }]
+
+    cities.forEach((c) => {
+      const lower = c.trim().toLowerCase()
+      if (lower && lower !== 'all' && !unique.has(lower)) {
+        unique.add(lower)
+        result.push({
+          label: c.trim(),
+          value: c.trim(),
+        })
+      }
+    })
+
+    const sorted = result.slice(1).sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))
+    return [result[0], ...sorted]
+  }, [cities])
+
+  const categoryOptions = useMemo(() => {
+    return [
+      { label: 'All categories', value: 'All' },
+      ...skillCategories.map((entry) => ({
+        label: entry.category,
+        value: entry.category,
+      })),
+    ]
+  }, [])
+
+  const modeOptions = useMemo(() => [
+    { label: 'All modes', value: 'All' },
+    { label: 'Online', value: 'Online' },
+    { label: 'In-person', value: 'In-person' },
+    { label: 'Both', value: 'Both' },
+  ], [])
+
+  const ratingOptions = useMemo(() => [
+    { label: 'All ratings', value: 'All' },
+    { label: '3+ stars', value: '3+' },
+    { label: '4+ stars', value: '4+' },
+    { label: '4.5+ stars', value: '4.5+' },
+  ], [])
 
   const memoizedResults = useMemo(() => {
     const deferredResults = currentUser
@@ -444,20 +325,9 @@ export function ExplorePage() {
             <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
               <div className="max-w-3xl space-y-3">
                 <Badge tone="brand">Smart Match Feed</Badge>
-                <div className="flex items-center gap-4">
-                  <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
-                    Find the right people to learn from and teach.
-                  </h1>
-                  <Button
-                    disabled={isRefreshing || loading}
-                    onClick={handleRefresh}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </div>
+                <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
+                  Find the right people to learn from and teach.
+                </h1>
                 <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base">
                   Connect with learners and mentors based on skills, interests, availability, and location.
                 </p>
@@ -495,7 +365,7 @@ export function ExplorePage() {
               </div>
             </div>
 
-            <div className="relative grid gap-3 xl:grid-cols-[minmax(0,1.8fr)_repeat(4,minmax(0,1fr))]">
+            <div className="relative grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-[minmax(0,1.8fr)_repeat(5,minmax(0,1fr))] items-end">
               <label className="relative">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <input
@@ -509,67 +379,58 @@ export function ExplorePage() {
                 />
               </label>
 
-              <select
-                className="premium-input rounded-xl px-3 py-2 text-sm h-10 cursor-pointer"
-                onChange={(event) => {
-                  setPage(1)
-                  setFilters((current) => ({
-                    ...current,
-                    category: event.target.value as FeedFilters['category'],
-                  }))
-                }}
+              <UnifiedSelect
+                options={categoryOptions}
                 value={filters.category}
-              >
-                <option value="All">All categories</option>
-                {skillCategories.map((entry) => (
-                  <option key={entry.category} value={entry.category}>
-                    {entry.category}
-                  </option>
-                ))}
-              </select>
+                placeholder="All categories"
+                onChange={(val) => {
+                  setPage(1)
+                  setFilters((current) => ({ ...current, category: val as FeedFilters['category'] }))
+                }}
+              />
 
-              <SearchableCitySelect
-                cities={cities}
-                selectedCity={filters.city}
+              <UnifiedSelect
+                options={cityOptions}
+                value={filters.city}
+                placeholder="All cities"
+                showSearch
+                searchPlaceholder="Search cities..."
+                allowCustomInput
+                customInputLabel="Use custom city"
                 onChange={(city) => {
                   setPage(1)
                   setFilters((current) => ({ ...current, city }))
                 }}
               />
 
-              <select
-                className="premium-input rounded-xl px-3 py-2 text-sm h-10 cursor-pointer"
-                onChange={(event) => {
-                  setPage(1)
-                  setFilters((current) => ({
-                    ...current,
-                    mode: event.target.value as FeedFilters['mode'],
-                  }))
-                }}
+              <UnifiedSelect
+                options={modeOptions}
                 value={filters.mode}
-              >
-                <option value="All">All modes</option>
-                <option value="Online">Online</option>
-                <option value="In-person">In-person</option>
-                <option value="Both">Both</option>
-              </select>
-
-              <select
-                className="premium-input rounded-xl px-3 py-2 text-sm h-10 cursor-pointer"
-                onChange={(event) => {
+                placeholder="All modes"
+                onChange={(val) => {
                   setPage(1)
-                  setFilters((current) => ({
-                    ...current,
-                    rating: event.target.value as FeedFilters['rating'],
-                  }))
+                  setFilters((current) => ({ ...current, mode: val as FeedFilters['mode'] }))
                 }}
+              />
+
+              <UnifiedSelect
+                options={ratingOptions}
                 value={filters.rating}
+                placeholder="All ratings"
+                onChange={(val) => {
+                  setPage(1)
+                  setFilters((current) => ({ ...current, rating: val as FeedFilters['rating'] }))
+                }}
+              />
+
+              <Button
+                disabled={isRefreshing || loading}
+                onClick={handleRefresh}
+                className="w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-850 focus:outline-none focus:ring-2 focus:ring-brand-500/60 transition-all flex items-center justify-center gap-2 h-10 shrink-0"
               >
-                <option value="All">All ratings</option>
-                <option value="3+">3+ stars</option>
-                <option value="4+">4+ stars</option>
-                <option value="4.5+">4.5+ stars</option>
-              </select>
+                <RefreshCw className={cn("size-4 shrink-0 text-slate-500 dark:text-slate-400", isRefreshing && "animate-spin")} />
+                Refresh
+              </Button>
             </div>
 
             <div className="relative flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
