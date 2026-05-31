@@ -84,7 +84,9 @@ Below are E2E browser verification screenshots showing the platform layout:
 | **Direct Messaging** <br> *Websocket chat threads* | ![Chat Window](public/screenshots/chat.png) |
 | **User Dashboard** <br> *Exchange progress tracking, charts, and requests* | ![User Dashboard](public/screenshots/dashboard.png) |
 | **Member Profile** <br> *Public resume and reviews list* | ![Member Profile](public/screenshots/profile.png) |
-| **Mobile Adaptability** <br> *Fully responsive viewport* | ![Mobile Feed](public/screenshots/mobile-explore.png) |
+
+<!-- | **Mobile Adaptability** <br> *Fully responsive viewport* | ![Mobile Feed](public/screenshots/mobile-explore.png) |
+-->
 
 ---
 
