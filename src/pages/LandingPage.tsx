@@ -620,7 +620,7 @@ export function LandingPage() {
                 {featuredUsers.slice(0, 2).map((user, index) => (
                   <motion.article
                     animate={{ y: [0, index % 2 === 0 ? -6 : 6, 0] }}
-                    className={cn(landingPanelClass, 'rounded-[2rem] p-5')}
+                    className={cn(landingPanelClass, 'rounded-[2rem] p-6')}
                     key={user.id}
                     transition={{ duration: 7, ease: 'easeInOut', repeat: Infinity }}
                   >
@@ -657,7 +657,7 @@ export function LandingPage() {
                   </motion.article>
                 ))}
 
-                <article className={cn(landingPanelClass, 'rounded-[2rem] p-5 sm:col-span-2')}>
+                <article className={cn(landingPanelClass, 'rounded-[2rem] p-6 sm:col-span-2')}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-600 dark:text-brand-300">
@@ -767,7 +767,7 @@ export function LandingPage() {
             <div className="grid gap-4 lg:grid-cols-3">
               {topRatedUsers.slice(0, 3).map((user, index) => (
                 <motion.div
-                  className={cn(landingPanelClass, 'flex flex-col gap-4 p-5')}
+                  className={cn(landingPanelClass, 'flex flex-col gap-4 p-6')}
                   initial={{ opacity: 0, y: 24 }}
                   key={user.id}
                   transition={{ ...revealTransition, delay: index * 0.08 }}

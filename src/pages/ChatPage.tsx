@@ -221,7 +221,7 @@ export function ChatPage() {
           mobileView === 'chat' ? 'hidden lg:flex' : 'flex'
         )}>
           {/* Header */}
-          <div className="border-b border-slate-100 p-5 dark:border-slate-800/80">
+          <div className="border-b border-slate-100 p-6 dark:border-slate-800/80">
             <div className="space-y-1 mb-4">
               <Badge tone="brand">Chat Workspace</Badge>
               <h1 className="text-xl font-black text-slate-900 dark:text-white">Conversations</h1>
@@ -416,7 +416,7 @@ export function ChatPage() {
             )}
 
             {/* Chat Timeline */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/30 dark:bg-slate-950/20">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30 dark:bg-slate-950/20">
               {activeMessages.map((chat) => {
                 const isOwn = chat.senderId === currentUser.id
                 
@@ -608,7 +608,7 @@ export function ChatPage() {
                   />
                 </div>
                 
-                <Button type="submit" className="h-11 px-4.5" disabled={!message.trim()}>
+                <Button type="submit" disabled={!message.trim()}>
                   <SendHorizonal className="size-4" />
                 </Button>
               </form>

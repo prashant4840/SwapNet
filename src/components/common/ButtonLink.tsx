@@ -24,9 +24,9 @@ const variantClasses: Record<ButtonLinkVariant, string> = {
 }
 
 const sizeClasses: Record<ButtonLinkSize, string> = {
-  sm: 'h-10 px-3.5 text-sm',
-  md: 'h-11 px-4.5 text-sm',
-  lg: 'h-12 px-5.5 text-base',
+  sm: 'h-10 px-4 text-sm',
+  md: 'h-12 px-5 text-sm',
+  lg: 'h-14 px-6 text-base',
 }
 
 export function ButtonLink({

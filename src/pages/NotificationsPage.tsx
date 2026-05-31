@@ -11,7 +11,7 @@ import type { NotificationType, NotificationItem } from '@/types'
 
 function SkeletonNotificationItem() {
   return (
-    <div className="glass-panel flex items-center justify-between gap-4 p-5 animate-pulse">
+    <div className="glass-panel flex items-center justify-between gap-4 p-6 animate-pulse">
       <div className="flex items-start gap-4">
         <div className="rounded-2xl p-3 bg-slate-200 dark:bg-slate-700">
           <div className="size-5" />
@@ -183,7 +183,7 @@ export function NotificationsPage() {
                   {group.notifications.map((notification) => {
                     const content = (
                       <div
-                        className={`glass-panel flex items-center justify-between gap-4 p-5 transition ${
+                        className={`glass-panel flex items-center justify-between gap-4 p-6 transition ${
                           notification.read ? 'opacity-75' : ''
                         }`}
                       >

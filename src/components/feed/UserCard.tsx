@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom'
 import { ArrowUpRight, MapPin, MonitorPlay, ShieldCheck, Sparkles, Star, Zap } from 'lucide-react'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
+import { ButtonLink } from '@/components/common/ButtonLink'
 import { Avatar } from '@/components/common/Avatar'
 import { SkillChip } from '@/components/common/SkillChip'
 import { useApp } from '@/context/AppContext'
@@ -18,7 +18,7 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
   const { currentUser, sendConnectionRequest } = useApp()
 
   return (
-    <article className="group glass-panel flex h-full flex-col gap-5 p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(79,70,229,0.16)] dark:hover:shadow-[0_28px_70px_rgba(79,70,229,0.22)]">
+    <article className="group glass-panel flex h-full flex-col gap-6 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(79,70,229,0.16)] dark:hover:shadow-[0_28px_70px_rgba(79,70,229,0.22)]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <Avatar
@@ -118,13 +118,14 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
               Swap score {user.swapScore}
             </div>
           </div>
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold text-slate-600 transition-all duration-300 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          <ButtonLink
+            variant="ghost"
+            size="md"
             to={`/profile/${user.username}`}
           >
             View Profile
             <ArrowUpRight className="size-4" />
-          </Link>
+          </ButtonLink>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
@@ -137,23 +138,24 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
                     message: `Hi ${user.name.split(' ')[0]}, your profile looks like a strong fit for a SwapNet connection.`,
                   })
                 }}
-                className="h-11"
                 variant="outline"
+                size="md"
               >
                 Connect
               </Button>
-              <Button className="h-11" onClick={() => onRequest(user)}>
+              <Button size="md" onClick={() => onRequest(user)}>
                 <Sparkles className="size-4" />
                 Request Swap
               </Button>
             </>
           ) : (
-            <Link
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-gradient-to-r from-brand-600 to-tealish-500 px-4 text-sm font-semibold text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110 sm:col-span-2"
+            <ButtonLink
+              size="md"
+              className="sm:col-span-2"
               to="/auth"
             >
               Join to connect
-            </Link>
+            </ButtonLink>
           )}
         </div>
       </div>

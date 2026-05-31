@@ -24,7 +24,7 @@ function SkeletonProfileHeader() {
     <section className="glass-panel overflow-hidden">
       <div className="bg-gradient-to-r from-brand-600 via-brand-500 to-tealish-500 px-6 py-10 text-white sm:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
             <div className="size-28 rounded-[2rem] bg-white/20 animate-pulse" />
             <div className="space-y-3 flex-1">
               <div className="flex flex-wrap items-center gap-3">
@@ -177,7 +177,7 @@ export function ProfilePage() {
         <section className="glass-panel overflow-hidden">
           <div className="bg-gradient-to-r from-brand-600 via-brand-500 to-tealish-500 px-6 py-10 text-white sm:px-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
                 <Avatar
                   avatarUrl={user.photo}
                   fullName={user.name}
@@ -223,7 +223,7 @@ export function ProfilePage() {
                   </ButtonLink>
                 )}
 
-                <Button className="border-white/35 text-white hover:bg-white/10" onClick={shareProfile} size="lg" variant="outline">
+                <Button className="border-white/35 text-white bg-transparent dark:bg-transparent hover:bg-white/10 hover:text-white" onClick={shareProfile} size="lg" variant="outline">
                   <Share2 className="size-4" />
                   Share profile
                 </Button>
@@ -238,7 +238,7 @@ export function ProfilePage() {
               { label: 'Completed swaps', value: `${user.completedSwaps}`, sublabel: 'Finished exchanges' },
               { label: 'Availability', value: user.availability.join(', '), sublabel: user.mode },
             ].map((stat) => (
-              <div className="rounded-3xl bg-slate-100/80 p-5 dark:bg-slate-800/80" key={stat.label}>
+              <div className="rounded-3xl bg-slate-100/80 p-6 dark:bg-slate-800/80" key={stat.label}>
                 <p className="text-sm text-slate-500 dark:text-slate-300">{stat.label}</p>
                 <p className="mt-3 text-3xl font-bold text-slate-950 dark:text-white">{stat.value}</p>
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">{stat.sublabel}</p>
@@ -356,7 +356,7 @@ export function ProfilePage() {
                 Match overview
               </SectionTitle>
               <div className="mt-6 space-y-4">
-                <div className="rounded-3xl bg-slate-100/80 p-5 dark:bg-slate-800/80">
+                <div className="rounded-3xl bg-slate-100/80 p-6 dark:bg-slate-800/80">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                       Compatibility score
@@ -371,7 +371,7 @@ export function ProfilePage() {
                       : 'A strong profile based on current skills, rating, and availability.'}
                   </p>
                 </div>
-                <div className="rounded-3xl bg-slate-100/80 p-5 dark:bg-slate-800/80">
+                <div className="rounded-3xl bg-slate-100/80 p-6 dark:bg-slate-800/80">
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Bio</p>
                   <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-200">
                     {user.bio}

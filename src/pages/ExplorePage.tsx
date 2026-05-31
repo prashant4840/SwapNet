@@ -413,7 +413,7 @@ export function ExplorePage() {
 
   function SkeletonCard() {
     return (
-      <div className="glass-panel p-5 space-y-4 animate-pulse">
+      <div className="glass-panel p-6 space-y-4 animate-pulse">
         <div className="flex items-center gap-4">
           <div className="size-14 rounded-3xl bg-slate-200 dark:bg-slate-700" />
           <div className="flex-1 space-y-2">
@@ -437,7 +437,7 @@ export function ExplorePage() {
   return (
     <PageTransition>
       <div className="space-y-8">
-        <section className="glass-panel overflow-hidden p-6 sm:p-8">
+        <section className="glass-panel relative z-20 p-6 sm:p-8">
           <div className="relative space-y-8">
             <div className="absolute inset-x-0 top-0 h-40 rounded-[2rem] bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_46%),radial-gradient(circle_at_top_right,rgba(20,184,166,0.12),transparent_38%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_46%),radial-gradient(circle_at_top_right,rgba(20,184,166,0.16),transparent_38%)]" />
 
@@ -661,7 +661,7 @@ export function ExplorePage() {
             <div className="grid gap-4 xl:grid-cols-3">
               {suggestedMatches.slice(0, 3).map((entry) => (
                 <div
-                  className="glass-panel flex h-full flex-col gap-4 p-5"
+                  className="glass-panel flex h-full flex-col gap-4 p-6"
                   key={entry.id}
                 >
                   <div className="flex items-center justify-between gap-4">
@@ -728,13 +728,13 @@ export function ExplorePage() {
           </SectionTitle>
 
           {isInitialLoad ? (
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="grid gap-6 xl:grid-cols-2">
               {[...Array(6)].map((_, index) => (
                 <SkeletonCard key={index} />
               ))}
             </div>
           ) : visibleResults.length ? (
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="grid gap-6 xl:grid-cols-2">
               {visibleResults.map(({ user, match }) => (
                 <UserCard key={user.id} match={match} onRequest={setSelectedUser} user={user} />
               ))}

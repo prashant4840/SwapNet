@@ -215,7 +215,7 @@ export function PostPage() {
             posts.map((post: LookingForPost) => {
               const author = getPostAuthor(post)
               return (
-                <div className="glass-panel p-5" key={post.id}>
+                <div className="glass-panel p-6" key={post.id}>
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar

@@ -361,7 +361,7 @@ export function SettingsPage() {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4 rounded-[2rem] border border-slate-200 bg-white/70 p-5 dark:border-slate-700 dark:bg-slate-900/70">
+              <div className="space-y-4 rounded-[2rem] border border-slate-200 bg-white/70 p-6 dark:border-slate-700 dark:bg-slate-900/70">
                 <div>
                   <p className="text-lg font-semibold text-slate-950 dark:text-white">
                     Skills I offer
@@ -418,7 +418,7 @@ export function SettingsPage() {
                 </div>
               </div>
 
-              <div className="space-y-4 rounded-[2rem] border border-slate-200 bg-white/70 p-5 dark:border-slate-700 dark:bg-slate-900/70">
+              <div className="space-y-4 rounded-[2rem] border border-slate-200 bg-white/70 p-6 dark:border-slate-700 dark:bg-slate-900/70">
                 <div>
                   <p className="text-lg font-semibold text-slate-950 dark:text-white">
                     Skills I want
