@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Ban, CheckCircle, AlertTriangle, Mail, RefreshCw, Terminal, Eye } from 'lucide-react'
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -49,13 +49,35 @@ interface DbErrorLog {
 }
 
 export function AdminPage() {
-  const { currentUser, state } = useApp()
+  const { currentUser, state, ensureUsersLoaded } = useApp()
   const [activeTab, setActiveTab] = useState<'reports' | 'emails' | 'errors'>('reports')
   
   // Reports State
-  const [reportedUsers, setReportedUsers] = useState<ReportedUser[]>([])
+  const [reports, setReports] = useState<AbuseReport[]>([])
   const [reportsLoading, setReportsLoading] = useState(true)
   const [actionInProgress, setActionInProgress] = useState<string | null>(null)
+
+  // Memoize reportedUsers and find user profile dynamically from state.users
+  const reportedUsers = useMemo<ReportedUser[]>(() => {
+    const grouped = new Map<string, AbuseReport[]>()
+    reports.forEach((report) => {
+      if (!grouped.has(report.reported_user_id)) {
+        grouped.set(report.reported_user_id, [])
+      }
+      grouped.get(report.reported_user_id)!.push(report)
+    })
+
+    return Array.from(grouped.entries()).map(([userId, userReports]) => {
+      const user = state.users.find((u) => u.id === userId) || null
+      return {
+        userId,
+        user,
+        reportCount: userReports.length,
+        latestReport: userReports[0],
+        allReports: userReports,
+      }
+    })
+  }, [reports, state.users])
 
   // Email Queue State
   const [queuedEmails, setQueuedEmails] = useState<QueuedEmail[]>([])
@@ -79,7 +101,7 @@ export function AdminPage() {
       loadErrorLogs()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, activeTab, state.users])
+  }, [isAdmin, activeTab])
 
   async function loadReports() {
     setReportsLoading(true)
@@ -94,26 +116,15 @@ export function AdminPage() {
         return
       }
 
-      const grouped = new Map<string, AbuseReport[]>()
-      data.forEach((report: AbuseReport) => {
-        if (!grouped.has(report.reported_user_id)) {
-          grouped.set(report.reported_user_id, [])
-        }
-        grouped.get(report.reported_user_id)!.push(report)
-      })
+      setReports(data)
 
-      const reported: ReportedUser[] = Array.from(grouped.entries()).map(([userId, reports]) => {
-        const user = state.users.find((u) => u.id === userId) || null
-        return {
-          userId,
-          user,
-          reportCount: reports.length,
-          latestReport: reports[0],
-          allReports: reports,
-        }
-      })
-
-      setReportedUsers(reported)
+      // Fetch user details for reported users we don't have loaded yet
+      const missingUserIds = [...new Set(data.map((r: AbuseReport) => r.reported_user_id))]
+        .filter((id) => id && !state.users.some((u) => u.id === id))
+      
+      if (missingUserIds.length > 0) {
+        void ensureUsersLoaded(missingUserIds)
+      }
     } catch (err) {
       console.error('Failed to load reports:', err)
       toast.error('Failed to load reports')
@@ -170,7 +181,7 @@ export function AdminPage() {
 
       if (error) throw error
       toast.success('Report dismissed')
-      setReportedUsers((prev) => prev.filter((r) => r.userId !== userId))
+      setReports((prev) => prev.filter((r) => r.reported_user_id !== userId))
     } catch {
       toast.error('Failed to dismiss report')
     } finally {
@@ -189,7 +200,7 @@ export function AdminPage() {
       if (reportError) throw reportError
 
       toast.success('User banned')
-      setReportedUsers((prev) => prev.filter((r) => r.userId !== userId))
+      setReports((prev) => prev.filter((r) => r.reported_user_id !== userId))
     } catch (err) {
       console.error('Error banning user:', err)
       toast.error('Failed to ban user')

@@ -261,6 +261,7 @@ export function LandingPage() {
     suggestedMatches,
     topRatedUsers,
     users,
+    ensureUsersLoaded,
   } = useApp()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -269,6 +270,14 @@ export function LandingPage() {
   const [metrics, setMetrics] = useState<PlatformMetrics | null>(null)
   const [metricsLoading, setMetricsLoading] = useState(true)
   const [metricsError, setMetricsError] = useState<string | null>(null)
+
+  // Hydrate all user profiles that have posts shown in the featured swap requests section
+  useEffect(() => {
+    if (state.posts.length > 0) {
+      const userIds = state.posts.slice(0, 3).map((post) => post.userId).filter(Boolean)
+      void ensureUsersLoaded(userIds)
+    }
+  }, [state.posts, ensureUsersLoaded])
 
   useEffect(() => {
     let active = true

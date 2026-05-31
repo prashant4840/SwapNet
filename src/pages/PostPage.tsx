@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Badge } from '@/components/common/Badge'
@@ -28,7 +28,15 @@ export function PostPage() {
   })
   // FIX 7: added `loading` from useApp so the posts panel uses
   // the context's loading flag, not the form's isSubmitting flag.
-  const { createPost, currentUser, state, loading } = useApp()
+  const { createPost, currentUser, state, loading, ensureUsersLoaded } = useApp()
+
+  // Hydrate all user profiles that have posts on the community board
+  useEffect(() => {
+    if (state.posts.length > 0) {
+      const userIds = state.posts.map((post) => post.userId).filter(Boolean)
+      void ensureUsersLoaded(userIds)
+    }
+  }, [state.posts, ensureUsersLoaded])
 
   const [form, setForm] = useState<PostFormState>({
     skillName: '',

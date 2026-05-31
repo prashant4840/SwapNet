@@ -1,7 +1,7 @@
 import { EndorseSkillsModal } from '@/components/feed/EndorseSkillsModal'
 import { ProfileCompletionCard } from '@/components/profile/ProfileCompletionCard'
 import type { SwapRequest } from '@/types'
-import { useState, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { ButtonLink } from '@/components/common/ButtonLink'
@@ -27,9 +27,36 @@ export function DashboardPage() {
     respondToSwapRequest,
     state,
     suggestedMatches,
+    ensureUsersLoaded,
   } = useApp() 
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
   const [endorseSwap, setEndorseSwap] = useState<SwapRequest | null>(null)
+
+  // Hydrate all user profiles involved in active, pending, or completed transactions
+  useEffect(() => {
+    if (!currentUser) return
+
+    const userIds = new Set<string>()
+
+    state.swapRequests.forEach((request) => {
+      if (request.senderId === currentUser.id || request.receiverId === currentUser.id) {
+        userIds.add(request.senderId)
+        userIds.add(request.receiverId)
+      }
+    })
+
+    state.connectionRequests.forEach((request) => {
+      if (request.senderId === currentUser.id || request.receiverId === currentUser.id) {
+        userIds.add(request.senderId)
+        userIds.add(request.receiverId)
+      }
+    })
+
+    const idsToLoad = Array.from(userIds).filter((id) => id && id !== currentUser.id)
+    if (idsToLoad.length > 0) {
+      void ensureUsersLoaded(idsToLoad)
+    }
+  }, [currentUser, state.swapRequests, state.connectionRequests, ensureUsersLoaded])
 
   if (loading || !currentUser) {
     return (

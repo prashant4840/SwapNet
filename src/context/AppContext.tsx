@@ -39,6 +39,7 @@ interface AppContextValue {
   suggestedMatches: Array<UserProfile & { match: { score: number; matchType?: string; reasons?: string[] } }>
   newTodayUsers: UserProfile[]
   topRatedUsers: UserProfile[]
+  ensureUsersLoaded: (userIds: string[]) => Promise<void>
 
   // Posts
   posts: LookingForPost[]
@@ -210,6 +211,7 @@ function AppContextProvider({ children }: PropsWithChildren) {
     suggestedMatches: discovery.suggestedMatches,
     newTodayUsers: discovery.newTodayUsers,
     topRatedUsers: discovery.topRatedUsers,
+    ensureUsersLoaded: discovery.ensureUsersLoaded,
 
     // Posts
     posts: posts.posts,

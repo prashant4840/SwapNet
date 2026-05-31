@@ -56,6 +56,7 @@ export function ChatPage() {
     sendChatMessage,
     subscribeToThreadMessages,
     state,
+    ensureUsersLoaded,
   } = useApp()
 
   const [message, setMessage] = useState('')
@@ -79,6 +80,14 @@ export function ChatPage() {
     if (!activeThread?.id) return
     return subscribeToThreadMessages(activeThread.id)
   }, [activeThread?.id, subscribeToThreadMessages])
+
+  // Hydrate partner profiles for all message threads
+  useEffect(() => {
+    if (messageThreads.length > 0) {
+      const partnerIds = messageThreads.map((t) => t.partnerId).filter(Boolean)
+      void ensureUsersLoaded(partnerIds)
+    }
+  }, [messageThreads, ensureUsersLoaded])
 
   // Scroll to bottom on new messages
   useEffect(() => {

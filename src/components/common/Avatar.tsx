@@ -27,8 +27,10 @@ export function Avatar({
   decoding = 'async',
 }: AvatarProps) {
   const [hasError, setHasError] = useState(false)
+
   const [prevUrl, setPrevUrl] = useState(avatarUrl)
 
+  // Reset state when URL changes to ensure it doesn't get stuck in fallback mode
   if (avatarUrl !== prevUrl) {
     setPrevUrl(avatarUrl)
     setHasError(false)
@@ -59,7 +61,8 @@ export function Avatar({
     return trimmed.startsWith('/') || trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')
   }
 
-  const showFallback = hasError || !isValidUrl(avatarUrl)
+  const trimmedUrl = avatarUrl?.trim()
+  const showFallback = hasError || !isValidUrl(trimmedUrl)
 
   if (showFallback) {
     return (
@@ -79,12 +82,14 @@ export function Avatar({
   return (
     <img
       alt={name}
-      src={avatarUrl!.trim()}
+      src={trimmedUrl}
       onError={() => setHasError(true)}
+      onLoad={() => setHasError(false)}
       loading={loading}
       decoding={decoding}
       className={cn('object-cover shadow-soft ring-2 ring-slate-100 dark:ring-slate-800', sizeClasses, className)}
     />
   )
 }
+
 

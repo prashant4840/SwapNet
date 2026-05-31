@@ -97,6 +97,7 @@ interface UserDiscoveryContextValue {
   hasMore: boolean
   loadingMore: boolean
   loadMoreUsers: () => Promise<void>
+  ensureUsersLoaded: (userIds: string[]) => Promise<void>
 }
 
 export const UserDiscoveryContext = createContext<UserDiscoveryContextValue | undefined>(undefined)
@@ -218,6 +219,38 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
     [users]
   )
 
+  const ensureUsersLoaded = useCallback(async (userIds: string[]) => {
+    if (!isSupabaseConfigured || !supabase || userIds.length === 0) return
+
+    // Filter out userIds we already have loaded
+    const loadedIds = new Set(users.map((u) => u.id))
+    const missingIds = userIds.filter((id) => id && !loadedIds.has(id))
+
+    if (missingIds.length === 0) return
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*, skills_offered(*), skills_wanted(*)')
+        .in('id', missingIds)
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        const mapped = (data as unknown as DbUser[]).map(mapDbUser)
+        setUsers((current) => {
+          const existingIds = new Set(current.map((u) => u.id))
+          const filtered = mapped.filter((u) => !existingIds.has(u.id))
+          return [...current, ...filtered]
+        })
+      }
+    } catch (err) {
+      console.error('Failed to ensure users loaded:', err)
+      const { captureException } = await import('@/services/errorTracking')
+      captureException(err, { context: 'ensureUsersLoaded', userIds: missingIds })
+    }
+  }, [users])
+
   return (
     <UserDiscoveryContext.Provider
       value={{
@@ -228,6 +261,7 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
         hasMore,
         loadingMore,
         loadMoreUsers,
+        ensureUsersLoaded,
       }}
     >
       {children}
