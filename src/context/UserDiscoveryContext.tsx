@@ -187,43 +187,81 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
     loadUsers()
   }, [initialUsers])
 
+  // Keep discovery users list updated when currentUser changes
+  useEffect(() => {
+    if (!currentUser) return
+    setUsers((current) => {
+      const idx = current.findIndex((u) => u.id === currentUser.id)
+      if (idx === -1) {
+        return [...current, currentUser]
+      }
+      const existing = current[idx]
+      if (
+        existing.photo === currentUser.photo &&
+        existing.name === currentUser.name &&
+        existing.city === currentUser.city &&
+        existing.headline === currentUser.headline &&
+        existing.bio === currentUser.bio &&
+        JSON.stringify(existing.skillsOffered) === JSON.stringify(currentUser.skillsOffered) &&
+        JSON.stringify(existing.skillsWanted) === JSON.stringify(currentUser.skillsWanted)
+      ) {
+        return current
+      }
+      const copy = [...current]
+      copy[idx] = { ...existing, ...currentUser }
+      return copy
+    })
+  }, [currentUser])
+
+  // Merge the latest currentUser state dynamically to ensure zero-delay rendering updates
+  const mergedUsers = useMemo(() => {
+    if (!currentUser) return users
+    const idx = users.findIndex((u) => u.id === currentUser.id)
+    if (idx === -1) {
+      return [...users, currentUser]
+    }
+    const copy = [...users]
+    copy[idx] = { ...copy[idx], ...currentUser }
+    return copy
+  }, [users, currentUser])
+
   // Compute suggested matches
   const suggestedMatches = useMemo(
     () =>
       currentUser
-        ? users
+        ? mergedUsers
             .filter((u) => u.id !== currentUser.id)
             .map((u) => ({ ...u, match: computeMatchResult(currentUser, u) }))
             .filter((u) => u.match.score >= 55)
             .sort((a, b) => b.match.score - a.match.score)
             .slice(0, 6)
         : [],
-    [currentUser, users]
+    [currentUser, mergedUsers]
   )
 
   // Compute new today users
   const newTodayUsers = useMemo(
     () =>
-      users
+      mergedUsers
         .filter((u) => formatShortDate(u.joinedAt) === formatShortDate(new Date().toISOString()))
         .slice(0, 4),
-    [users]
+    [mergedUsers]
   )
 
   // Compute top rated users
   const topRatedUsers = useMemo(
     () =>
-      [...users]
+      [...mergedUsers]
         .sort((a, b) => b.rating - a.rating || b.swapScore - a.swapScore)
         .slice(0, 4),
-    [users]
+    [mergedUsers]
   )
 
   const ensureUsersLoaded = useCallback(async (userIds: string[]) => {
     if (!isSupabaseConfigured || !supabase || userIds.length === 0) return
 
     // Filter out userIds we already have loaded
-    const loadedIds = new Set(users.map((u) => u.id))
+    const loadedIds = new Set(mergedUsers.map((u) => u.id))
     const missingIds = userIds.filter((id) => id && !loadedIds.has(id))
 
     if (missingIds.length === 0) return
@@ -249,12 +287,12 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
       const { captureException } = await import('@/services/errorTracking')
       captureException(err, { context: 'ensureUsersLoaded', userIds: missingIds })
     }
-  }, [users])
+  }, [mergedUsers])
 
   return (
     <UserDiscoveryContext.Provider
       value={{
-        users,
+        users: mergedUsers,
         suggestedMatches,
         newTodayUsers,
         topRatedUsers,

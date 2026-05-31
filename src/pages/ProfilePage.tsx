@@ -59,7 +59,7 @@ export function ProfilePage() {
     reportUser,
     state,
   } = useApp()
-  const { shareProfile } = useShareProfile(username)
+  const { shareProfile, copyLink } = useShareProfile(username)
   const [isModalOpen, setModalOpen] = useState(false)
   const [isLoadingReviews, setIsLoadingReviews] = useState(false)
   const [reviewsWithAuthors, setReviewsWithAuthors] = useState<(Review & { reviewer: { name: string; photo: string } })[]>([])
@@ -398,7 +398,7 @@ export function ProfilePage() {
                 Share and safety
               </SectionTitle>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button onClick={shareProfile} variant="outline">
+                <Button onClick={copyLink} variant="outline">
                   <Share2 className="size-4" />
                   Copy link
                 </Button>
@@ -408,6 +408,7 @@ export function ProfilePage() {
                       void reportUser(user.id)
                     }}
                     variant="ghost"
+                    className="hover:bg-rose-500/10 hover:text-rose-600 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
                   >
                     <Flag className="size-4" />
                     Report user
@@ -416,7 +417,16 @@ export function ProfilePage() {
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
                 {socialLinks.map((link) => (
-                  <a className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:text-slate-200" href={link.href} key={link.label} rel="noreferrer" target="_blank">
+                  <a
+                    className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:text-slate-200"
+                    href={link.href}
+                    key={link.label}
+                    rel="noreferrer"
+                    target="_blank"
+                    onClick={() => {
+                      toast.success(`Opening ${link.label} share...`)
+                    }}
+                  >
                     Share on {link.label}
                   </a>
                 ))}

@@ -34,7 +34,7 @@ export function AppShell() {
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/75">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-4">
-            <AppLogo to={currentUser ? '/dashboard' : '/'} />
+            <AppLogo to="/" />
             <nav className="hidden items-center gap-2 lg:flex">
               {navItems.map((item) => {
                 const Icon = item.icon

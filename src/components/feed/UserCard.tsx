@@ -107,15 +107,15 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
 
       <div className="mt-auto flex flex-col gap-4 border-t border-slate-200/80 pt-4 dark:border-slate-700/80">
         <div className="flex items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-slate-700 dark:text-slate-200">
+            <div className="inline-flex items-center gap-1 text-sm font-semibold">
               <Star className="size-4 fill-amber-400 text-amber-400" />
               {user.rating.toFixed(1)}
-              <span className="font-normal text-slate-500">({user.reviewCount})</span>
+              <span className="font-normal text-slate-500 text-xs">({user.reviewCount} {user.reviewCount === 1 ? 'review' : 'reviews'})</span>
             </div>
-            <div className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-300">
+            <div className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
               <ShieldCheck className="size-4" />
-              Swap score {user.swapScore}
+              Swap Score {user.swapScore}
             </div>
           </div>
           <ButtonLink

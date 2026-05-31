@@ -274,17 +274,13 @@ export function SettingsPage() {
                       )}
                     </button>
                   </div>
-                  <div className="flex-1">
-                    <input
-                      className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80"
-                      onChange={(event) =>
-                        setForm((current) => ({ ...current, photo: event.target.value }))
-                      }
-                      placeholder="Or paste image URL here"
-                      value={form.photo}
-                    />
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Click avatar to upload (max 2MB)
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-semibold text-slate-950 dark:text-white">Profile Photo</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Click the avatar to upload a profile photo from your device.
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      Supported formats: PNG, JPG, GIF (Max 2MB)
                     </p>
                   </div>
                 </div>
@@ -370,9 +366,9 @@ export function SettingsPage() {
                     Add any teachable skill, category first.
                   </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-[0.9fr_1.1fr]">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <select
-                    className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                    className="w-full sm:w-56 shrink-0 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                     onChange={(event) =>
                       setDraftOffered((current) => ({
                         ...current,
@@ -387,9 +383,9 @@ export function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                  <div className="flex gap-2">
+                  <div className="flex-1 flex gap-2">
                     <input
-                      className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                      className="flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                       onChange={(event) =>
                         setDraftOffered((current) => ({ ...current, name: event.target.value }))
                       }
@@ -427,9 +423,9 @@ export function SettingsPage() {
                     Add the next things you want to learn.
                   </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-[0.9fr_1.1fr]">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <select
-                    className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                    className="w-full sm:w-56 shrink-0 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                     onChange={(event) =>
                       setDraftWanted((current) => ({
                         ...current,
@@ -444,9 +440,9 @@ export function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                  <div className="flex gap-2">
+                  <div className="flex-1 flex gap-2">
                     <input
-                      className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                      className="flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                       onChange={(event) =>
                         setDraftWanted((current) => ({ ...current, name: event.target.value }))
                       }

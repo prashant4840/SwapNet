@@ -8,6 +8,7 @@ import { PostProvider, usePosts } from './PostContext'
 import { ReviewProvider, useReviews } from './ReviewContext'
 import { ChatProvider, useChat } from './ChatContext'
 import { RequestProvider, useRequests } from './RequestContext'
+import toast from 'react-hot-toast'
 import type { UserProfile, Review, LookingForPost, ChatMessage, MessageThread, SwapRequest, ConnectionRequest, NotificationItem, ChatMessageKind, AuthActionResult, SignupPayload, ProfilePayload, SwapRequestPayload, ConnectionRequestPayload } from '@/types'
 
 interface AppContextValue {
@@ -274,12 +275,63 @@ export function useApp(): AppContextValue {
 }
 
 export function useShareProfile(username?: string) {
-  return {
-    shareProfile: () => {
-      if (username) {
-        const url = `${window.location.origin}/profile/${username}`
-        navigator.clipboard.writeText(url)
-      }
-    },
+  const { getUserByUsername } = useApp()
+  
+  const getShareData = () => {
+    if (!username) return null
+    const url = `${window.location.origin}/profile/${username}`
+    const user = getUserByUsername(username)
+    return {
+      url,
+      title: user ? `${user.name} (@${user.username}) - Skill Share Profile` : 'SwapNet Member Profile',
+      text: user?.headline ? `${user.name} - ${user.headline}. Connect and swap skills on SwapNet!` : `Check out this profile on SwapNet!`,
+    }
   }
+
+  const shareProfile = async () => {
+    const data = getShareData()
+    if (!data) return
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: data.title,
+          text: data.text,
+          url: data.url,
+        })
+        toast.success('Shared successfully!')
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Error sharing:', err)
+          try {
+            await navigator.clipboard.writeText(data.url)
+            toast.success('Profile link copied successfully')
+          } catch {
+            toast.error('Failed to copy link')
+          }
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(data.url)
+        toast.success('Profile link copied successfully')
+      } catch {
+        toast.error('Failed to copy link')
+      }
+    }
+  }
+
+  const copyLink = async () => {
+    const data = getShareData()
+    if (!data) return
+    try {
+      await navigator.clipboard.writeText(data.url)
+      toast.success('Profile URL copied')
+    } catch (err) {
+      console.error('Error copying link:', err)
+      toast.error('Failed to copy link')
+    }
+  }
+
+  return { shareProfile, copyLink }
 }
