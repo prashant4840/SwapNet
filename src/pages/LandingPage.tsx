@@ -628,7 +628,7 @@ export function LandingPage() {
                       <Avatar
                         avatarUrl={user.photo}
                         fullName={user.name}
-                        size="size-14 rounded-3xl"
+                        size="lg"
                       />
                       <div>
                         <p className="font-semibold text-slate-950 dark:text-white">
@@ -679,7 +679,7 @@ export function LandingPage() {
                           <Avatar
                             avatarUrl={user.photo}
                             fullName={user.name}
-                            size="size-11 rounded-2xl"
+                            size="md"
                           />
                           <div>
                             <p className="font-semibold text-slate-950 dark:text-white">
@@ -704,50 +704,168 @@ export function LandingPage() {
           </motion.section>
 
           <motion.section
-            className="grid scroll-mt-28 gap-4 md:grid-cols-4"
+            className="scroll-mt-28 space-y-6"
             id="how-it-works"
             initial={{ opacity: 0, y: 30 }}
             transition={revealTransition}
             viewport={revealViewport}
             whileInView={{ opacity: 1, y: 0 }}
           >
-            {steps.map((step, index) => {
-              const Icon = step.icon
-              return (
-                <motion.div
-                  className={cn(
-                    landingPanelClass,
-                    'relative overflow-hidden p-6 transition-transform duration-300 hover:-translate-y-1',
-                  )}
-                  initial={{ opacity: 0, y: 24 }}
-                  key={step.title}
-                  transition={{ ...revealTransition, delay: index * 0.08 }}
-                  viewport={revealViewport}
-                  whileInView={{ opacity: 1, y: 0 }}
-                >
-                  <span className="pointer-events-none absolute right-4 top-3 select-none text-[5rem] font-extrabold leading-none text-[rgba(99,102,241,0.08)] dark:text-[rgba(255,255,255,0.06)]">
-                    {(index + 1).toString().padStart(2, '0')}
-                  </span>
-                  <div className="relative z-10 space-y-4">
-                    <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
-                      <Icon className="size-5" />
+            <SectionTitle
+              eyebrow="Workflow"
+              description="Learn how to trade your skills in 4 simple, guided steps."
+            >
+              How SwapNet Works
+            </SectionTitle>
+            <div className="grid gap-6 md:grid-cols-4">
+              {steps.map((step, index) => {
+                const Icon = step.icon
+                return (
+                  <motion.div
+                    className={cn(
+                      landingPanelClass,
+                      'relative overflow-hidden p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
+                    )}
+                    initial={{ opacity: 0, y: 24 }}
+                    key={step.title}
+                    transition={{ ...revealTransition, delay: index * 0.08 }}
+                    viewport={revealViewport}
+                    whileInView={{ opacity: 1, y: 0 }}
+                  >
+                    <span className="pointer-events-none absolute right-4 top-3 select-none text-[5rem] font-extrabold leading-none text-[rgba(99,102,241,0.08)] dark:text-[rgba(255,255,255,0.06)]">
+                      {(index + 1).toString().padStart(2, '0')}
+                    </span>
+                    <div className="relative z-10 space-y-4">
+                      <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                        <Icon className="size-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
+                          {step.title}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                          {step.description}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-950 dark:text-white">
-                        {step.title}
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        {step.description}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )
-            })}
+                  </motion.div>
+                )
+              })}
+            </div>
           </motion.section>
 
           <motion.section
-            className="space-y-6"
+            className="scroll-mt-28 space-y-6"
+            id="community"
+            initial={{ opacity: 0, y: 30 }}
+            transition={revealTransition}
+            viewport={revealViewport}
+            whileInView={{ opacity: 1, y: 0 }}
+          >
+            <SectionTitle
+              action={
+                <ButtonLink className={hoverButtonClass} to="/post" variant="outline">
+                  Join the Community
+                </ButtonLink>
+              }
+              description="Short requests from members looking for a knowledge trade right now."
+              eyebrow="Community Board"
+            >
+              Active Swap Requests
+            </SectionTitle>
+            <div className="grid gap-6 md:grid-cols-3">
+              {state.posts.slice(0, 3).map((post, index) => {
+                const author = users.find((user) => user.id === post.userId)
+                return (
+                  <motion.div
+                    className={cn(landingPanelClass, 'rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between')}
+                    initial={{ opacity: 0, y: 22 }}
+                    key={post.id}
+                    transition={{ ...revealTransition, delay: index * 0.08 }}
+                    viewport={revealViewport}
+                    whileInView={{ opacity: 1, y: 0 }}
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar
+                            avatarUrl={author?.photo}
+                            fullName={author?.name ?? 'Member'}
+                            size="sm"
+                          />
+                          <div>
+                            <p className="font-semibold text-slate-950 dark:text-white">
+                              {author?.name}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {post.city}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge tone="teal">{post.skillName}</Badge>
+                      </div>
+                      <p className="text-sm leading-6 text-slate-600 dark:text-slate-300 line-clamp-3">
+                        {post.note}
+                      </p>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </motion.section>
+
+          <motion.section
+            className="scroll-mt-28 space-y-6"
+            id="trust-metrics"
+            initial={{ opacity: 0, y: 30 }}
+            transition={revealTransition}
+            viewport={revealViewport}
+            whileInView={{ opacity: 1, y: 0 }}
+          >
+            <SectionTitle
+              eyebrow="Reputation & Platform Scale"
+              description="Real-time transparency is core to building an active, reliable peer barter ecosystem."
+            >
+              Trust & System Metrics
+            </SectionTitle>
+            <div className="grid gap-6 md:grid-cols-3">
+              {metricsData.map((metric, index) => {
+                const Icon = metric.icon
+                return (
+                  <motion.div
+                    className={cn(
+                      landingPanelClass,
+                      'rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-lg'
+                    )}
+                    initial={{ opacity: 0, y: 22 }}
+                    key={metric.label}
+                    transition={{ ...revealTransition, delay: index * 0.08 }}
+                    viewport={revealViewport}
+                    whileInView={{ opacity: 1, y: 0 }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="inline-flex rounded-2xl bg-brand-50 p-3 text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                        <Icon className="size-5" />
+                      </div>
+                      <Badge tone="brand">Live data</Badge>
+                    </div>
+                    <div className="mt-8">
+                      <p className="text-4xl font-extrabold text-slate-950 dark:text-white">
+                        {metric.value}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                        {metric.label}
+                      </p>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </motion.section>
+
+          <motion.section
+            className="scroll-mt-28 space-y-6"
+            id="success-stories"
             initial={{ opacity: 0, y: 30 }}
             transition={revealTransition}
             viewport={revealViewport}
@@ -759,15 +877,15 @@ export function LandingPage() {
                   See all listings
                 </ButtonLink>
               }
-              description="Members trading skills across tech, languages, music, design, and more."
-              eyebrow="Featured Profiles"
+              description="Connect and trade knowledge with peers who excel in their categories."
+              eyebrow="Success Stories"
             >
-              Top rated skill swappers
+              Top Rated Skill Swappers
             </SectionTitle>
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-3">
               {topRatedUsers.slice(0, 3).map((user, index) => (
                 <motion.div
-                  className={cn(landingPanelClass, 'flex flex-col gap-4 p-6')}
+                  className={cn(landingPanelClass, 'flex flex-col gap-4 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg')}
                   initial={{ opacity: 0, y: 24 }}
                   key={user.id}
                   transition={{ ...revealTransition, delay: index * 0.08 }}
@@ -778,7 +896,7 @@ export function LandingPage() {
                     <Avatar
                       avatarUrl={user.photo}
                       fullName={user.name}
-                      size="size-14 rounded-3xl"
+                      size="sm"
                     />
                     <div>
                       <div className="flex items-center gap-2">
@@ -788,7 +906,7 @@ export function LandingPage() {
                       <p className="text-sm text-slate-500 dark:text-slate-300">{user.city}</p>
                     </div>
                   </div>
-                  <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{user.bio}</p>
+                  <p className="text-sm leading-6 text-slate-600 dark:text-slate-300 line-clamp-3">{user.bio}</p>
                   <div className="flex flex-wrap gap-2">
                     {user.skillsOffered.slice(0, 3).map((skill) => (
                       <SkillChip key={skill.id} skill={skill} />
@@ -796,95 +914,6 @@ export function LandingPage() {
                   </div>
                 </motion.div>
               ))}
-            </div>
-          </motion.section>
-
-          <motion.section
-            className="grid scroll-mt-28 gap-6 lg:grid-cols-[1.1fr_0.9fr]"
-            id="community"
-            initial={{ opacity: 0, y: 30 }}
-            transition={revealTransition}
-            viewport={revealViewport}
-            whileInView={{ opacity: 1, y: 0 }}
-          >
-            <div className={cn(landingPanelClass, 'p-6')}>
-              <SectionTitle
-                description="Short requests from members looking for a knowledge trade right now."
-                eyebrow="Community Board"
-              >
-                Looking for posts
-              </SectionTitle>
-              <div className="mt-6 space-y-4">
-                {state.posts.slice(0, 3).map((post, index) => {
-                  const author = users.find((user) => user.id === post.userId)
-                  return (
-                    <motion.div
-                      className="rounded-3xl border border-slate-200 bg-white/75 p-4 dark:border-slate-700 dark:bg-slate-800/90"
-                      initial={{ opacity: 0, y: 22 }}
-                      key={post.id}
-                      transition={{ ...revealTransition, delay: index * 0.08 }}
-                      viewport={revealViewport}
-                      whileInView={{ opacity: 1, y: 0 }}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar
-                            avatarUrl={author?.photo}
-                            fullName={author?.name ?? 'Member'}
-                            size="size-10 rounded-2xl"
-                          />
-                          <div>
-                            <p className="font-semibold text-slate-950 dark:text-white">
-                              {author?.name}
-                            </p>
-                            <p className="text-sm text-slate-500 dark:text-slate-300">
-                              {post.city}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge tone="teal">{post.skillName}</Badge>
-                      </div>
-                      <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        {post.note}
-                      </p>
-                    </motion.div>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className={cn(landingPanelClass, 'flex flex-col gap-6 p-6')}>
-              <div>
-                <Badge tone="teal">Trusted reputation loop</Badge>
-                <h3 className="mt-4 text-2xl font-bold text-slate-950 dark:text-white">
-                  A reputation system built on reliability.
-                </h3>
-              </div>
-              <div className="grid gap-4">
-                {metricsData.map((metric, index) => {
-                  const Icon = metric.icon
-                  return (
-                    <motion.div
-                      className="rounded-3xl bg-slate-100/80 p-4 dark:bg-slate-800/90 dark:shadow-[0_18px_42px_rgba(79,70,229,0.14)]"
-                      initial={{ opacity: 0, y: 22 }}
-                      key={metric.label}
-                      transition={{ ...revealTransition, delay: index * 0.08 }}
-                      viewport={revealViewport}
-                      whileInView={{ opacity: 1, y: 0 }}
-                    >
-                      <div className="inline-flex rounded-2xl bg-white p-3 text-brand-700 dark:bg-slate-900 dark:text-brand-200">
-                        <Icon className="size-5" />
-                      </div>
-                      <p className="mt-4 text-3xl font-bold text-slate-950 dark:text-white">
-                        {metric.value}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        {metric.label}
-                      </p>
-                    </motion.div>
-                  )
-                })}
-              </div>
             </div>
           </motion.section>
 
@@ -942,7 +971,7 @@ export function LandingPage() {
                     <Avatar
                       avatarUrl={profileAvatarUrl}
                       fullName="Prashant Sharma"
-                      size="size-11 rounded-full"
+                      size="md"
                       className="border border-white/70 shadow-soft dark:border-slate-700"
                     />
                     <p className="text-sm text-slate-700 dark:text-slate-200">

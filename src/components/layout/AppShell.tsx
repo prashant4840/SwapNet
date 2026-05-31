@@ -69,7 +69,7 @@ export function AppShell() {
                 <Avatar
                   avatarUrl={currentUser?.photo}
                   fullName={currentUser?.name || 'Profile'}
-                  size="size-7 rounded-xl"
+                  size="sm"
                   className="ring-2 ring-white/20"
                 />
                 <span>{currentUser?.name?.split(' ')[0] ?? 'Profile'}</span>
@@ -102,7 +102,7 @@ export function AppShell() {
                   <Avatar
                     avatarUrl={currentUser.photo}
                     fullName={currentUser.name}
-                    size="size-10 rounded-full"
+                    size="md"
                   />
                   <div className="hidden pr-1 md:block">
                     <p className="text-sm font-semibold text-slate-950 dark:text-white">

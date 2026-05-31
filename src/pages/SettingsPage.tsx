@@ -264,7 +264,7 @@ export function SettingsPage() {
                       <Avatar
                         avatarUrl={form.photo}
                         fullName={form.name}
-                        size="size-20 rounded-2xl"
+                        size="xl"
                         className="ring-4 ring-slate-200 dark:ring-slate-700"
                       />
                       {isUploadingAvatar && (

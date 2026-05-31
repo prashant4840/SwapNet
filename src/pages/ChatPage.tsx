@@ -261,7 +261,7 @@ export function ChatPage() {
                       <Avatar
                         avatarUrl={threadPartner?.photo}
                         fullName={threadPartner?.name || 'Swap Partner'}
-                        size="size-11 rounded-2xl"
+                        size="md"
                         className="ring-2 ring-white dark:ring-slate-800"
                       />
                       {isOnline ? (
@@ -318,7 +318,7 @@ export function ChatPage() {
                     <Avatar
                       avatarUrl={partner.photo}
                       fullName={partner.name}
-                      size="size-11 rounded-2xl"
+                      size="md"
                     />
                     {isRecentlyActive(partner.lastActiveAt) ? (
                       <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
@@ -637,7 +637,7 @@ export function ChatPage() {
                 <Avatar
                   avatarUrl={partner.photo}
                   fullName={partner.name}
-                  size="size-14 rounded-2xl"
+                  size="lg"
                   className="ring-2 ring-brand-500/20"
                 />
                 <div className="min-w-0 flex-1">

@@ -221,7 +221,7 @@ export function PostPage() {
                       <Avatar
                         avatarUrl={author.photo}
                         fullName={author.name}
-                        size="size-12 rounded-3xl"
+                        size="md"
                       />
                       <div>
                         <p className="font-semibold text-slate-950 dark:text-white">

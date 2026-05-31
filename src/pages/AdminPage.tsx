@@ -312,7 +312,7 @@ export function AdminPage() {
                       <Avatar
                         avatarUrl={reported.user?.photo}
                         fullName={reported.user?.name || 'Unknown User'}
-                        size="size-12 rounded-lg"
+                        size="md"
                         className="flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">

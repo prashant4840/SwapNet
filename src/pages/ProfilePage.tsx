@@ -316,7 +316,7 @@ export function ProfilePage() {
                             <Avatar
                               avatarUrl={review.reviewer.photo}
                               fullName={review.reviewer.name}
-                              size="size-10 rounded-2xl"
+                              size="md"
                             />
                             <div>
                               <p className="font-semibold text-slate-950 dark:text-white">

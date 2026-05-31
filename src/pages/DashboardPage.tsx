@@ -94,7 +94,7 @@ export function DashboardPage() {
                             <Avatar
                               avatarUrl={sender?.photo}
                               fullName={sender?.name || 'Sender'}
-                              size="size-12 rounded-2xl"
+                              size="md"
                             />
                             <div>
                               <p className="font-semibold text-slate-950 dark:text-white">
@@ -143,7 +143,7 @@ export function DashboardPage() {
                             <Avatar
                               avatarUrl={sender?.photo}
                               fullName={sender?.name || 'Sender'}
-                              size="size-12 rounded-2xl"
+                              size="md"
                             />
                             <div>
                               <div className="flex items-center gap-2">
@@ -215,7 +215,7 @@ export function DashboardPage() {
                             <Avatar
                               avatarUrl={partner?.photo}
                               fullName={partner?.name || 'Partner'}
-                              size="size-12 rounded-2xl"
+                              size="md"
                             />
                             <div>
                               <p className="font-semibold text-slate-950 dark:text-white">
@@ -252,7 +252,7 @@ export function DashboardPage() {
                               <Avatar
                                 avatarUrl={partner?.photo}
                                 fullName={partner?.name || 'Partner'}
-                                size="size-12 rounded-2xl"
+                                size="md"
                               />
                               <div>
                                 <p className="font-semibold text-slate-950 dark:text-white">
@@ -288,7 +288,7 @@ export function DashboardPage() {
                           <Avatar
                             avatarUrl={partner?.photo}
                             fullName={partner?.name || 'Partner'}
-                            size="size-12 rounded-2xl"
+                            size="md"
                           />
                           <div>
                             <p className="font-semibold text-slate-950 dark:text-white">
@@ -353,7 +353,7 @@ export function DashboardPage() {
                         <Avatar
                           avatarUrl={match.photo}
                           fullName={match.name}
-                          size="size-12 rounded-2xl"
+                          size="md"
                         />
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -409,7 +409,7 @@ export function DashboardPage() {
               <Avatar
                 avatarUrl={currentUser.photo}
                 fullName={currentUser.name}
-                size="size-16 rounded-2xl"
+                size="lg"
                 className="ring-2 ring-white/20"
               />
               <div>

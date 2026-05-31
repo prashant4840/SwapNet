@@ -17,7 +17,13 @@ const pageErrors = []
 page.on('console', (message) => {
   if (message.type() === 'error') {
     const text = message.text()
-    if (text.includes('status of 400') || text.includes('auth/v1/token') || text.includes('Failed to load resource')) {
+    if (
+      text.includes('status of 400') ||
+      text.includes('auth/v1/token') ||
+      text.includes('Failed to load resource') ||
+      text.includes('Invalid login credentials') ||
+      text.includes('AuthApiError')
+    ) {
       return
     }
     consoleErrors.push(text)

@@ -199,7 +199,7 @@ function SearchableCitySelect({ cities, selectedCity, onChange }: SearchableCity
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="premium-input w-full rounded-[1.5rem] px-4 py-3 text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-brand-500/60"
+        className="premium-input w-full rounded-xl px-3 py-2 text-left flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-brand-500/60 text-sm h-10"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -210,7 +210,7 @@ function SearchableCitySelect({ cities, selectedCity, onChange }: SearchableCity
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 mt-2 z-50 rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col gap-2">
+        <div className="absolute left-0 right-0 mt-1 z-[99] rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col gap-1.5">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
             <input
@@ -495,11 +495,11 @@ export function ExplorePage() {
               </div>
             </div>
 
-            <div className="relative grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
+            <div className="relative grid gap-3 xl:grid-cols-[minmax(0,1.8fr)_repeat(4,minmax(0,1fr))]">
               <label className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <input
-                  className="premium-input w-full rounded-[1.5rem] py-3 pl-11 pr-4"
+                  className="premium-input w-full rounded-xl py-2 pl-10 pr-4 text-sm h-10"
                   onChange={(event) => {
                     setPage(1)
                     setFilters((current) => ({ ...current, query: event.target.value }))
@@ -510,7 +510,7 @@ export function ExplorePage() {
               </label>
 
               <select
-                className="premium-input rounded-[1.5rem] px-4 py-3"
+                className="premium-input rounded-xl px-3 py-2 text-sm h-10 cursor-pointer"
                 onChange={(event) => {
                   setPage(1)
                   setFilters((current) => ({
@@ -538,7 +538,7 @@ export function ExplorePage() {
               />
 
               <select
-                className="premium-input rounded-[1.5rem] px-4 py-3"
+                className="premium-input rounded-xl px-3 py-2 text-sm h-10 cursor-pointer"
                 onChange={(event) => {
                   setPage(1)
                   setFilters((current) => ({
@@ -555,7 +555,7 @@ export function ExplorePage() {
               </select>
 
               <select
-                className="premium-input rounded-[1.5rem] px-4 py-3"
+                className="premium-input rounded-xl px-3 py-2 text-sm h-10 cursor-pointer"
                 onChange={(event) => {
                   setPage(1)
                   setFilters((current) => ({
@@ -669,7 +669,7 @@ export function ExplorePage() {
                       <Avatar
                         avatarUrl={entry.photo}
                         fullName={entry.name}
-                        size="size-14 rounded-3xl"
+                        size="lg"
                       />
                       <div>
                         <p className="font-semibold text-slate-950 dark:text-white">

@@ -24,7 +24,7 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
           <Avatar
             fullName={user.name}
             avatarUrl={user.photo}
-            size="size-16 rounded-3xl"
+            size="lg"
             className="ring-4 ring-white/70 dark:ring-slate-800/80"
           />
           <div className="space-y-1">

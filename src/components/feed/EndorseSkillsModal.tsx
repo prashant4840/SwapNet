@@ -98,7 +98,7 @@ export function EndorseSkillsModal({
               <Avatar
                 fullName={partner.name}
                 avatarUrl={partner.photo}
-                size="size-12 rounded-2xl"
+                size="md"
               />
               <div>
                 <h2 className="text-lg font-bold text-slate-950 dark:text-white">
