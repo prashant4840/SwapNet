@@ -117,11 +117,22 @@ export function SwapRequestModal({
           </button>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/70">
-          <div className="flex flex-wrap gap-2">
-            {user.skillsOffered.map((skill) => (
-              <SkillChip key={skill.id} skill={skill} />
-            ))}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+            {user.name}'s Teachable Skills
+          </p>
+          <div className="rounded-3xl border border-slate-200 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/70">
+            <div className="flex flex-wrap gap-2">
+              {user.skillsOffered.length > 0 ? (
+                user.skillsOffered.map((skill) => (
+                  <SkillChip key={skill.id} skill={skill} />
+                ))
+              ) : (
+                <span className="text-xs italic text-slate-400 dark:text-slate-500">
+                  No specific skills listed
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

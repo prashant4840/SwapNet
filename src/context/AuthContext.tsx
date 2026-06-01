@@ -4,7 +4,7 @@ import type { User } from '@supabase/supabase-js'
 import toast from 'react-hot-toast'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { UserProfile, SignupPayload, ProfilePayload } from '@/types'
-import { createId } from '@/utils/app'
+import { createId, cleanId } from '@/utils/app'
 import { sendWelcomeEmail } from '@/services/email'
 import { trackSignup, trackProfileCompleted } from '@/services/analytics'
 import { captureException, setUserContext, clearUserContext } from '@/services/errorTracking'
@@ -249,7 +249,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       captureException(error, { payload, context: 'signUp' })
       return { success: false, message: 'Failed to create your account.' }
     }
-  }, [])
+  }, [onUserUpdate])
 
   const login = useCallback(async (payload: { email: string; password: string }): Promise<AuthActionResult> => {
     if (!isSupabaseConfigured || !supabase) {
@@ -301,7 +301,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       captureException(error, { email: payload.email, context: 'login' })
       return { success: false, message: 'Failed to sign in.' }
     }
-  }, [])
+  }, [allUsers, onUserUpdate])
 
   const loginWithGoogle = useCallback(async (): Promise<AuthActionResult> => {
     if (!isSupabaseConfigured || !supabase) {
@@ -342,7 +342,7 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       console.error('Logout error:', error)
       toast.error('Failed to log out.')
     }
-  }, [])
+  }, [onUserUpdate])
 
   const updateProfile = useCallback(async (payload: ProfilePayload) => {
     if (!currentUser) throw new Error('No current user')
@@ -357,7 +357,73 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
     }
 
     try {
-      await supabase.from('users').upsert(updated, { onConflict: 'id' })
+      // 1. Update public.users table with specific columns matching the schema
+      const { error: userError } = await supabase
+        .from('users')
+        .update({
+          name: payload.name,
+          city: payload.city,
+          bio: payload.bio,
+          age: payload.age || null,
+          photo: payload.photo,
+          headline: payload.headline,
+          availability: payload.availability,
+          mode: payload.mode,
+          last_active_at: new Date().toISOString(),
+        })
+        .eq('id', currentUser.id)
+
+      if (userError) throw userError
+
+      // 2. Sync public.skills_offered
+      if (payload.skillsOffered) {
+        const { error: deleteOfferedError } = await supabase
+          .from('skills_offered')
+          .delete()
+          .eq('user_id', currentUser.id)
+        
+        if (deleteOfferedError) throw deleteOfferedError
+
+        if (payload.skillsOffered.length > 0) {
+          const { error: insertOfferedError } = await supabase
+            .from('skills_offered')
+            .insert(
+              payload.skillsOffered.map((s) => ({
+                id: cleanId(s.id),
+                user_id: currentUser.id,
+                skill_name: s.name,
+                category: s.category,
+                level: s.level || 'Intermediate',
+              }))
+            )
+          if (insertOfferedError) throw insertOfferedError
+        }
+      }
+
+      // 3. Sync public.skills_wanted
+      if (payload.skillsWanted) {
+        const { error: deleteWantedError } = await supabase
+          .from('skills_wanted')
+          .delete()
+          .eq('user_id', currentUser.id)
+        
+        if (deleteWantedError) throw deleteWantedError
+
+        if (payload.skillsWanted.length > 0) {
+          const { error: insertWantedError } = await supabase
+            .from('skills_wanted')
+            .insert(
+              payload.skillsWanted.map((s) => ({
+                id: cleanId(s.id),
+                user_id: currentUser.id,
+                skill_name: s.name,
+                category: s.category,
+              }))
+            )
+          if (insertWantedError) throw insertWantedError
+        }
+      }
+
       setCurrentUser(updated)
       onUserUpdate?.(updated)
       trackProfileCompleted(currentUser.id, updated.username)

@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type PropsWithChildren } from 'react'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { NotificationItem } from '@/types'
+import { createId, cleanId } from '@/utils/app'
 
 interface NotificationContextValue {
   notifications: NotificationItem[]
@@ -11,9 +12,16 @@ interface NotificationContextValue {
   loadMoreNotifications: () => Promise<void>
   markNotificationRead: (notificationId: string) => void
   markAllNotificationsRead: () => void
+  createNotification: (payload: {
+    userId: string
+    type: NotificationItem['type']
+    title: string
+    description: string
+    link?: string
+  }) => Promise<void>
 }
 
-const NotificationContext = createContext<NotificationContextValue | undefined>(undefined)
+export const NotificationContext = createContext<NotificationContextValue | undefined>(undefined)
 
 interface NotificationProviderProps extends PropsWithChildren {
   currentUserId?: string | null
@@ -37,6 +45,61 @@ export function NotificationProvider({
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const subscriptionCleanupRef = useRef<(() => void) | null>(null)
+
+  const createNotification = useCallback(
+    async (payload: {
+      userId: string
+      type: NotificationItem['type']
+      title: string
+      description: string
+      link?: string
+    }) => {
+      const newNotif: NotificationItem = {
+        id: createId('notification'),
+        userId: payload.userId,
+        type: payload.type,
+        title: payload.title,
+        description: payload.description,
+        link: payload.link,
+        createdAt: new Date().toISOString(),
+        read: false,
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('notifications').insert({
+            id: cleanId(newNotif.id),
+            user_id: newNotif.userId,
+            type: newNotif.type,
+            title: newNotif.title,
+            description: newNotif.description,
+            link: newNotif.link || null,
+            read: false,
+          })
+          if (error) throw error
+        } catch (err) {
+          console.error('Failed to insert notification in database:', err)
+          void import('@/services/errorTracking').then((m) =>
+            m.captureException(err, { context: 'createNotification', payload })
+          )
+        }
+      } else {
+        if (newNotif.userId === currentUserId) {
+          setNotifications((prev) => {
+            const updated = [newNotif, ...prev]
+            onNotificationsUpdate?.(updated)
+            return updated
+          })
+          setUnreadNotificationCount((prev) => prev + 1)
+        } else {
+          const seed = getSeedState()
+          seed.notifications = [newNotif, ...seed.notifications]
+        }
+      }
+    },
+    [currentUserId, onNotificationsUpdate]
+  )
+
 
   const loadMoreNotifications = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase || !currentUserId || loadingMore || !hasMore) return
@@ -278,6 +341,7 @@ export function NotificationProvider({
         loadMoreNotifications,
         markNotificationRead,
         markAllNotificationsRead,
+        createNotification,
       }}
     >
       {children}

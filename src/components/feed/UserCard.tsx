@@ -56,8 +56,12 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
       </div>
 
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-slate-900 dark:text-white">{user.headline}</p>
-        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{user.bio}</p>
+        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+          {user.headline || 'SwapNet member ready to share knowledge'}
+        </p>
+        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+          {user.bio || "This member hasn't written a bio yet, but is excited to connect and exchange skills."}
+        </p>
       </div>
 
       <div className="rounded-[1.5rem] border border-slate-200/80 bg-white/80 p-4 dark:border-slate-700/70 dark:bg-slate-900/70">
@@ -70,15 +74,22 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
           </Badge>
         </div>
         <div className="mt-3 space-y-2">
-          {match.reasons.slice(0, 3).map((reason) => (
-            <p
-              className="inline-flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300"
-              key={reason}
-            >
-              <Zap className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-300" />
-              <span>{reason}</span>
+          {match.reasons.length > 0 ? (
+            match.reasons.slice(0, 3).map((reason) => (
+              <p
+                className="inline-flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300"
+                key={reason}
+              >
+                <Zap className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-300" />
+                <span>{reason}</span>
+              </p>
+            ))
+          ) : (
+            <p className="inline-flex items-start gap-2 text-sm text-slate-400 italic">
+              <Zap className="mt-0.5 size-4 shrink-0 text-slate-400" />
+              <span>Compatible profile details</span>
             </p>
-          ))}
+          )}
         </div>
       </div>
 
@@ -88,9 +99,15 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
             Skills offered
           </p>
           <div className="flex flex-wrap gap-2">
-            {user.skillsOffered.map((skill) => (
-              <SkillChip key={skill.id} skill={skill} />
-            ))}
+            {user.skillsOffered.length > 0 ? (
+              user.skillsOffered.map((skill) => (
+                <SkillChip key={skill.id} skill={skill} />
+              ))
+            ) : (
+              <span className="text-xs italic text-slate-400 dark:text-slate-500">
+                Open to offer skills / suggestions
+              </span>
+            )}
           </div>
         </div>
         <div className="space-y-2">
@@ -98,9 +115,15 @@ export const UserCard = memo(function UserCard({ user, match, onRequest }: UserC
             Wants to learn
           </p>
           <div className="flex flex-wrap gap-2">
-            {user.skillsWanted.map((skill) => (
-              <SkillChip key={skill.id} skill={skill} />
-            ))}
+            {user.skillsWanted.length > 0 ? (
+              user.skillsWanted.map((skill) => (
+                <SkillChip key={skill.id} skill={skill} />
+              ))
+            ) : (
+              <span className="text-xs italic text-slate-400 dark:text-slate-500">
+                Open to learn any skill
+              </span>
+            )}
           </div>
         </div>
       </div>

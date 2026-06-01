@@ -32,6 +32,7 @@ interface RequestProviderProps extends PropsWithChildren {
 import { getSeedState } from '@/data/seed'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { UserDiscoveryContext } from './UserDiscoveryContext'
+import { NotificationContext } from './NotificationContext'
 
 export function RequestProvider({
   children,
@@ -42,6 +43,8 @@ export function RequestProvider({
   users: initialUsers = [],
 }: RequestProviderProps) {
   const discovery = useContext(UserDiscoveryContext)
+  const notificationsCtx = useContext(NotificationContext)
+  const createNotification = notificationsCtx?.createNotification || (async () => {})
   const users = useMemo(() => {
     return initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
   }, [initialUsers, discovery])
@@ -148,6 +151,135 @@ export function RequestProvider({
     }
 
     loadRequests()
+
+    if (typeof supabase.channel !== 'function') return
+
+    const swapChannel = supabase
+      .channel(`swap-requests-realtime-${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'swap_requests',
+        },
+        (payload) => {
+          const s = payload.new as {
+            id: string
+            sender_id: string
+            receiver_id: string
+            message: string
+            status: SwapRequest['status']
+            created_at: string
+            updated_at: string
+            offered_skill_id: string | null
+            wanted_skill_id: string | null
+            completed_by: string[] | null
+          } | null
+          const old = payload.old as { id: string } | null
+          const eventType = payload.eventType
+
+          if (eventType === 'DELETE') {
+            const oldId = old?.id
+            if (oldId) {
+              setSwapRequests((current) => current.filter((item) => cleanId(item.id) !== cleanId(oldId)))
+            }
+            return
+          }
+
+          if (s && (s.sender_id === currentUserId || s.receiver_id === currentUserId)) {
+            const mappedSwap: SwapRequest = {
+              id: s.id,
+              senderId: s.sender_id,
+              receiverId: s.receiver_id,
+              message: s.message,
+              status: s.status,
+              createdAt: s.created_at,
+              updatedAt: s.updated_at,
+              offeredSkillId: s.offered_skill_id || '',
+              wantedSkillId: s.wanted_skill_id || '',
+              completedBy: s.completed_by || [],
+            }
+
+            setSwapRequests((current) => {
+              const cleanedId = cleanId(mappedSwap.id)
+              const exists = current.some((item) => cleanId(item.id) === cleanedId)
+              if (eventType === 'INSERT') {
+                if (exists) return current
+                return [mappedSwap, ...current]
+              } else if (eventType === 'UPDATE') {
+                return current.map((item) => (cleanId(item.id) === cleanedId ? mappedSwap : item))
+              }
+              return current
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    const connChannel = supabase
+      .channel(`connection-requests-realtime-${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'connection_requests',
+        },
+        (payload) => {
+          const c = payload.new as {
+            id: string
+            sender_id: string
+            receiver_id: string
+            message: string
+            status: ConnectionRequest['status']
+            created_at: string
+            updated_at: string
+          } | null
+          const old = payload.old as { id: string } | null
+          const eventType = payload.eventType
+
+          if (eventType === 'DELETE') {
+            const oldId = old?.id
+            if (oldId) {
+              setConnectionRequests((current) => current.filter((item) => cleanId(item.id) !== cleanId(oldId)))
+            }
+            return
+          }
+
+          if (c && (c.sender_id === currentUserId || c.receiver_id === currentUserId)) {
+            const mappedConn: ConnectionRequest = {
+              id: c.id,
+              senderId: c.sender_id,
+              receiverId: c.receiver_id,
+              message: c.message,
+              status: c.status,
+              createdAt: c.created_at,
+              updatedAt: c.updated_at,
+            }
+
+            setConnectionRequests((current) => {
+              const cleanedId = cleanId(mappedConn.id)
+              const exists = current.some((item) => cleanId(item.id) === cleanedId)
+              if (eventType === 'INSERT') {
+                if (exists) return current
+                return [mappedConn, ...current]
+              } else if (eventType === 'UPDATE') {
+                return current.map((item) => (cleanId(item.id) === cleanedId ? mappedConn : item))
+              }
+              return current
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      if (supabase) {
+        void supabase.removeChannel(swapChannel)
+        void supabase.removeChannel(connChannel)
+      }
+    }
   }, [currentUserId])
 
   const stateRef = useRef({ swapRequests, connectionRequests, users, currentUserId, currentUser })
@@ -236,6 +368,15 @@ export function RequestProvider({
 
       toast.success(`Swap request sent to ${receiver.name}.`)
 
+      // Generate notification
+      void createNotification({
+        userId: payload.receiverId,
+        type: 'request',
+        title: 'New Swap Request',
+        description: `${currentUser.name} wants to trade skills with you.`,
+        link: '/notifications',
+      })
+
       // Send email notification (async, fire-and-forget)
       if (receiver.email) {
         const offeredSkill = currentUser.skillsOffered.find(
@@ -268,7 +409,7 @@ export function RequestProvider({
       toast.error('Failed to send request. Try again.')
       return false
     }
-  }, [currentUser])
+  }, [currentUser, createNotification])
 
   const sendConnectionRequest = useCallback(async (payload: ConnectionRequestPayload): Promise<boolean> => {
     if (!currentUser) {
@@ -340,13 +481,23 @@ export function RequestProvider({
       setConnectionRequests((current) => [createdConnection, ...current])
 
       toast.success(`Connection request sent to ${receiver.name}.`)
+
+      // Generate notification
+      void createNotification({
+        userId: payload.receiverId,
+        type: 'connection',
+        title: 'New Connection Request',
+        description: `${currentUser.name} wants to connect with you.`,
+        link: '/notifications',
+      })
+
       return true
     } catch (error) {
       console.error('Failed to send connection request:', error)
       toast.error('Failed to send connection request.')
       return false
     }
-  }, [currentUser])
+  }, [currentUser, createNotification])
 
   const respondToSwapRequest = useCallback(async (requestId: string, status: 'Accepted' | 'Declined'): Promise<boolean> => {
     if (!supabase) return false
@@ -363,16 +514,27 @@ export function RequestProvider({
       }
 
       const swap = stateRef.current.swapRequests.find((s) => s.id === requestId)
-      if (swap && status === 'Accepted') {
-        const partner = (stateRef.current.users as UserProfile[]).find((u) => u.id === swap.senderId)
-        if (partner && partner.email) {
-          void sendSwapRequestAcceptedEmail({
-            receiverEmail: partner.email,
-            receiverName: partner.name,
-            senderName: currentUser?.name || 'A user',
-          })
+      if (swap) {
+        if (status === 'Accepted') {
+          const partner = (stateRef.current.users as UserProfile[]).find((u) => u.id === swap.senderId)
+          if (partner && partner.email) {
+            void sendSwapRequestAcceptedEmail({
+              receiverEmail: partner.email,
+              receiverName: partner.name,
+              senderName: currentUser?.name || 'A user',
+            })
+          }
+          trackSwapAccepted(requestId, swap.senderId, swap.receiverId)
         }
-        trackSwapAccepted(requestId, swap.senderId, swap.receiverId)
+
+        // Generate notification
+        void createNotification({
+          userId: swap.senderId,
+          type: 'request',
+          title: `Swap Request ${status}`,
+          description: `${currentUser?.name || 'A user'} has ${status.toLowerCase()} your swap request.`,
+          link: '/notifications',
+        })
       }
 
       setSwapRequests((current) =>
@@ -389,7 +551,7 @@ export function RequestProvider({
       toast.error('Failed to respond to request.')
       return false
     }
-  }, [currentUser])
+  }, [currentUser, createNotification])
 
   const respondToConnectionRequest = useCallback(async (requestId: string, status: 'Accepted' | 'Declined'): Promise<boolean> => {
     if (!supabase) return false
@@ -405,6 +567,17 @@ export function RequestProvider({
         return false
       }
 
+      const conn = stateRef.current.connectionRequests.find((c) => c.id === requestId)
+      if (conn) {
+        void createNotification({
+          userId: conn.senderId,
+          type: 'connection',
+          title: `Connection Request ${status}`,
+          description: `${currentUser?.name || 'A user'} has ${status.toLowerCase()} your connection request.`,
+          link: '/notifications',
+        })
+      }
+
       setConnectionRequests((current) =>
         current.map((conn) =>
           conn.id === requestId ? { ...conn, status, updatedAt: new Date().toISOString() } : conn,
@@ -418,7 +591,7 @@ export function RequestProvider({
       toast.error('Failed to respond to connection request.')
       return false
     }
-  }, [])
+  }, [currentUser, createNotification])
 
   const completeSwap = useCallback(async (requestId: string): Promise<void> => {
     if (!currentUser || !supabase) return
