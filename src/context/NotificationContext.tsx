@@ -46,6 +46,10 @@ export function NotificationProvider({
   const [loadingMore, setLoadingMore] = useState(false)
   const subscriptionCleanupRef = useRef<(() => void) | null>(null)
 
+  useEffect(() => {
+    onNotificationsUpdate?.(notifications)
+  }, [notifications, onNotificationsUpdate])
+
   const createNotification = useCallback(
     async (payload: {
       userId: string
@@ -87,7 +91,6 @@ export function NotificationProvider({
         if (newNotif.userId === currentUserId) {
           setNotifications((prev) => {
             const updated = [newNotif, ...prev]
-            onNotificationsUpdate?.(updated)
             return updated
           })
           setUnreadNotificationCount((prev) => prev + 1)
@@ -97,7 +100,7 @@ export function NotificationProvider({
         }
       }
     },
-    [currentUserId, onNotificationsUpdate]
+    [currentUserId]
   )
 
 
@@ -132,7 +135,6 @@ export function NotificationProvider({
           const existingIds = new Set(prev.map((item) => item.id))
           const filtered = mapped.filter((item) => !existingIds.has(item.id))
           const updated = [...prev, ...filtered]
-          onNotificationsUpdate?.(updated)
           return updated
         })
 
@@ -150,7 +152,7 @@ export function NotificationProvider({
     } finally {
       setLoadingMore(false)
     }
-  }, [currentUserId, notifications.length, hasMore, loadingMore, onNotificationsUpdate])
+  }, [currentUserId, notifications.length, hasMore, loadingMore])
 
   // Setup realtime subscription and initial load when currentUserId changes
   useEffect(() => {
@@ -308,9 +310,8 @@ export function NotificationProvider({
         void supabase.from('notifications').update({ read: true }).eq('id', notificationId)
       }
 
-      onNotificationsUpdate?.(notifications)
     },
-    [notifications, onNotificationsUpdate]
+    []
   )
 
   const markAllNotificationsRead = useCallback(() => {
@@ -328,8 +329,7 @@ export function NotificationProvider({
         .eq('read', false)
     }
 
-    onNotificationsUpdate?.(notifications)
-  }, [currentUserId, notifications, onNotificationsUpdate])
+  }, [currentUserId])
 
   return (
     <NotificationContext.Provider

@@ -10,6 +10,17 @@
     />
     <meta name="theme-color" content="#4f46e5" />
     <title>SwapNet</title>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('theme');
+          var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
+          document.documentElement.classList.toggle('dark', theme === 'dark');
+          document.documentElement.classList.toggle('light', theme === 'light');
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

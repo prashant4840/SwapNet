@@ -256,6 +256,7 @@ export function LandingPage() {
 
   const {
     currentUser,
+    loading,
     newTodayUsers,
     state,
     suggestedMatches,
@@ -472,16 +473,20 @@ export function LandingPage() {
                 showLabel={false}
               />
 
-              <ButtonLink
-                className={cn(
-                  'h-auto shrink-0 rounded-full border-0 bg-brand-600 px-4 py-2 text-white shadow-[0_14px_28px_rgba(79,70,229,0.24)] hover:bg-brand-500 hover:text-white lg:px-6 lg:py-2.5',
-                  hoverButtonClass,
-                )}
-                to="/auth"
-                variant="outline"
-              >
-                Get Started
-              </ButtonLink>
+              {loading ? (
+                <div className="h-9 w-28 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-full lg:h-10 lg:w-[110px]" />
+              ) : (
+                <ButtonLink
+                  className={cn(
+                    'h-auto shrink-0 rounded-full border-0 bg-brand-600 px-4 py-2 text-white shadow-[0_14px_28px_rgba(79,70,229,0.24)] hover:bg-brand-500 hover:text-white lg:px-6 lg:py-2.5',
+                    hoverButtonClass,
+                  )}
+                  to={currentUser ? "/dashboard" : "/auth"}
+                  variant="outline"
+                >
+                  {currentUser ? 'Dashboard' : 'Get Started'}
+                </ButtonLink>
+              )}
             </div>
 
             <button
@@ -520,17 +525,21 @@ export function LandingPage() {
                     className="w-full justify-center rounded-2xl border-slate-200/80 bg-white/80 dark:border-slate-700/80 dark:bg-slate-800/80"
                   />
 
-                  <ButtonLink
-                    className={cn(
-                      'h-auto w-full rounded-2xl border-0 bg-brand-600 px-4 py-2 text-white shadow-soft hover:bg-brand-500 hover:text-white',
-                      hoverButtonClass,
-                    )}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    to="/auth"
-                    variant="outline"
-                  >
-                    Get Started
-                  </ButtonLink>
+                  {loading ? (
+                    <div className="h-10 w-full bg-slate-200 dark:bg-slate-700 animate-pulse rounded-2xl" />
+                  ) : (
+                    <ButtonLink
+                      className={cn(
+                        'h-auto w-full rounded-2xl border-0 bg-brand-600 px-4 py-2 text-white shadow-soft hover:bg-brand-500 hover:text-white',
+                        hoverButtonClass,
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      to={currentUser ? "/dashboard" : "/auth"}
+                      variant="outline"
+                    >
+                      {currentUser ? 'Dashboard' : 'Get Started'}
+                    </ButtonLink>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -783,43 +792,66 @@ export function LandingPage() {
               Active Swap Requests
             </SectionTitle>
             <div className="grid gap-6 md:grid-cols-3">
-              {state.posts.slice(0, 3).map((post, index) => {
-                const author = users.find((user) => user.id === post.userId)
-                return (
-                  <motion.div
-                    className={cn(landingPanelClass, 'rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between')}
-                    initial={{ opacity: 0, y: 22 }}
-                    key={post.id}
-                    transition={{ ...revealTransition, delay: index * 0.08 }}
-                    viewport={revealViewport}
-                    whileInView={{ opacity: 1, y: 0 }}
-                  >
+              {state.posts.length > 0 ? (
+                state.posts.slice(0, 3).map((post, index) => {
+                  const author = users.find((user) => user.id === post.userId)
+                  return (
+                    <motion.div
+                      className={cn(landingPanelClass, 'rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between')}
+                      initial={{ opacity: 0, y: 22 }}
+                      key={post.id}
+                      transition={{ ...revealTransition, delay: index * 0.08 }}
+                      viewport={revealViewport}
+                      whileInView={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar
+                              avatarUrl={author?.photo}
+                              fullName={author?.name ?? 'Member'}
+                              size="sm"
+                            />
+                            <div>
+                              <p className="font-semibold text-slate-950 dark:text-white">
+                                {author?.name || 'Member'}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {post.city}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge tone="teal">{post.skillName}</Badge>
+                        </div>
+                        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300 line-clamp-3">
+                          {post.note}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )
+                })
+              ) : (
+                [...Array(3)].map((_, i) => (
+                  <div key={`post-skeleton-${i}`} className={cn(landingPanelClass, 'rounded-3xl p-6 animate-pulse flex flex-col justify-between min-h-[160px]')}>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          <Avatar
-                            avatarUrl={author?.photo}
-                            fullName={author?.name ?? 'Member'}
-                            size="sm"
-                          />
-                          <div>
-                            <p className="font-semibold text-slate-950 dark:text-white">
-                              {author?.name}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {post.city}
-                            </p>
+                          <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-700" />
+                          <div className="space-y-1.5">
+                            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                            <div className="h-3 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
                           </div>
                         </div>
-                        <Badge tone="teal">{post.skillName}</Badge>
+                        <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded-full" />
                       </div>
-                      <p className="text-sm leading-6 text-slate-600 dark:text-slate-300 line-clamp-3">
-                        {post.note}
-                      </p>
+                      <div className="space-y-1.5">
+                        <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-4 w-5/6 bg-slate-200 dark:bg-slate-700 rounded" />
+                      </div>
                     </div>
-                  </motion.div>
-                )
-              })}
+                  </div>
+                ))
+              )}
             </div>
           </motion.section>
 
@@ -892,37 +924,60 @@ export function LandingPage() {
               Top Rated Skill Swappers
             </SectionTitle>
             <div className="grid gap-6 lg:grid-cols-3">
-              {topRatedUsers.slice(0, 3).map((user, index) => (
-                <motion.div
-                  className={cn(landingPanelClass, 'flex flex-col gap-4 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg')}
-                  initial={{ opacity: 0, y: 24 }}
-                  key={user.id}
-                  transition={{ ...revealTransition, delay: index * 0.08 }}
-                  viewport={revealViewport}
-                  whileInView={{ opacity: 1, y: 0 }}
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar
-                      avatarUrl={user.photo}
-                      fullName={user.name}
-                      size="sm"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-slate-950 dark:text-white">{user.name}</h3>
-                        <Badge tone="amber">⭐ {user.rating.toFixed(1)}</Badge>
+              {topRatedUsers.length > 0 ? (
+                topRatedUsers.slice(0, 3).map((user, index) => (
+                  <motion.div
+                    className={cn(landingPanelClass, 'flex flex-col gap-4 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg')}
+                    initial={{ opacity: 0, y: 24 }}
+                    key={user.id}
+                    transition={{ ...revealTransition, delay: index * 0.08 }}
+                    viewport={revealViewport}
+                    whileInView={{ opacity: 1, y: 0 }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar
+                        avatarUrl={user.photo}
+                        fullName={user.name}
+                        size="sm"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-slate-950 dark:text-white">{user.name}</h3>
+                          <Badge tone="amber">⭐ {user.rating.toFixed(1)}</Badge>
+                        </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-300">{user.city}</p>
                       </div>
-                      <p className="text-sm text-slate-500 dark:text-slate-300">{user.city}</p>
+                    </div>
+                    <p className="text-sm leading-6 text-slate-600 dark:text-slate-300 line-clamp-3">{user.bio}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {user.skillsOffered.slice(0, 3).map((skill) => (
+                        <SkillChip key={skill.id} skill={skill} />
+                      ))}
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                [...Array(3)].map((_, i) => (
+                  <div key={`user-skeleton-${i}`} className={cn(landingPanelClass, 'flex flex-col gap-4 p-6 animate-pulse min-h-[220px]')}>
+                    <div className="flex items-center gap-3">
+                      <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-700" />
+                      <div className="space-y-1.5">
+                        <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded" />
+                        <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+                      <div className="h-4 w-11/12 bg-slate-200 dark:bg-slate-700 rounded" />
+                      <div className="h-4 w-4/5 bg-slate-200 dark:bg-slate-700 rounded" />
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                      <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700 rounded-full" />
                     </div>
                   </div>
-                  <p className="text-sm leading-6 text-slate-600 dark:text-slate-300 line-clamp-3">{user.bio}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {user.skillsOffered.slice(0, 3).map((skill) => (
-                      <SkillChip key={skill.id} skill={skill} />
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
+                ))
+              )}
             </div>
           </motion.section>
 

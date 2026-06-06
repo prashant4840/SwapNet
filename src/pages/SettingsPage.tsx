@@ -78,6 +78,8 @@ export function SettingsPage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const offeredInputRef = useRef<HTMLInputElement>(null)
+  const wantedInputRef = useRef<HTMLInputElement>(null)
 
   const categoryOptions = useMemo(
     () =>
@@ -109,6 +111,14 @@ export function SettingsPage() {
       return
     }
 
+    const isDuplicate = form[kind].some(
+      (skill) => skill.name.toLowerCase() === name.toLowerCase()
+    )
+    if (isDuplicate) {
+      toast.error(`"${name}" is already added to your skills.`)
+      return
+    }
+
     setForm((current) => ({
       ...current,
       [kind]: [
@@ -124,10 +134,16 @@ export function SettingsPage() {
 
     if (kind === 'skillsOffered') {
       setDraftOffered((current) => ({ ...current, name: '' }))
+      setTimeout(() => {
+        offeredInputRef.current?.focus()
+      }, 0)
       return
     }
 
     setDraftWanted((current) => ({ ...current, name: '' }))
+    setTimeout(() => {
+      wantedInputRef.current?.focus()
+    }, 0)
   }
 
   async function handleAvatarUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -377,7 +393,7 @@ export function SettingsPage() {
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 sm:items-center lg:items-stretch xl:items-center">
-                  <div className="w-full sm:w-48 lg:w-full xl:w-48 shrink-0">
+                  <div className="w-full sm:w-44 sm:min-w-[160px] sm:max-w-[180px] lg:w-full xl:w-44 xl:min-w-[160px] xl:max-w-[180px] shrink-0">
                     <UnifiedSelect
                       options={categoryOptions}
                       value={draftOffered.category}
@@ -391,22 +407,32 @@ export function SettingsPage() {
                     />
                   </div>
                   <input
+                    ref={offeredInputRef}
                     className="premium-input h-10 !rounded-xl !py-2 flex-1 min-w-0 w-full"
                     onChange={(event) =>
                       setDraftOffered((current) => ({ ...current, name: event.target.value }))
                     }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        addSkill('skillsOffered', draftOffered)
+                      } else if (event.key === 'Escape') {
+                        event.preventDefault()
+                        setDraftOffered((current) => ({ ...current, name: '' }))
+                      }
+                    }}
                     placeholder="Guitar, Web Design, Cooking..."
                     value={draftOffered.name}
                   />
                   <Button
-                    className="h-10 shrink-0 px-6 rounded-xl text-sm w-full sm:w-auto lg:w-full xl:w-auto"
+                    className="h-10 shrink-0 rounded-xl text-sm w-full sm:w-[115px] lg:w-full xl:w-[115px]"
                     onClick={() => addSkill('skillsOffered', draftOffered)}
                     type="button"
                   >
                     Add
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5">
                   {form.skillsOffered.map((skill) => (
                     <SkillChip
                       key={skill.id}
@@ -433,7 +459,7 @@ export function SettingsPage() {
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 sm:items-center lg:items-stretch xl:items-center">
-                  <div className="w-full sm:w-48 lg:w-full xl:w-48 shrink-0">
+                  <div className="w-full sm:w-44 sm:min-w-[160px] sm:max-w-[180px] lg:w-full xl:w-44 xl:min-w-[160px] xl:max-w-[180px] shrink-0">
                     <UnifiedSelect
                       options={categoryOptions}
                       value={draftWanted.category}
@@ -447,22 +473,32 @@ export function SettingsPage() {
                     />
                   </div>
                   <input
+                    ref={wantedInputRef}
                     className="premium-input h-10 !rounded-xl !py-2 flex-1 min-w-0 w-full"
                     onChange={(event) =>
                       setDraftWanted((current) => ({ ...current, name: event.target.value }))
                     }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        addSkill('skillsWanted', draftWanted)
+                      } else if (event.key === 'Escape') {
+                        event.preventDefault()
+                        setDraftWanted((current) => ({ ...current, name: '' }))
+                      }
+                    }}
                     placeholder="Python, Public Speaking..."
                     value={draftWanted.name}
                   />
                   <Button
-                    className="h-10 shrink-0 px-6 rounded-xl text-sm w-full sm:w-auto lg:w-full xl:w-auto"
+                    className="h-10 shrink-0 rounded-xl text-sm w-full sm:w-[115px] lg:w-full xl:w-[115px]"
                     onClick={() => addSkill('skillsWanted', draftWanted)}
                     type="button"
                   >
                     Add
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5">
                   {form.skillsWanted.map((skill) => (
                     <SkillChip
                       key={skill.id}
@@ -562,12 +598,12 @@ export function SettingsPage() {
               <p className="mt-5 text-sm leading-7 text-white/90">{form.bio}</p>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-3xl bg-slate-100/80 p-4 dark:bg-slate-800/80">
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                   Teaching now
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2.5">
                   {form.skillsOffered.length ? (
                     form.skillsOffered.map((skill) => <SkillChip key={skill.id} skill={skill} />)
                   ) : (
@@ -579,7 +615,7 @@ export function SettingsPage() {
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                   Learning next
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2.5">
                   {form.skillsWanted.length ? (
                     form.skillsWanted.map((skill) => <SkillChip key={skill.id} skill={skill} />)
                   ) : (

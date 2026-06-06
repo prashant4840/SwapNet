@@ -44,7 +44,7 @@ export function AppShell() {
                     className={cn(
                       'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                       active
-                        ? 'bg-indigo-600 text-white shadow-soft'
+                        ? 'bg-brand-600 text-white shadow-soft'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white',
                     )}
                     key={item.to}
@@ -60,7 +60,7 @@ export function AppShell() {
                   cn(
                     'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-soft'
+                      ? 'bg-brand-600 text-white shadow-soft'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white',
                   )
                 }
@@ -79,13 +79,13 @@ export function AppShell() {
 
           <div className="flex items-center gap-3">
             <ThemeToggle
-              className="rounded-full border-slate-200/70 bg-white/70 px-3 shadow-soft dark:border-slate-700 dark:bg-slate-900/70"
+              className="!size-11 !p-0 rounded-full border border-slate-200 bg-white/70 shadow-soft dark:border-slate-700 dark:bg-slate-900/70 flex items-center justify-center"
               showLabel={false}
             />
 
             <NavLink
               aria-label="Notifications"
-              className="relative inline-flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white/70 text-slate-700 shadow-soft transition hover:border-indigo-300 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-indigo-400 dark:hover:text-indigo-200"
+              className="relative inline-flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white/70 text-slate-700 shadow-soft transition hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-brand-400 dark:hover:text-brand-200"
               to="/notifications"
             >
               <Bell className="size-5" />
@@ -98,17 +98,17 @@ export function AppShell() {
 
             {currentUser ? (
               <details className="group relative">
-                <summary className="flex list-none cursor-pointer items-center gap-3 rounded-full border border-slate-200 bg-white/75 px-2 py-2 text-left shadow-soft transition hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-slate-700 dark:bg-slate-900/75">
+                <summary className="flex h-11 list-none cursor-pointer items-center gap-2.5 rounded-full border border-slate-200 bg-white/75 pl-1.5 pr-3.5 py-1 text-left shadow-soft transition hover:border-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-slate-700 dark:bg-slate-900/75">
                   <Avatar
                     avatarUrl={currentUser.photo}
                     fullName={currentUser.name}
-                    size="md"
+                    size="sm"
                   />
                   <div className="hidden pr-1 md:block">
-                    <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                    <p className="text-sm font-semibold text-slate-950 dark:text-white leading-none">
                       {currentUser.name}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 leading-none">
                       @{currentUser.username}
                     </p>
                   </div>
@@ -121,7 +121,7 @@ export function AppShell() {
                       cn(
                         'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                         isActive
-                          ? 'bg-indigo-600 text-white shadow-soft'
+                          ? 'bg-brand-600 text-white shadow-soft'
                           : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
                       )
                     }
@@ -135,7 +135,7 @@ export function AppShell() {
                       cn(
                         'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                         isActive
-                          ? 'bg-indigo-600 text-white shadow-soft'
+                          ? 'bg-brand-600 text-white shadow-soft'
                           : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
                       )
                     }
@@ -149,7 +149,7 @@ export function AppShell() {
                       cn(
                         'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
                         isActive
-                          ? 'bg-indigo-600 text-white shadow-soft'
+                          ? 'bg-brand-600 text-white shadow-soft'
                           : 'hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80',
                       )
                     }

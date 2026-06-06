@@ -95,6 +95,9 @@ body {
 @layer base {
   * {
     @apply border-slate-200 dark:border-slate-700;
+    transition-property: color, background-color, border-color, fill, stroke, box-shadow;
+    transition-timing-function: ease-out;
+    transition-duration: 200ms;
   }
 
   a {

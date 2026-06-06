@@ -29,7 +29,7 @@ export function SkillChip({ skill, removable, onRemove }: SkillChipProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold',
+        'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold hover:scale-[1.03] hover:-translate-y-[1px] hover:shadow-md transition-all duration-300',
         categoryColor[skill.category],
       )}
     >
@@ -38,11 +38,11 @@ export function SkillChip({ skill, removable, onRemove }: SkillChipProps) {
       {removable && onRemove ? (
         <button
           aria-label={`Remove ${skill.name}`}
-          className="text-xs opacity-70 transition hover:opacity-100"
+          className="rounded-full size-4 flex items-center justify-center bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 transition-colors text-[9px] font-bold text-current focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current"
           onClick={onRemove}
           type="button"
         >
-          ×
+          ✕
         </button>
       ) : null}
     </span>

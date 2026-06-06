@@ -44,7 +44,9 @@ export function RequestProvider({
 }: RequestProviderProps) {
   const discovery = useContext(UserDiscoveryContext)
   const notificationsCtx = useContext(NotificationContext)
-  const createNotification = notificationsCtx?.createNotification || (async () => {})
+  const createNotification = useMemo(() => {
+    return notificationsCtx?.createNotification || (async () => {})
+  }, [notificationsCtx?.createNotification])
   const users = useMemo(() => {
     return initialUsers.length > 0 ? initialUsers : (discovery ? discovery.users : [])
   }, [initialUsers, discovery])
@@ -615,6 +617,7 @@ export function RequestProvider({
       }
 
       const newStatus = completedBy.length === 2 ? 'Completed' : swap.status
+      const partnerId = currentUser.id === swap.senderId ? swap.receiverId : swap.senderId
 
       const { error } = await supabase
         .from('swap_requests')
@@ -639,13 +642,36 @@ export function RequestProvider({
       )
 
       if (newStatus === 'Completed') {
+        void createNotification({
+          userId: currentUser.id,
+          type: 'request',
+          title: 'Swap Completed',
+          description: 'Swap completed successfully. Leave a review.',
+          link: '/notifications',
+        })
+        void createNotification({
+          userId: partnerId,
+          type: 'request',
+          title: 'Swap Completed',
+          description: 'Swap completed successfully. Leave a review.',
+          link: '/notifications',
+        })
         toast.success('Swap marked as complete!')
+      } else {
+        void createNotification({
+          userId: partnerId,
+          type: 'request',
+          title: 'Swap Partner Completed',
+          description: `${currentUser.name || 'Your partner'} marked this swap as completed. Please mark it complete from your side too.`,
+          link: '/notifications',
+        })
+        toast.success('Marked as complete. Waiting for partner.')
       }
     } catch (error) {
       console.error('Failed to complete swap:', error)
       toast.error('Failed to mark swap as complete.')
     }
-  }, [currentUser])
+  }, [currentUser, createNotification])
 
   const getSwapById = useCallback(
     (swapId: string) => {

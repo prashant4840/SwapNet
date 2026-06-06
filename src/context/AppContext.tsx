@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, type PropsWithChildren } from 'react'
+import { createContext, useContext, useMemo, type PropsWithChildren } from 'react'
 import { ThemeProvider, useTheme } from './ThemeContext'
 import { AuthProvider, useAuth } from './AuthContext'
 import { NotificationProvider, useNotifications } from './NotificationContext'
@@ -177,7 +177,7 @@ function AppContextProvider({ children }: PropsWithChildren) {
   const chat = useChat()
   const requests = useRequests()
 
-  const contextValue: AppContextValue = {
+  const contextValue = useMemo<AppContextValue>(() => ({
     // Theme
     theme: theme.theme,
     toggleTheme: theme.toggleTheme,
@@ -257,7 +257,7 @@ function AppContextProvider({ children }: PropsWithChildren) {
       messageThreads: chat.messageThreads,
       unreadNotificationCount: notifications.unreadNotificationCount,
     },
-  }
+  }), [theme, auth, notifications, discovery, posts, reviews, chat, requests])
 
   return (
     <AppContext.Provider value={contextValue}>
