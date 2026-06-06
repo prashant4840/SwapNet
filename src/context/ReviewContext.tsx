@@ -98,6 +98,10 @@ export function ReviewProvider({
     }
   }, [reviews.length, hasMore, loadingMore, onReviewsUpdate])
 
+  const initialReviewsSerialized = useMemo(() => {
+    return initialReviews.map((r) => r.id).join(',')
+  }, [initialReviews])
+
   useEffect(() => {
     if (initialReviews.length > 0) {
       setReviews(initialReviews)
@@ -150,7 +154,8 @@ export function ReviewProvider({
     }
 
     loadReviews()
-  }, [initialReviews, onReviewsUpdate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialReviewsSerialized, onReviewsUpdate])
 
   const addReview = useCallback(
     async (requestId: string, rating: number, comment: string): Promise<boolean> => {

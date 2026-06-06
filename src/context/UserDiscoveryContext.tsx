@@ -153,6 +153,10 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
     }
   }, [users.length, hasMore, loadingMore])
 
+  const initialUsersSerialized = useMemo(() => {
+    return initialUsers.map((u) => u.id).join(',')
+  }, [initialUsers])
+
   useEffect(() => {
     if (initialUsers.length > 0) {
       setUsers(initialUsers)
@@ -185,7 +189,8 @@ export function UserDiscoveryProvider({ children, users: initialUsers = [], curr
     }
 
     loadUsers()
-  }, [initialUsers])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUsersSerialized])
 
   // Keep discovery users list updated when currentUser changes
   useEffect(() => {

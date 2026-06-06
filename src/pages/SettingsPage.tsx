@@ -376,8 +376,8 @@ export function SettingsPage() {
                     Add any teachable skill, category first.
                   </p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                  <div className="w-full sm:w-48 shrink-0">
+                <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 sm:items-center lg:items-stretch xl:items-center">
+                  <div className="w-full sm:w-48 lg:w-full xl:w-48 shrink-0">
                     <UnifiedSelect
                       options={categoryOptions}
                       value={draftOffered.category}
@@ -391,7 +391,7 @@ export function SettingsPage() {
                     />
                   </div>
                   <input
-                    className="premium-input h-10 !rounded-xl !py-2 flex-1 min-w-0"
+                    className="premium-input h-10 !rounded-xl !py-2 flex-1 min-w-0 w-full"
                     onChange={(event) =>
                       setDraftOffered((current) => ({ ...current, name: event.target.value }))
                     }
@@ -399,7 +399,7 @@ export function SettingsPage() {
                     value={draftOffered.name}
                   />
                   <Button
-                    className="h-10 shrink-0 px-6 rounded-xl text-sm"
+                    className="h-10 shrink-0 px-6 rounded-xl text-sm w-full sm:w-auto lg:w-full xl:w-auto"
                     onClick={() => addSkill('skillsOffered', draftOffered)}
                     type="button"
                   >
@@ -432,8 +432,8 @@ export function SettingsPage() {
                     Add the next things you want to learn.
                   </p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                  <div className="w-full sm:w-48 shrink-0">
+                <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 sm:items-center lg:items-stretch xl:items-center">
+                  <div className="w-full sm:w-48 lg:w-full xl:w-48 shrink-0">
                     <UnifiedSelect
                       options={categoryOptions}
                       value={draftWanted.category}
@@ -447,7 +447,7 @@ export function SettingsPage() {
                     />
                   </div>
                   <input
-                    className="premium-input h-10 !rounded-xl !py-2 flex-1 min-w-0"
+                    className="premium-input h-10 !rounded-xl !py-2 flex-1 min-w-0 w-full"
                     onChange={(event) =>
                       setDraftWanted((current) => ({ ...current, name: event.target.value }))
                     }
@@ -455,7 +455,7 @@ export function SettingsPage() {
                     value={draftWanted.name}
                   />
                   <Button
-                    className="h-10 shrink-0 px-6 rounded-xl text-sm"
+                    className="h-10 shrink-0 px-6 rounded-xl text-sm w-full sm:w-auto lg:w-full xl:w-auto"
                     onClick={() => addSkill('skillsWanted', draftWanted)}
                     type="button"
                   >

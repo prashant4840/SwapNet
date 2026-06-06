@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, type PropsWithChildren } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, type PropsWithChildren } from 'react'
 import toast from 'react-hot-toast'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { LookingForPost, SkillCategory } from '@/types'
@@ -92,6 +92,10 @@ export function PostProvider({
     }
   }, [posts.length, hasMore, loadingMore, onPostsUpdate])
 
+  const initialPostsSerialized = useMemo(() => {
+    return initialPosts.map((p) => p.id).join(',')
+  }, [initialPosts])
+
   useEffect(() => {
     if (initialPosts.length > 0) {
       setPosts(initialPosts)
@@ -150,7 +154,8 @@ export function PostProvider({
     }
 
     loadPosts()
-  }, [initialPosts, onPostsUpdate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPostsSerialized, onPostsUpdate])
 
   const createPost = useCallback(
     async (payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>) => {

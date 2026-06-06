@@ -64,6 +64,14 @@ export function RequestProvider({
     return []
   })
 
+  const initialSwapsSerialized = useMemo(() => {
+    return initialSwaps.map((s) => s.id).join(',')
+  }, [initialSwaps])
+
+  const initialConnectionsSerialized = useMemo(() => {
+    return initialConnections.map((c) => c.id).join(',')
+  }, [initialConnections])
+
   useEffect(() => {
     if (initialSwaps.length > 0) {
       setSwapRequests(initialSwaps)
@@ -71,7 +79,8 @@ export function RequestProvider({
     if (initialConnections.length > 0) {
       setConnectionRequests(initialConnections)
     }
-  }, [initialSwaps, initialConnections])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSwapsSerialized, initialConnectionsSerialized])
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !currentUserId) return
