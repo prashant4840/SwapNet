@@ -136,6 +136,21 @@ create table if not exists public.reviews (
 
 create index if not exists reviews_reviewee_idx on public.reviews (reviewee_id, created_at desc);
 
+create table if not exists public.skill_endorsements (
+  id uuid primary key default gen_random_uuid(),
+  endorser_id uuid not null references public.users(id) on delete cascade,
+  endorsed_user_id uuid not null references public.users(id) on delete cascade,
+  swap_request_id uuid references public.swap_requests(id) on delete set null,
+  skill_name text not null,
+  created_at timestamptz not null default now(),
+  constraint no_self_endorsement check (endorser_id <> endorsed_user_id),
+  unique (endorser_id, endorsed_user_id, skill_name)
+);
+
+create index if not exists idx_skill_endorsements_endorsed_user on public.skill_endorsements (endorsed_user_id);
+create index if not exists idx_skill_endorsements_endorser on public.skill_endorsements (endorser_id);
+create index if not exists idx_skill_endorsements_swap on public.skill_endorsements (swap_request_id);
+
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
@@ -206,6 +221,8 @@ as $$
 declare
   base_username text;
   final_username text;
+  avatar_val text;
+  display_name text;
   counter int := 1;
 begin
   base_username := coalesce(
@@ -220,30 +237,43 @@ begin
   base_username := coalesce(nullif(base_username, ''), 'member');
   final_username := base_username;
 
-  while exists (select 1 from public.users where username = final_username) loop
+  while exists (select 1 from public.users where username = final_username and id <> new.id) loop
     final_username := base_username || '-' || counter;
     counter := counter + 1;
   end loop;
+
+  avatar_val := coalesce(
+    nullif(trim(new.raw_user_meta_data->>'avatar_url'), ''),
+    nullif(trim(new.raw_user_meta_data->>'picture'), ''),
+    'https://api.dicebear.com/9.x/shapes/svg?seed=' || new.id
+  );
+
+  display_name := coalesce(
+    nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+    nullif(trim(new.raw_user_meta_data->>'name'), ''),
+    split_part(new.email, '@', 1),
+    'Member'
+  );
 
   insert into public.users (id, username, name, email, photo, city, bio, headline)
   values (
     new.id,
     final_username,
-    coalesce(
-      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
-      nullif(trim(new.raw_user_meta_data->>'name'), ''),
-      split_part(new.email, '@', 1)
-    ),
+    display_name,
     new.email,
-    coalesce(
-      nullif(trim(new.raw_user_meta_data->>'avatar_url'), ''),
-      'https://api.dicebear.com/9.x/shapes/svg?seed=' || new.id
-    ),
+    avatar_val,
     coalesce(nullif(trim(new.raw_user_meta_data->>'city'), ''), 'Remote'),
     'Tell the community what you love teaching and what you want to learn next.',
     'New member ready to trade skills'
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update set
+    photo = case
+      when public.users.photo like '%dicebear%' or public.users.photo = ''
+        then excluded.photo
+      else public.users.photo
+    end,
+    name = coalesce(nullif(public.users.name, ''), excluded.name);
+
   return new;
 end;
 $$;
@@ -265,6 +295,7 @@ alter table public.reviews enable row level security;
 alter table public.notifications enable row level security;
 alter table public.posts enable row level security;
 alter table public.abuse_reports enable row level security;
+alter table public.skill_endorsements enable row level security;
 
 -- users
 create policy "Public profiles are readable"
@@ -328,23 +359,52 @@ with check (auth.uid() in (sender_id, receiver_id));
 -- messages
 create policy "Chat participants can read messages"
 on public.messages for select to authenticated
-using (auth.uid() in (sender_id, receiver_id));
+using (
+  auth.uid() = sender_id
+  or auth.uid() = receiver_id
+  or (
+    swap_id is not null and exists (
+      select 1 from public.swap_requests
+      where id = messages.swap_id
+        and auth.uid() in (sender_id, receiver_id)
+    )
+  )
+  or (
+    connection_request_id is not null and exists (
+      select 1 from public.connection_requests
+      where id = messages.connection_request_id
+        and auth.uid() in (sender_id, receiver_id)
+    )
+  )
+);
 
 create policy "Chat participants can send messages"
 on public.messages for insert to authenticated
 with check (
   auth.uid() = sender_id
   and (
-    exists (
-      select 1 from public.swap_requests
-      where id = messages.swap_id
-        and auth.uid() in (sender_id, receiver_id)
+    (
+      swap_id is not null and exists (
+        select 1 from public.swap_requests
+        where id = messages.swap_id
+          and auth.uid() in (sender_id, receiver_id)
+          and (
+            messages.receiver_id is null
+            or messages.receiver_id in (swap_requests.sender_id, swap_requests.receiver_id)
+          )
+      )
     )
-    or exists (
-      select 1 from public.connection_requests
-      where id = messages.connection_request_id
-        and status = 'Accepted'
-        and auth.uid() in (sender_id, receiver_id)
+    or (
+      connection_request_id is not null and exists (
+        select 1 from public.connection_requests
+        where id = messages.connection_request_id
+          and status = 'Accepted'
+          and auth.uid() in (sender_id, receiver_id)
+          and (
+            messages.receiver_id is null
+            or messages.receiver_id in (connection_requests.sender_id, connection_requests.receiver_id)
+          )
+      )
     )
   )
 );
@@ -397,6 +457,30 @@ create policy "Authenticated users can report abuse"
 on public.abuse_reports for insert to authenticated
 with check (auth.uid() = reporter_id);
 
+-- skill_endorsements
+create policy "Skill endorsements are publicly readable"
+on public.skill_endorsements for select
+using (true);
+
+create policy "Users can endorse peer skills"
+on public.skill_endorsements for insert to authenticated
+with check (
+  auth.uid() = endorser_id
+  and auth.uid() <> endorsed_user_id
+);
+
+create policy "Endorsers can update their own endorsements"
+on public.skill_endorsements for update to authenticated
+using (auth.uid() = endorser_id)
+with check (
+  auth.uid() = endorser_id
+  and auth.uid() <> endorsed_user_id
+);
+
+create policy "Endorsers can delete their own endorsements"
+on public.skill_endorsements for delete to authenticated
+using (auth.uid() = endorser_id);
+
 -- ── Storage ───────────────────────────────────────────────────
 
 insert into storage.buckets (id, name, public)
@@ -418,11 +502,14 @@ with check (bucket_id = 'profile-photos');
 
 -- ── Realtime ──────────────────────────────────────────────────
 
+alter table public.skill_endorsements replica identity full;
+
 alter publication supabase_realtime add table public.connection_requests;
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.swap_requests;
 alter publication supabase_realtime add table public.notifications;
 alter publication supabase_realtime add table public.posts;
+alter publication supabase_realtime add table public.skill_endorsements;
 
 -- Lock down internal trigger functions from public access
 revoke execute on function public.handle_new_user() from anon;
@@ -560,6 +647,34 @@ create table if not exists public.email_queue (
   scheduled_at timestamptz not null default now()
 );
 
+create table if not exists public.admin_users (
+  user_id uuid primary key references public.users(id) on delete cascade,
+  role text not null default 'admin' check (role = 'admin'),
+  created_at timestamptz not null default now()
+);
+
+alter table public.admin_users enable row level security;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    or exists (
+      select 1 from public.admin_users where user_id = auth.uid()
+    ),
+    false
+  );
+$$;
+
+create policy admin_users_read on public.admin_users
+  for select to authenticated
+  using (public.is_admin() or auth.uid() = user_id);
+
 alter table public.email_queue enable row level security;
 
 create policy insert_own_queue on public.email_queue
@@ -567,7 +682,7 @@ create policy insert_own_queue on public.email_queue
 
 create policy admin_all_queue on public.email_queue
   for all to authenticated
-  using (auth.jwt() ->> 'email' like '%@admin%');
+  using (public.is_admin());
 
 -- ── Error Logs Table ───────────────────────────────────────
 
@@ -588,7 +703,7 @@ create policy insert_logs on public.error_logs
 
 create policy admin_all_logs on public.error_logs
   for all to authenticated
-  using (auth.jwt() ->> 'email' like '%@admin%');
+  using (public.is_admin());
 
 -- ── Trigger set_updated_at for email_queue ─────────────────
 
@@ -601,8 +716,8 @@ for each row execute function public.set_updated_at();
 create or replace view public.platform_metrics as
 select
   coalesce((select round(avg(rating)::numeric, 1) from public.reviews), 0.0) as average_rating,
-  (select count(*)::integer from public.swap_requests where status = 'Completed') as completed_swaps,
-  (select count(distinct lower(trim(skill_name)))::integer from (
+  (select count(*)::bigint from public.swap_requests where status = 'Completed') as completed_swaps,
+  (select count(distinct lower(trim(skill_name)))::bigint from (
      select skill_name from public.skills_offered
      union all
      select skill_name from public.skills_wanted
