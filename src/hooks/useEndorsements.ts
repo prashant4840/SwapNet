@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { cleanId } from '@/utils/app'
 
 export interface EndorsementCount {
   skillName: string
@@ -15,12 +16,12 @@ export function useEndorsements(userId: string | undefined) {
     async function loadEndorsements() {
       const client = supabase
 
-      if (!client) return
+      if (!client || !userId) return
 
       const { data, error } = await client
         .from('skill_endorsements')
         .select('skill_name')
-        .eq('endorsed_user_id', userId)
+        .eq('endorsed_user_id', cleanId(userId))
 
       if (error || !data) {
         return

@@ -88,6 +88,7 @@ export function PostPage() {
                     category: form.category,
                     note: form.note,
                     mode: form.mode,
+                    city: currentUser.city || 'Remote',
                   })
 
                   if (didCreate) {

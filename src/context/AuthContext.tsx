@@ -19,7 +19,13 @@ interface AuthActionResult {
 
 // Helper functions
 function deriveNameFromAuthUser(user: User): string {
-  return user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+  return (
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.user_metadata?.user_name ||
+    user.email?.split('@')[0] ||
+    'User'
+  )
 }
 
 function findUserProfileByAuthUser(users: UserProfile[], authUser: User): UserProfile | null {
@@ -30,19 +36,34 @@ function findUserProfileByAuthUser(users: UserProfile[], authUser: User): UserPr
 function createFallbackProfile(authUser: User): UserProfile {
   const email = authUser.email?.toLowerCase() ?? ''
   const derivedName = deriveNameFromAuthUser(authUser)
+  const avatarUrl =
+    authUser.user_metadata?.avatar_url ||
+    authUser.user_metadata?.picture ||
+    `https://api.dicebear.com/9.x/shapes/svg?seed=${authUser.id}`
+
+  const rawUsername =
+    authUser.user_metadata?.user_name ||
+    authUser.user_metadata?.preferred_username ||
+    email.split('@')[0] ||
+    `user_${authUser.id.slice(0, 6)}`
+  const cleanUsername = rawUsername
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || `user_${authUser.id.slice(0, 6)}`
 
   return {
     id: authUser.id,
     email,
     name: derivedName,
-    username: email.split('@')[0] || `user_${authUser.id.slice(0, 6)}`,
+    username: cleanUsername,
     city: authUser.user_metadata?.city || 'Remote',
     bio: 'Tell the community what you love teaching and what you want to learn next.',
     headline: 'New member ready to trade skills',
-    photo: authUser.user_metadata?.avatar_url || `https://api.dicebear.com/9.x/shapes/svg?seed=${authUser.id}`,
+    photo: avatarUrl,
     skillsOffered: [],
     skillsWanted: [],
-    availability: [],
+    availability: ['Weekdays', 'Evenings'],
     mode: 'Online',
     rating: 0,
     reviewCount: 0,
@@ -67,7 +88,7 @@ interface AuthContextValue {
   // Auth functions
   signUp: (payload: SignupPayload) => Promise<AuthActionResult>
   login: (payload: { email: string; password: string }) => Promise<AuthActionResult>
-  loginWithGoogle: () => Promise<AuthActionResult>
+  loginWithGoogle: (targetPath?: string) => Promise<AuthActionResult>
   logout: () => Promise<void>
 
   // Profile functions
@@ -116,9 +137,33 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
       }
 
       if (!profile) {
-        profile =
-          findUserProfileByAuthUser(allUsers, authUser) ||
-          createFallbackProfile(authUser)
+        profile = findUserProfileByAuthUser(allUsers, authUser)
+        if (!profile) {
+          const fallback = createFallbackProfile(authUser)
+          // Self-heal profile row in public.users to prevent foreign-key and RLS issues
+          try {
+            await supabase!
+              .from('users')
+              .upsert(
+                {
+                  id: fallback.id,
+                  email: fallback.email,
+                  name: fallback.name,
+                  username: fallback.username,
+                  city: fallback.city,
+                  bio: fallback.bio,
+                  headline: fallback.headline,
+                  photo: fallback.photo,
+                  mode: fallback.mode,
+                  availability: fallback.availability,
+                },
+                { onConflict: 'id', ignoreDuplicates: true },
+              )
+          } catch (upsertErr) {
+            console.warn('Could not self-heal profile row in users table:', upsertErr)
+          }
+          profile = fallback
+        }
       }
       return profile
     }
@@ -217,8 +262,13 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
         email,
         password: payload.password,
         options: {
-          emailRedirectTo: window.location.origin,
-          data: { city: payload.city.trim(), full_name: name, name },
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            city: payload.city.trim(),
+            full_name: name,
+            name,
+            avatar_url: `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(email)}`,
+          },
         },
       })
 
@@ -303,15 +353,22 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
     }
   }, [allUsers, onUserUpdate])
 
-  const loginWithGoogle = useCallback(async (): Promise<AuthActionResult> => {
+  const loginWithGoogle = useCallback(async (targetPath?: string): Promise<AuthActionResult> => {
     if (!isSupabaseConfigured || !supabase) {
       return { success: false, message: 'Supabase is not configured.' }
     }
 
     try {
+      const redirectUrl = new URL(targetPath || '/dashboard', window.location.origin).toString()
       const response = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
       })
 
       if (response.error) return { success: false, message: response.error.message }
@@ -323,10 +380,14 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
   }, [])
 
   const logout = useCallback(async () => {
+    setUser(null)
+    setCurrentUser(null)
+    onUserUpdate?.(null)
+    clearUserContext()
+    monitoring.clearUser()
+
     if (!isSupabaseConfigured || !supabase) {
       toast.success('Logged out. (Offline Demo)')
-      setCurrentUser(null)
-      onUserUpdate?.(null)
       return
     }
 
@@ -337,7 +398,6 @@ export function AuthProvider({ children, onUserUpdate, allUsers = [] }: AuthProv
         return
       }
       toast.success('Logged out.')
-      setCurrentUser(null)
     } catch (error) {
       console.error('Logout error:', error)
       toast.error('Failed to log out.')

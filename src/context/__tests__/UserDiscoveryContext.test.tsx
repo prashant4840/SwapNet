@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { UserDiscoveryProvider, useUserDiscovery } from '../UserDiscoveryContext'
@@ -5,9 +6,14 @@ import type { UserProfile } from '@/types'
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn().mockResolvedValue({ data: [], error: null }),
-    })),
+    from: vi.fn(() => {
+      const builder: any = {
+        select: vi.fn(() => builder),
+        range: vi.fn().mockResolvedValue({ data: [], error: null }),
+        then: (resolve: (val: any) => void) => resolve({ data: [], error: null }),
+      }
+      return builder
+    }),
   },
   isSupabaseConfigured: true,
 }))

@@ -4,25 +4,32 @@ import { PostProvider, usePosts } from '../PostContext'
 import type { LookingForPost } from '@/types'
 
 // Mock Supabase
+const mockInsert = vi.fn(() => ({
+  select: vi.fn(() => ({
+    single: vi.fn().mockResolvedValue({
+      data: {
+        id: 'post-1',
+        user_id: 'user-1',
+        skill_name: 'React',
+        category: 'Tech',
+        note: 'Looking for React teacher',
+        city: 'SF',
+        mode: 'Online',
+        created_at: new Date().toISOString(),
+        responses: 0,
+      },
+      error: null,
+    }),
+  })),
+}))
+
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({
-            data: {
-              id: 'post-1',
-              user_id: 'user-1',
-              skill_name: 'React',
-              category: 'Tech',
-              note: 'Looking for React teacher',
-              city: 'SF',
-              mode: 'Online',
-              created_at: new Date().toISOString(),
-              responses: 0,
-            },
-            error: null,
-          }),
+      insert: mockInsert,
+      select: vi.fn(() => ({
+        order: vi.fn(() => ({
+          range: vi.fn().mockResolvedValue({ data: [], error: null }),
         })),
       })),
     })),
@@ -188,5 +195,51 @@ describe('PostContext', () => {
     expect(post.skillName).toBe('Design')
     expect(post.category).toBe('Creative')
     expect(post.responses).toBe(5)
+  })
+
+  it('should include city in supabase insert and fallback to userCity or Remote', async () => {
+    mockInsert.mockClear()
+    const { result } = renderHook(() => usePosts(), {
+      wrapper: ({ children }) => (
+        <PostProvider currentUserId="user-1" userCity="Austin">
+          {children}
+        </PostProvider>
+      ),
+    })
+
+    await act(async () => {
+      await result.current.createPost({
+        skillName: 'Go',
+        category: 'Tech',
+        note: 'Learn Go',
+        mode: 'Online',
+      })
+    })
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        city: 'Austin',
+        skill_name: 'Go',
+      })
+    )
+
+    // And explicit city takes precedence
+    mockInsert.mockClear()
+    await act(async () => {
+      await result.current.createPost({
+        skillName: 'Rust',
+        category: 'Tech',
+        note: 'Learn Rust',
+        mode: 'Online',
+        city: 'Seattle',
+      })
+    })
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        city: 'Seattle',
+        skill_name: 'Rust',
+      })
+    )
   })
 })

@@ -66,6 +66,7 @@ export interface UserProfile {
   skillsOffered: SkillEntry[]
   skillsWanted: SkillEntry[]
   reports: number
+  role?: 'admin' | 'user'
 }
 
 export interface SwapRequest {

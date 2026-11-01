@@ -87,8 +87,64 @@ export function AdminPage() {
   const [errorLogs, setErrorLogs] = useState<DbErrorLog[]>([])
   const [errorsLoading, setErrorsLoading] = useState(false)
   const [selectedLog, setSelectedLog] = useState<DbErrorLog | null>(null)
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return currentUser?.role === 'admin'
+  })
+  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(true)
 
-  const isAdmin = currentUser?.email?.includes('@admin')
+  useEffect(() => {
+    let isMounted = true
+
+    async function checkAdminAccess() {
+      if (!currentUser) {
+        if (isMounted) {
+          setIsAdmin(false)
+          setIsVerifyingAdmin(false)
+        }
+        return
+      }
+
+      if (!isSupabaseConfigured || !supabase) {
+        // Fallback for offline/test environments
+        if (isMounted) {
+          setIsAdmin(currentUser.role === 'admin')
+          setIsVerifyingAdmin(false)
+        }
+        return
+      }
+
+      try {
+        const { data } = await supabase.auth.getUser()
+        const authUser = data?.user
+        const hasAppMetadataAdminRole = authUser?.app_metadata?.role === 'admin'
+
+        let isDatabaseAdmin = false
+        if (authUser?.id) {
+          const { data: adminRow } = await supabase
+            .from('admin_users')
+            .select('user_id')
+            .eq('user_id', authUser.id)
+            .maybeSingle()
+          isDatabaseAdmin = !!adminRow
+        }
+
+        if (isMounted) {
+          setIsAdmin(hasAppMetadataAdminRole || isDatabaseAdmin || currentUser.role === 'admin')
+          setIsVerifyingAdmin(false)
+        }
+      } catch {
+        if (isMounted) {
+          setIsAdmin(currentUser.role === 'admin')
+          setIsVerifyingAdmin(false)
+        }
+      }
+    }
+
+    void checkAdminAccess()
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
 
   useEffect(() => {
     if (!isAdmin || !isSupabaseConfigured || !supabase) return
@@ -239,6 +295,16 @@ export function AdminPage() {
       const errMsg = err instanceof Error ? err.message : 'Network error'
       toast.error(`Batch processing failed: ${errMsg}`, { id: 'process-all' })
     }
+  }
+
+  if (isVerifyingAdmin) {
+    return (
+      <PageTransition>
+        <div className="flex items-center justify-center py-24 text-slate-400">
+          <div className="size-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        </div>
+      </PageTransition>
+    )
   }
 
   if (!isAdmin) {

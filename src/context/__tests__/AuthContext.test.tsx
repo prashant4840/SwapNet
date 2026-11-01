@@ -16,9 +16,20 @@ vi.mock('@/lib/supabase', () => ({
       signInWithOAuth: vi.fn(),
       signOut: vi.fn(),
     },
-    from: vi.fn(() => ({
-      upsert: vi.fn(),
-    })),
+    from: vi.fn(() => {
+      const builder = {
+        select: vi.fn(() => builder),
+        eq: vi.fn(() => builder),
+        order: vi.fn(() => builder),
+        range: vi.fn().mockResolvedValue({ data: [], error: null }),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+        update: vi.fn(() => builder),
+        delete: vi.fn(() => builder),
+      }
+      return builder
+    }),
   },
   isSupabaseConfigured: true,
 }))
@@ -107,9 +118,22 @@ describe('AuthContext', () => {
       })
 
       expect(signupResult?.success).toBeDefined()
+      expect(supabasseMock.auth.signUp).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password123',
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            city: 'San Francisco',
+            full_name: 'Test User',
+            name: 'Test User',
+            avatar_url: expect.stringContaining('api.dicebear.com'),
+          },
+        },
+      })
     })
 
-    it('should handle Google OAuth login', async () => {
+    it('should handle Google OAuth login with default dashboard redirect', async () => {
       const { supabase } = await import('@/lib/supabase')
 
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
@@ -134,9 +158,56 @@ describe('AuthContext', () => {
       })
 
       expect(oauthResult?.success).toBe(true)
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      })
     })
 
-    it('should handle logout', async () => {
+    it('should handle Google OAuth login with custom redirect path', async () => {
+      const { supabase } = await import('@/lib/supabase')
+
+      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+        data: { session: null },
+        error: null,
+      } as unknown as const)
+
+      vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValueOnce({
+        data: { session: null },
+        error: null,
+      } as unknown as const)
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: ({ children }) => (
+          <AuthProvider allUsers={[]}>{children}</AuthProvider>
+        ),
+      })
+
+      let oauthResult: AuthActionResult | undefined
+      await act(async () => {
+        oauthResult = await result.current.loginWithGoogle('/messages')
+      })
+
+      expect(oauthResult?.success).toBe(true)
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/messages`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      })
+    })
+
+    it('should handle logout and clear state synchronously', async () => {
       const { supabase } = await import('@/lib/supabase')
 
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
@@ -159,6 +230,8 @@ describe('AuthContext', () => {
         await result.current.logout()
       })
 
+      expect(result.current.user).toBeNull()
+      expect(result.current.currentUser).toBeNull()
       expect(supabase.auth.signOut).toHaveBeenCalled()
     })
   })

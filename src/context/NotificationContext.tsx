@@ -24,6 +24,7 @@ interface NotificationContextValue {
 export const NotificationContext = createContext<NotificationContextValue | undefined>(undefined)
 
 interface NotificationProviderProps extends PropsWithChildren {
+  notifications?: NotificationItem[]
   currentUserId?: string | null
   onNotificationsUpdate?: (notifications: NotificationItem[]) => void
 }
@@ -32,16 +33,20 @@ import { getSeedState } from '@/data/seed'
 
 export function NotificationProvider({
   children,
+  notifications: initialNotifications = [],
   currentUserId,
   onNotificationsUpdate,
 }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    if (initialNotifications.length > 0) return initialNotifications
     if (!isSupabaseConfigured) {
       return getSeedState().notifications
     }
     return []
   })
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(() => {
+    return initialNotifications.filter((n) => !n.read).length
+  })
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const subscriptionCleanupRef = useRef<(() => void) | null>(null)
@@ -169,7 +174,7 @@ export function NotificationProvider({
           .eq('user_id', currentUserId)
           .eq('read', false)
 
-        if (!countErr && unreadCount !== null) {
+        if (!countErr && typeof unreadCount === 'number') {
           setUnreadNotificationCount(unreadCount)
         }
 

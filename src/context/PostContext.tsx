@@ -4,25 +4,29 @@ import toast from 'react-hot-toast'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { LookingForPost, SkillCategory } from '@/types'
 
+export type CreatePostPayload = Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'> & {
+  city?: string
+}
+
 interface PostContextValue {
   posts: LookingForPost[]
   hasMore: boolean
   loadingMore: boolean
   loadMorePosts: () => Promise<void>
-  createPost: (
-    payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>
-  ) => Promise<boolean>
+  createPost: (payload: CreatePostPayload) => Promise<boolean>
 }
 
 const PostContext = createContext<PostContextValue | undefined>(undefined)
 
 import { getSeedState } from '@/data/seed'
 import { useEffect } from 'react'
+import { createId } from '@/utils/app'
 
 interface PostProviderProps extends PropsWithChildren {
   posts?: LookingForPost[]
   onPostsUpdate?: (posts: LookingForPost[]) => void
   currentUserId?: string | null
+  userCity?: string | null
 }
 
 export function PostProvider({
@@ -30,6 +34,7 @@ export function PostProvider({
   posts: initialPosts = [],
   onPostsUpdate,
   currentUserId,
+  userCity,
 }: PostProviderProps) {
   const [posts, setPosts] = useState<LookingForPost[]>(() => {
     if (initialPosts.length > 0) return initialPosts
@@ -158,15 +163,31 @@ export function PostProvider({
   }, [initialPostsSerialized, onPostsUpdate])
 
   const createPost = useCallback(
-    async (payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>) => {
+    async (payload: CreatePostPayload) => {
       if (!currentUserId) {
         toast.error('Log in to create a post.')
         return false
       }
 
+      const postCity = payload.city?.trim() || userCity?.trim() || 'Remote'
+
       if (!isSupabaseConfigured || !supabase) {
-        toast.error('Supabase is not configured.')
-        return false
+        const newPost: LookingForPost = {
+          id: createId('post'),
+          userId: currentUserId,
+          skillName: payload.skillName.trim(),
+          category: payload.category,
+          note: payload.note.trim(),
+          city: postCity,
+          mode: payload.mode,
+          createdAt: new Date().toISOString(),
+          responses: 0,
+        }
+        const updatedPosts = [newPost, ...posts]
+        setPosts(updatedPosts)
+        onPostsUpdate?.(updatedPosts)
+        toast.success('Community post published. (Offline Demo)')
+        return true
       }
 
       try {
@@ -178,11 +199,12 @@ export function PostProvider({
             category: payload.category,
             note: payload.note.trim(),
             mode: payload.mode,
+            city: postCity,
           })
           .select()
           .single()
 
-        if (error || !data) throw new Error('Failed to create post')
+        if (error || !data) throw error || new Error('Failed to create post')
 
         const newPost: LookingForPost = {
           id: data.id as string,
@@ -190,7 +212,7 @@ export function PostProvider({
           skillName: data.skill_name as string,
           category: data.category as SkillCategory,
           note: data.note as string,
-          city: (data.city || '') as string,
+          city: (data.city || postCity) as string,
           mode: data.mode as 'Online' | 'In-person' | 'Both',
           createdAt: data.created_at as string,
           responses: (data.responses || 0) as number,
@@ -211,7 +233,7 @@ export function PostProvider({
         return false
       }
     },
-    [currentUserId, posts, onPostsUpdate]
+    [currentUserId, userCity, posts, onPostsUpdate]
   )
 
   return (

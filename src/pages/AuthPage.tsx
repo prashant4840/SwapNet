@@ -179,10 +179,8 @@ export function AuthPage() {
                 setError('')
                 setNotice('')
                 try {
-                  const result = await loginWithGoogle()
-                  if (result.success) {
-                    navigate('/dashboard', { replace: true })
-                  } else {
+                  const result = await loginWithGoogle(redirectPath)
+                  if (!result.success) {
                     setError(result.message ?? 'Google sign-in failed.')
                   }
                 } catch (error) {

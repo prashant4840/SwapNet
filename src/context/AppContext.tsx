@@ -4,7 +4,7 @@ import { ThemeProvider, useTheme } from './ThemeContext'
 import { AuthProvider, useAuth } from './AuthContext'
 import { NotificationProvider, useNotifications } from './NotificationContext'
 import { UserDiscoveryProvider, useUserDiscovery } from './UserDiscoveryContext'
-import { PostProvider, usePosts } from './PostContext'
+import { PostProvider, usePosts, type CreatePostPayload } from './PostContext'
 import { ReviewProvider, useReviews } from './ReviewContext'
 import { ChatProvider, useChat } from './ChatContext'
 import { RequestProvider, useRequests } from './RequestContext'
@@ -22,7 +22,7 @@ interface AppContextValue {
   loading: boolean
   signUp: (payload: SignupPayload) => Promise<AuthActionResult>
   login: (payload: { email: string; password: string }) => Promise<AuthActionResult>
-  loginWithGoogle: () => Promise<AuthActionResult>
+  loginWithGoogle: (targetPath?: string) => Promise<AuthActionResult>
   logout: () => Promise<void>
   updateProfile: (payload: ProfilePayload) => Promise<void>
   getUserById: (userId: string) => UserProfile | null
@@ -44,7 +44,7 @@ interface AppContextValue {
 
   // Posts
   posts: LookingForPost[]
-  createPost: (payload: Pick<LookingForPost, 'skillName' | 'category' | 'note' | 'mode'>) => Promise<boolean>
+  createPost: (payload: CreatePostPayload) => Promise<boolean>
 
   // Reviews
   reviews: Review[]
@@ -106,6 +106,7 @@ export function AppProvider({
   initialMessages = [],
   initialSwapRequests = [],
   initialConnectionRequests = [],
+  initialNotifications = [],
 }: AppProviderProps) {
   return (
     <AuthProvider allUsers={initialUsers}>
@@ -117,6 +118,7 @@ export function AppProvider({
           initialMessages={initialMessages}
           initialSwapRequests={initialSwapRequests}
           initialConnectionRequests={initialConnectionRequests}
+          initialNotifications={initialNotifications}
         >
           {children}
         </AppProvidersInner>
@@ -133,13 +135,14 @@ function AppProvidersInner({
   initialMessages = [],
   initialSwapRequests = [],
   initialConnectionRequests = [],
+  initialNotifications = [],
 }: AppProviderProps) {
   const { currentUserId, currentUser } = useAuth()
 
   return (
-    <NotificationProvider currentUserId={currentUserId}>
+    <NotificationProvider currentUserId={currentUserId} notifications={initialNotifications}>
       <UserDiscoveryProvider users={initialUsers} currentUser={currentUser}>
-        <PostProvider posts={initialPosts} currentUserId={currentUserId}>
+        <PostProvider posts={initialPosts} currentUserId={currentUserId} userCity={currentUser?.city}>
           <ReviewProvider reviews={initialReviews} currentUserId={currentUserId} swapRequests={initialSwapRequests}>
             <ChatProvider
               messages={initialMessages}

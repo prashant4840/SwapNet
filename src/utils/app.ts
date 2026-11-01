@@ -19,10 +19,14 @@ export function createId(prefix: string) {
 }
 
 export function cleanId(id: string): string {
-  const stripped = id.replace(/^(swap|connection|review|message)-/, '')
+  if (!id) return id
+  const stripped = id.replace(/^(swap|connection|review|message|notification|skill|user|post)-/i, '')
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (uuidRegex.test(stripped)) {
     return stripped
+  }
+  if (uuidRegex.test(id)) {
+    return id
   }
   return id
 }

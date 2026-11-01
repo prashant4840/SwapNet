@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   createId,
+  cleanId,
   buildSwapThreadKey,
   buildConnectionThreadKey,
   parseThreadKey,
@@ -31,6 +32,32 @@ describe('Utility Functions', () => {
       const id1 = createId('review')
       const id2 = createId('review')
       expect(id1).not.toBe(id2)
+    })
+  })
+
+  describe('cleanId', () => {
+    it('should strip prefixes from valid UUIDs', () => {
+      const rawUuid = '12345678-1234-4234-8234-123456789abc'
+      expect(cleanId(`skill-${rawUuid}`)).toBe(rawUuid)
+      expect(cleanId(`notification-${rawUuid}`)).toBe(rawUuid)
+      expect(cleanId(`swap-${rawUuid}`)).toBe(rawUuid)
+      expect(cleanId(`connection-${rawUuid}`)).toBe(rawUuid)
+      expect(cleanId(`review-${rawUuid}`)).toBe(rawUuid)
+      expect(cleanId(`message-${rawUuid}`)).toBe(rawUuid)
+      expect(cleanId(`user-${rawUuid}`)).toBe(rawUuid)
+      expect(cleanId(`post-${rawUuid}`)).toBe(rawUuid)
+    })
+
+    it('should return pure UUID unchanged', () => {
+      const rawUuid = '12345678-1234-4234-8234-123456789abc'
+      expect(cleanId(rawUuid)).toBe(rawUuid)
+    })
+
+    it('should preserve non-UUID prefixed strings without corruption', () => {
+      expect(cleanId('skill-javascript')).toBe('skill-javascript')
+      expect(cleanId('notification-test')).toBe('notification-test')
+      expect(cleanId('arbitrary-string')).toBe('arbitrary-string')
+      expect(cleanId('')).toBe('')
     })
   })
 

@@ -264,9 +264,10 @@ export function ChatProvider({
     const threadContext = resolveThreadContext(stateRef.current, threadId)
     if (!threadContext) return
 
-    const partner = stateRef.current.users.find((u) => u.id === threadContext.partnerId) ?? null
-    if (!partner) return
+    const partnerId = threadContext.partnerId
+    if (!partnerId) return
 
+    const partner = stateRef.current.users.find((u) => u.id === partnerId) ?? null
     const senderProfile = stateRef.current.users.find((u) => u.id === currentUserId) ?? null
 
     try {
@@ -275,6 +276,7 @@ export function ChatProvider({
         swapId: threadContext.swapId,
         connectionRequestId: threadContext.connectionRequestId,
         senderId: currentUserId,
+        receiverId: partnerId,
         content: messageText,
         kind: messageType,
       })
@@ -284,11 +286,11 @@ export function ChatProvider({
 
       // Trigger analytics tracking
       void import('@/services/analytics').then((m) =>
-        m.trackMessageSent(currentUserId, partner.id, threadContext.threadKey)
+        m.trackMessageSent(currentUserId, partnerId, threadContext.threadKey)
       )
 
       // Trigger Resend email notification
-      if (partner.email) {
+      if (partner?.email) {
         const receiverEmail = partner.email
         const receiverName = partner.name || 'A user'
         const snippet = messageText.length > 60 ? messageText.slice(0, 57) + '...' : messageText

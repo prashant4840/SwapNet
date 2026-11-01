@@ -1,7 +1,26 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { ChatProvider, useChat } from '../ChatContext'
-import type { ChatMessage } from '@/types'
+import { mapChatRecord } from '../chatUtils'
+import type { ChatMessage, SwapRequest } from '@/types'
+
+const mockInsert = vi.fn(() => ({
+  select: vi.fn(() => ({
+    single: vi.fn().mockResolvedValue({
+      data: {
+        id: 'msg-new',
+        thread_key: 'swap-1',
+        swap_id: 'swap-1',
+        sender_id: 'user-1',
+        receiver_id: 'user-2',
+        message: 'Hello partner!',
+        message_type: 'text',
+        created_at: new Date().toISOString(),
+      },
+      error: null,
+    }),
+  })),
+}))
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -9,6 +28,16 @@ vi.mock('@/lib/supabase', () => ({
       on: vi.fn(function() { return this }),
       subscribe: vi.fn(),
       unsubscribe: vi.fn(),
+    })),
+    from: vi.fn(() => ({
+      insert: mockInsert,
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
+            range: vi.fn().mockResolvedValue({ data: [], error: null }),
+          })),
+        })),
+      })),
     })),
   },
 }))
@@ -18,6 +47,12 @@ vi.mock('react-hot-toast', () => ({
     success: vi.fn(),
     error: vi.fn(),
   },
+}))
+
+vi.mock('@/services/errorTracking', () => ({
+  captureException: vi.fn(),
+  setUserContext: vi.fn(),
+  clearUserContext: vi.fn(),
 }))
 
 vi.mock('@/utils/app', () => ({
@@ -239,5 +274,84 @@ describe('ChatContext', () => {
     expect(message.threadId).toBe('test-thread-123')
     expect(message.senderId).toBe('sender-789')
     expect(message.message).toBe('Test content')
+  })
+
+  it('should correctly map chat record from supabase with message, message_type and receiver_id', () => {
+    const dbRecord = {
+      id: 'uuid-1',
+      thread_key: 'swap-123',
+      swap_id: 'swap-123',
+      connection_request_id: null,
+      sender_id: 'user-sender',
+      receiver_id: 'user-receiver',
+      message: 'Hello from postgres column',
+      message_type: 'template',
+      created_at: '2026-01-01T12:00:00Z',
+    }
+
+    const mapped = mapChatRecord(dbRecord)
+    expect(mapped.id).toBe('uuid-1')
+    expect(mapped.threadId).toBe('swap-123')
+    expect(mapped.senderId).toBe('user-sender')
+    expect(mapped.receiverId).toBe('user-receiver')
+    expect(mapped.message).toBe('Hello from postgres column')
+    expect(mapped.type).toBe('template')
+    expect(mapped.message_type).toBe('template')
+
+    // Also verify fallback to legacy content & kind fields
+    const legacyRecord = {
+      id: 'uuid-2',
+      thread_key: 'swap-456',
+      swap_id: 'swap-456',
+      sender_id: 'user-1',
+      content: 'Legacy content text',
+      kind: 'system',
+      created_at: '2026-01-01T12:00:00Z',
+    }
+
+    const legacyMapped = mapChatRecord(legacyRecord)
+    expect(legacyMapped.message).toBe('Legacy content text')
+    expect(legacyMapped.type).toBe('system')
+  })
+
+  it('should insert chat message with correct column payload including receiver_id', async () => {
+    mockInsert.mockClear()
+    const mockSwapReq = {
+      id: 'swap-999',
+      senderId: 'user-1',
+      receiverId: 'user-2',
+      status: 'Accepted',
+      offeredSkillId: 's1',
+      wantedSkillId: 's2',
+      message: 'Swap message',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      completedBy: [],
+    } as unknown as SwapRequest
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: ({ children }) => (
+        <ChatProvider
+          currentUserId="user-1"
+          swapRequests={[mockSwapReq]}
+          users={[{ id: 'user-1', name: 'Alice' }, { id: 'user-2', name: 'Bob' }]}
+        >
+          {children}
+        </ChatProvider>
+      ),
+    })
+
+    await act(async () => {
+      await result.current.sendChatMessage('swap-swap-999', 'Let us start coding!', 'text')
+    })
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sender_id: 'user-1',
+        receiver_id: 'user-2',
+        message: 'Let us start coding!',
+        message_type: 'text',
+      })
+    )
   })
 })

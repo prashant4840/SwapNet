@@ -5,6 +5,7 @@ import { Button } from '@/components/common/Button'
 import { SkillChip } from '@/components/common/SkillChip'
 import { Avatar } from '@/components/common/Avatar'
 import { supabase } from '@/lib/supabase'
+import { cleanId } from '@/utils/app'
 import type { SkillEntry, SwapRequest, UserProfile } from '@/types'
 
 interface EndorseSkillsModalProps {
@@ -57,10 +58,10 @@ export function EndorseSkillsModal({
     setSaving(true)
     try {
       const rows = Array.from(selected).map((skillName) => ({
-        endorser_id: currentUserId,
-        endorsed_user_id: partner.id,
-        swap_request_id: swap.id,
-        skill_name: skillName,
+        endorser_id: cleanId(currentUserId),
+        endorsed_user_id: cleanId(partner.id),
+        swap_request_id: swap.id ? cleanId(swap.id) : null,
+        skill_name: skillName.trim(),
       }))
 
       const { error } = await supabase
